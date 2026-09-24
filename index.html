@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>농구 경기 기록 시스템 (시간 직접 수정 가능 버전)</title>
+  <title>농구 경기 기록 시스템 (선수 관리 및 타임라인 삭제 지원)</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel export -->
@@ -28,7 +28,7 @@
       </div>
       <div>
         <h1 class="font-extrabold text-lg text-slate-100 leading-tight">농구 경기 기록지 시스템</h1>
-        <p class="text-xs text-slate-400">시간 수정 가능 / 팀별 시트 엑셀 내보내기 지원</p>
+        <p class="text-xs text-slate-400">선수 수정·삭제 및 타임라인 개별 취소 완벽 지원</p>
       </div>
     </div>
 
@@ -49,73 +49,73 @@
   </header>
 
   <!-- Main Container -->
-  <main class="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-w-[1600px] w-full mx-auto">
+  <main class="flex-1 p-2 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 w-full max-w-none mx-auto">
     
     <!-- LEFT: HOME Team Panel -->
-    <section class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-xl p-3 flex flex-col shadow-lg">
+    <section class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
         <div class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-          <h2 id="homeTeamTitle" class="font-bold text-lg text-blue-400">HOME</h2>
+          <span class="w-3.5 h-3.5 rounded-full bg-blue-500"></span>
+          <h2 id="homeTeamTitle" class="font-black text-xl md:text-2xl text-blue-400 tracking-wide">HOME</h2>
         </div>
-        <button onclick="addPlayerPrompt('HOME')" class="bg-slate-700 hover:bg-slate-600 text-blue-300 text-xs px-2.5 py-1 rounded border border-blue-500/30 flex items-center gap-1 font-bold">
+        <button onclick="addPlayerPrompt('HOME')" class="bg-slate-700 hover:bg-slate-600 text-blue-300 text-xs px-3 py-1.5 rounded-lg border border-blue-500/30 flex items-center gap-1 font-bold transition">
           <i class="fa-solid fa-user-plus"></i> + 선수 추가
         </button>
       </div>
 
-      <div id="homePlayerList" class="flex-1 space-y-2 overflow-y-auto custom-scroll pr-1 max-h-[500px] lg:max-h-[none]">
+      <div id="homePlayerList" class="flex-1 space-y-2.5 overflow-y-auto custom-scroll pr-1 max-h-[500px] lg:max-h-[600px]">
       </div>
     </section>
 
     <!-- CENTER: Scoreboard & Timeline -->
     <section class="lg:col-span-6 flex flex-col gap-4">
-      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg text-center relative overflow-hidden">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-5 shadow-lg text-center relative overflow-hidden">
         <div class="flex justify-between items-center mb-2 text-xs font-bold text-slate-400">
-          <span id="matchTypeBadge" class="bg-slate-700 px-2 py-0.5 rounded text-orange-400">전체 기록 모드</span>
-          <span id="matchDateText">2026.09.25</span>
+          <span id="matchTypeBadge" class="bg-slate-700 px-2.5 py-1 rounded-md text-orange-400">전체 기록 모드</span>
+          <span id="matchDateText" class="text-sm">2026.09.25</span>
         </div>
 
-        <div class="grid grid-cols-3 items-center">
+        <div class="grid grid-cols-3 items-center my-2">
           <div class="flex flex-col items-center">
-            <span class="text-xs text-blue-400 font-bold mb-1" id="homeScoreLabel">HOME</span>
-            <span id="homeScoreDisplay" class="text-5xl md:text-6xl font-black text-white tracking-wider">0</span>
+            <span class="text-sm md:text-base text-blue-400 font-extrabold mb-1" id="homeScoreLabel">HOME</span>
+            <span id="homeScoreDisplay" class="text-6xl md:text-7xl font-black text-white tracking-wider">0</span>
           </div>
 
           <div class="flex flex-col items-center justify-center">
-            <div class="flex items-center gap-1 mb-2">
-              <button onclick="changeQuarter(-1)" class="text-slate-400 hover:text-white px-1"><i class="fa-solid fa-chevron-left"></i></button>
-              <span id="quarterDisplay" class="bg-orange-500/20 text-orange-400 font-extrabold text-sm px-3 py-1 rounded-full border border-orange-500/30">1Q</span>
-              <button onclick="changeQuarter(1)" class="text-slate-400 hover:text-white px-1"><i class="fa-solid fa-chevron-right"></i></button>
+            <div class="flex items-center gap-2 mb-2">
+              <button onclick="changeQuarter(-1)" class="text-slate-400 hover:text-white px-2 py-1 text-base"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="quarterDisplay" class="bg-orange-500/20 text-orange-400 font-black text-base md:text-lg px-4 py-1 rounded-full border border-orange-500/30">1Q</span>
+              <button onclick="changeQuarter(1)" class="text-slate-400 hover:text-white px-2 py-1 text-base"><i class="fa-solid fa-chevron-right"></i></button>
             </div>
             
             <!-- TIMER DISPLAY -->
-            <div onclick="editTimerManual()" title="클릭하여 남은 시간 직접 변경" class="text-3xl md:text-4xl font-mono font-bold text-amber-400 tracking-widest bg-slate-900/80 hover:bg-slate-900/100 cursor-pointer hover:border-amber-500/80 transition px-4 py-1.5 rounded-lg border border-slate-700 my-1 group relative">
+            <div onclick="editTimerManual()" title="클릭하여 남은 시간 직접 변경" class="text-3xl md:text-5xl font-mono font-bold text-amber-400 tracking-widest bg-slate-900/90 hover:bg-slate-900 cursor-pointer hover:border-amber-500 transition px-5 py-2 rounded-xl border border-slate-700 my-1 group relative">
               <span id="timerDisplay">10:00</span>
               <i class="fa-solid fa-pen-to-square text-xs text-amber-500/50 group-hover:text-amber-400 ml-1.5 transition"></i>
             </div>
 
-            <div class="flex gap-1 mt-2">
-              <button id="timerToggleBtn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded shadow">
+            <div class="flex gap-2 mt-2">
+              <button id="timerToggleBtn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-lg shadow">
                 <i class="fa-solid fa-play"></i> 시작
               </button>
-              <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold px-2.5 py-1 rounded">
+              <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs md:text-sm font-bold px-3 py-1.5 rounded-lg">
                 <i class="fa-solid fa-rotate-right"></i>
               </button>
             </div>
           </div>
 
           <div class="flex flex-col items-center">
-            <span class="text-xs text-red-400 font-bold mb-1" id="awayScoreLabel">AWAY</span>
-            <span id="awayScoreDisplay" class="text-5xl md:text-6xl font-black text-white tracking-wider">0</span>
+            <span class="text-sm md:text-base text-red-400 font-extrabold mb-1" id="awayScoreLabel">AWAY</span>
+            <span id="awayScoreDisplay" class="text-6xl md:text-7xl font-black text-white tracking-wider">0</span>
           </div>
         </div>
       </div>
 
       <!-- Live Timeline Log -->
-      <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex-1 flex flex-col min-h-[220px]">
-        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700 text-xs font-bold text-slate-300">
-          <span><i class="fa-solid fa-list-ul text-orange-500 mr-1"></i> 경기 타임라인 (최신순)</span>
-          <span id="logCount" class="text-slate-500">총 0개 기록</span>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-4 flex-1 flex flex-col min-h-[220px]">
+        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700 text-xs md:text-sm font-bold text-slate-300">
+          <span><i class="fa-solid fa-list-ul text-orange-500 mr-1.5"></i> 경기 타임라인 (최신순 - 우측 ❌ 클릭 시 취소)</span>
+          <span id="logCount" class="text-slate-500 font-normal">총 0개 기록</span>
         </div>
         <div id="timelineLog" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[260px] pr-1">
           <div class="text-center text-xs text-slate-500 py-8">선수를 터치하여 경기 스탯을 기록해보세요.</div>
@@ -124,48 +124,48 @@
     </section>
 
     <!-- RIGHT: AWAY Team Panel -->
-    <section class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-xl p-3 flex flex-col shadow-lg">
+    <section class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
         <div class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-red-500"></span>
-          <h2 id="awayTeamTitle" class="font-bold text-lg text-red-400">AWAY</h2>
+          <span class="w-3.5 h-3.5 rounded-full bg-red-500"></span>
+          <h2 id="awayTeamTitle" class="font-black text-xl md:text-2xl text-red-400 tracking-wide">AWAY</h2>
         </div>
-        <button id="awayAddPlayerBtn" onclick="addPlayerPrompt('AWAY')" class="bg-slate-700 hover:bg-slate-600 text-red-300 text-xs px-2.5 py-1 rounded border border-red-500/30 flex items-center gap-1 font-bold">
+        <button id="awayAddPlayerBtn" onclick="addPlayerPrompt('AWAY')" class="bg-slate-700 hover:bg-slate-600 text-red-300 text-xs px-3 py-1.5 rounded-lg border border-red-500/30 flex items-center gap-1 font-bold transition">
           <i class="fa-solid fa-user-plus"></i> + 선수 추가
         </button>
       </div>
 
-      <div id="awayPlayerList" class="flex-1 space-y-2 overflow-y-auto custom-scroll pr-1 max-h-[500px] lg:max-h-[none]">
+      <div id="awayPlayerList" class="flex-1 space-y-2.5 overflow-y-auto custom-scroll pr-1 max-h-[500px] lg:max-h-[600px]">
       </div>
     </section>
 
     <!-- BOTTOM: Box Score -->
     <section class="lg:col-span-12 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg overflow-hidden">
       <div class="flex justify-between items-center mb-3">
-        <h3 class="font-extrabold text-slate-200 text-sm flex items-center gap-2">
+        <h3 class="font-extrabold text-slate-200 text-sm md:text-base flex items-center gap-2">
           <i class="fa-solid fa-chart-simple text-orange-500"></i> 실시간 스탯 요약 (박스스코어)
         </h3>
         <div class="text-xs text-slate-400">FG% = 야투 성공률 | FT% = 자유투 성공률</div>
       </div>
 
       <div class="overflow-x-auto custom-scroll">
-        <table class="w-full text-xs text-center border-collapse">
+        <table class="w-full text-xs md:text-sm text-center border-collapse">
           <thead>
             <tr class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-700">
-              <th class="py-2 px-2 text-left">선수</th>
-              <th class="py-2 px-1">PTS</th>
-              <th class="py-2 px-1">2PM-A</th>
-              <th class="py-2 px-1">3PM-A</th>
-              <th class="py-2 px-1">FTM-A</th>
-              <th class="py-2 px-1">FG%</th>
-              <th class="py-2 px-1">DREB</th>
-              <th class="py-2 px-1">OREB</th>
-              <th class="py-2 px-1">REB</th>
-              <th class="py-2 px-1">AST</th>
-              <th class="py-2 px-1">STL</th>
-              <th class="py-2 px-1">BLK</th>
-              <th class="py-2 px-1">TO</th>
-              <th class="py-2 px-1">PF</th>
+              <th class="py-2.5 px-3 text-left">선수</th>
+              <th class="py-2.5 px-1.5">PTS</th>
+              <th class="py-2.5 px-1.5">2PM-A</th>
+              <th class="py-2.5 px-1.5">3PM-A</th>
+              <th class="py-2.5 px-1.5">FTM-A</th>
+              <th class="py-2.5 px-1.5">FG%</th>
+              <th class="py-2.5 px-1.5">DREB</th>
+              <th class="py-2.5 px-1.5">OREB</th>
+              <th class="py-2.5 px-1.5">REB</th>
+              <th class="py-2.5 px-1.5">AST</th>
+              <th class="py-2.5 px-1.5">STL</th>
+              <th class="py-2.5 px-1.5">BLK</th>
+              <th class="py-2.5 px-1.5">TO</th>
+              <th class="py-2.5 px-1.5">PF</th>
             </tr>
           </thead>
           <tbody id="boxScoreTableBody" class="divide-y divide-slate-700/50">
@@ -180,71 +180,80 @@
   <div id="statModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
-        <div>
+        <div class="flex items-center gap-2">
           <span id="modalTeamBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">HOME</span>
-          <h3 id="modalPlayerName" class="text-xl font-black text-white mt-0.5">#7 이승준</h3>
+          <h3 id="modalPlayerName" class="text-xl font-black text-white">#7 이승준</h3>
         </div>
-        <button onclick="closeModal('statModal')" class="text-slate-400 hover:text-white p-1 text-lg">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="flex items-center gap-1">
+          <!-- 선수 수정 및 삭제 버튼 -->
+          <button onclick="editActivePlayer()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2.5 py-1 rounded font-bold transition">
+            <i class="fa-solid fa-pen"></i> 수정
+          </button>
+          <button onclick="deleteActivePlayer()" class="bg-rose-900/80 hover:bg-rose-700 text-rose-200 text-xs px-2.5 py-1 rounded font-bold transition">
+            <i class="fa-solid fa-trash"></i> 삭제
+          </button>
+          <button onclick="closeModal('statModal')" class="text-slate-400 hover:text-white p-1 ml-1 text-lg">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-2 gap-2.5 my-4">
-        <button onclick="handleStatClick('2PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold flex flex-col items-center shadow">
-          <span class="text-lg">2점 성공 +2</span>
+        <button onclick="handleStatClick('2PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold flex flex-col items-center justify-center shadow min-h-[50px]">
+          <span class="text-base md:text-lg leading-tight">2점 성공 +2</span>
           <span class="text-[10px] text-emerald-200 font-normal">어시스트 연계</span>
         </button>
-        <button onclick="handleStatClick('2PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-3 rounded-xl font-bold flex flex-col items-center border border-rose-700/50">
-          <span class="text-lg">2점 실패</span>
+        <button onclick="handleStatClick('2PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-3 rounded-xl font-bold flex flex-col items-center justify-center border border-rose-700/50 min-h-[50px]">
+          <span class="text-base md:text-lg leading-tight">2점 실패</span>
           <span class="text-[10px] text-rose-300 font-normal">리바운드 연계</span>
         </button>
 
-        <button onclick="handleStatClick('3PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold flex flex-col items-center shadow">
-          <span class="text-lg">3점 성공 +3</span>
+        <button onclick="handleStatClick('3PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold flex flex-col items-center justify-center shadow min-h-[50px]">
+          <span class="text-base md:text-lg leading-tight">3점 성공 +3</span>
           <span class="text-[10px] text-emerald-200 font-normal">어시스트 연계</span>
         </button>
-        <button onclick="handleStatClick('3PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-3 rounded-xl font-bold flex flex-col items-center border border-rose-700/50">
-          <span class="text-lg">3점 실패</span>
+        <button onclick="handleStatClick('3PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-3 rounded-xl font-bold flex flex-col items-center justify-center border border-rose-700/50 min-h-[50px]">
+          <span class="text-base md:text-lg leading-tight">3점 실패</span>
           <span class="text-[10px] text-rose-300 font-normal">리바운드 연계</span>
         </button>
 
-        <button onclick="handleStatClick('FT_MADE')" class="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('FT_MADE')" class="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl font-bold min-h-[44px]">
           자유투 성공 +1
         </button>
-        <button onclick="handleStatClick('FT_MISS')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('FT_MISS')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 p-2.5 rounded-xl font-bold min-h-[44px]">
           자유투 실패
         </button>
 
-        <button onclick="handleStatClick('DEF_REB')" class="bg-cyan-700 hover:bg-cyan-600 text-white p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('DEF_REB')" class="bg-cyan-700 hover:bg-cyan-600 text-white p-2.5 rounded-xl font-bold min-h-[44px]">
           수비 리바운드
         </button>
-        <button onclick="handleStatClick('OFF_REB')" class="bg-teal-700 hover:bg-teal-600 text-white p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('OFF_REB')" class="bg-teal-700 hover:bg-teal-600 text-white p-2.5 rounded-xl font-bold min-h-[44px]">
           공격 리바운드
         </button>
 
-        <button onclick="handleStatClick('AST')" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('AST')" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl font-bold min-h-[44px]">
           어시스트 (도움)
         </button>
-        <button onclick="handleStatClick('STL')" class="bg-amber-600 hover:bg-amber-500 text-white p-2.5 rounded-xl font-bold flex flex-col items-center">
+        <button onclick="handleStatClick('STL')" class="bg-amber-600 hover:bg-amber-500 text-white p-2.5 rounded-xl font-bold flex flex-col items-center justify-center min-h-[44px]">
           <span>스틸</span>
           <span class="text-[10px] text-amber-200 font-normal">상대 턴오버 연계</span>
         </button>
 
-        <button onclick="handleStatClick('BLK')" class="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl font-bold flex flex-col items-center">
+        <button onclick="handleStatClick('BLK')" class="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl font-bold flex flex-col items-center justify-center min-h-[44px]">
           <span>블락슛</span>
           <span class="text-[10px] text-purple-200 font-normal">상대 야투실패 연계</span>
         </button>
-        <button onclick="handleStatClick('TO')" class="bg-orange-800 hover:bg-orange-700 text-orange-100 p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('TO')" class="bg-orange-800 hover:bg-orange-700 text-orange-100 p-2.5 rounded-xl font-bold min-h-[44px]">
           턴오버 (실책)
         </button>
 
-        <button onclick="handleStatClick('FOUL')" class="bg-red-700 hover:bg-red-600 text-white col-span-2 p-2.5 rounded-xl font-bold">
+        <button onclick="handleStatClick('FOUL')" class="bg-red-700 hover:bg-red-600 text-white col-span-2 p-2.5 rounded-xl font-bold min-h-[44px]">
           파울 (반칙)
         </button>
       </div>
 
       <div class="text-right">
-        <button onclick="closeModal('statModal')" class="text-xs text-slate-400 hover:text-slate-200 underline">닫기</button>
+        <button onclick="closeModal('statModal')" class="text-xs text-slate-400 hover:text-slate-200 underline p-1">닫기</button>
       </div>
     </div>
   </div>
@@ -492,18 +501,18 @@
         card.innerHTML = `
           <div class="font-bold text-red-400 text-sm mb-2">${m.awayTeam} 팀 스탯 직접 누적</div>
           <div class="grid grid-cols-2 gap-2 text-xs">
-            <button onclick="quickAddAwayStat('2PT_MADE', 2)" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded font-bold">2점 성공 (+2)</button>
-            <button onclick="quickAddAwayStat('2PT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded">2점 실패</button>
-            <button onclick="quickAddAwayStat('3PT_MADE', 3)" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded font-bold">3점 성공 (+3)</button>
-            <button onclick="quickAddAwayStat('3PT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded">3점 실패</button>
-            <button onclick="quickAddAwayStat('FT_MADE', 1)" class="bg-blue-700 hover:bg-blue-600 text-white py-2 rounded font-bold">자유투 성공 (+1)</button>
-            <button onclick="quickAddAwayStat('FT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded">자유투 실패</button>
-            <button onclick="quickAddAwayStat('DEF_REB', 0)" class="bg-cyan-800 hover:bg-cyan-700 text-white py-2 rounded">수비 리바</button>
-            <button onclick="quickAddAwayStat('OFF_REB', 0)" class="bg-teal-800 hover:bg-teal-700 text-white py-2 rounded">공격 리바</button>
-            <button onclick="quickAddAwayStat('AST', 0)" class="bg-indigo-700 hover:bg-indigo-600 text-white py-2 rounded">어시스트</button>
-            <button onclick="quickAddAwayStat('STL', 0)" class="bg-amber-700 hover:bg-amber-600 text-white py-2 rounded">스틸</button>
-            <button onclick="quickAddAwayStat('BLK', 0)" class="bg-purple-700 hover:bg-purple-600 text-white py-2 rounded">블락</button>
-            <button onclick="quickAddAwayStat('TO', 0)" class="bg-orange-800 hover:bg-orange-700 text-white py-2 rounded">턴오버</button>
+            <button onclick="quickAddAwayStat('2PT_MADE', 2)" class="bg-emerald-700 hover:bg-emerald-600 text-white min-h-[44px] px-1 py-2 rounded font-bold flex items-center justify-center leading-tight">2점 성공 (+2)</button>
+            <button onclick="quickAddAwayStat('2PT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">2점 실패</button>
+            <button onclick="quickAddAwayStat('3PT_MADE', 3)" class="bg-emerald-700 hover:bg-emerald-600 text-white min-h-[44px] px-1 py-2 rounded font-bold flex items-center justify-center leading-tight">3점 성공 (+3)</button>
+            <button onclick="quickAddAwayStat('3PT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">3점 실패</button>
+            <button onclick="quickAddAwayStat('FT_MADE', 1)" class="bg-blue-700 hover:bg-blue-600 text-white min-h-[44px] px-1 py-2 rounded font-bold flex items-center justify-center leading-tight">자유투 성공 (+1)</button>
+            <button onclick="quickAddAwayStat('FT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">자유투 실패</button>
+            <button onclick="quickAddAwayStat('DEF_REB', 0)" class="bg-cyan-800 hover:bg-cyan-700 text-white min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">수비 리바</button>
+            <button onclick="quickAddAwayStat('OFF_REB', 0)" class="bg-teal-800 hover:bg-teal-700 text-white min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">공격 리바</button>
+            <button onclick="quickAddAwayStat('AST', 0)" class="bg-indigo-700 hover:bg-indigo-600 text-white min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">어시스트</button>
+            <button onclick="quickAddAwayStat('STL', 0)" class="bg-amber-700 hover:bg-amber-600 text-white min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">스틸</button>
+            <button onclick="quickAddAwayStat('BLK', 0)" class="bg-purple-700 hover:bg-purple-600 text-white min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">블락</button>
+            <button onclick="quickAddAwayStat('TO', 0)" class="bg-orange-800 hover:bg-orange-700 text-white min-h-[44px] px-1 py-2 rounded flex items-center justify-center leading-tight">턴오버</button>
           </div>
         `;
         container.appendChild(card);
@@ -513,9 +522,14 @@
       document.getElementById('awayAddPlayerBtn').style.display = 'block';
 
       players.forEach(p => {
-        const qKey = `${p.id}_q${m.quarter}`;
-        const pStats = m.stats[qKey] || getEmptyStat();
-        const pts = (pStats['2PT_MADE'] || 0) * 2 + (pStats['3PT_MADE'] || 0) * 3 + (pStats['FT_MADE'] || 0);
+        let pts = 0, reb = 0, ast = 0, pf = 0;
+        for (let q = 1; q <= 4; q++) {
+          const pStats = m.stats[`${p.id}_q${q}`] || getEmptyStat();
+          pts += (pStats['2PT_MADE'] || 0) * 2 + (pStats['3PT_MADE'] || 0) * 3 + (pStats['FT_MADE'] || 0);
+          reb += (pStats.DEF_REB || 0) + (pStats.OFF_REB || 0);
+          ast += (pStats.AST || 0);
+          pf += (pStats.FOUL || 0);
+        }
 
         const div = document.createElement('div');
         div.onclick = () => openStatModal(p, team);
@@ -523,13 +537,13 @@
         
         div.innerHTML = `
           <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg ${isHome ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'bg-red-600/30 text-red-300 border border-red-500/40'} flex items-center justify-center font-black text-sm">
+            <span class="w-8 h-8 rounded-lg ${isHome ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'bg-red-600/30 text-red-300 border border-red-500/40'} flex items-center justify-center font-black text-sm shrink-0">
               ${p.number}
             </span>
             <div>
               <div class="font-extrabold text-sm text-slate-100 group-hover:text-orange-400 transition">${p.name}</div>
               <div class="text-[10px] text-slate-400 mt-0.5">
-                PTS: <b class="text-orange-400">${pts}</b> | REB: ${pStats.DEF_REB + pStats.OFF_REB} | AST: ${pStats.AST} | PF: ${pStats.FOUL}
+                PTS: <b class="text-orange-400">${pts}</b> | REB: ${reb} | AST: ${ast} | PF: ${pf}
               </div>
             </div>
           </div>
@@ -541,17 +555,54 @@
 
     function addPlayerPrompt(team) {
       const num = prompt(`${team} 팀 선수의 등번호를 입력하세요:`);
-      if (!num) return;
+      if (num === null) return;
       const name = prompt(`${team} 팀 선수의 이름을 입력하세요:`);
       if (!name) return;
 
       const m = matches[currentMatchId];
-      const newP = { id: (team === 'HOME' ? 'h_' : 'a_') + Date.now(), number: num, name: name };
+      const newP = { id: (team === 'HOME' ? 'h_' : 'a_') + Date.now(), number: num.trim(), name: name.trim() };
       if (team === 'HOME') m.homePlayers.push(newP);
       else m.awayPlayers.push(newP);
 
       saveToLocalStorage();
       renderCurrentMatch();
+    }
+
+    /* 1. 선수 수정 및 삭제 기능 구현 */
+    function editActivePlayer() {
+      if (!activePlayer) return;
+      const newNum = prompt("수정할 등번호를 입력하세요:", activePlayer.number);
+      if (newNum === null) return;
+      const newName = prompt("수정할 이름을 입력하세요:", activePlayer.name);
+      if (!newName) return;
+
+      const m = matches[currentMatchId];
+      const targetList = activePlayer.team === 'HOME' ? m.homePlayers : m.awayPlayers;
+      const player = targetList.find(p => p.id === activePlayer.id);
+      
+      if (player) {
+        player.number = newNum.trim();
+        player.name = newName.trim();
+        saveToLocalStorage();
+        renderCurrentMatch();
+        closeModal('statModal');
+      }
+    }
+
+    function deleteActivePlayer() {
+      if (!activePlayer) return;
+      if (confirm(`'#${activePlayer.number} ${activePlayer.name}' 선수를 삭제하시겠습니까?\n해당 선수의 스탯 기록도 삭제됩니다.`)) {
+        const m = matches[currentMatchId];
+        if (activePlayer.team === 'HOME') {
+          m.homePlayers = m.homePlayers.filter(p => p.id !== activePlayer.id);
+        } else {
+          m.awayPlayers = m.awayPlayers.filter(p => p.id !== activePlayer.id);
+        }
+        
+        saveToLocalStorage();
+        renderCurrentMatch();
+        closeModal('statModal');
+      }
     }
 
     function openStatModal(player, team) {
@@ -626,13 +677,41 @@
       };
 
       const msg = customMsg || `${m.quarter}Q [${team}] ${pNum} ${pName} - ${labelMap[statType] || statType}`;
-      m.logs.unshift({ time: getCurrentFormattedTime(), text: msg });
+      const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+
+      m.logs.unshift({
+        id: logId,
+        quarter: m.quarter,
+        playerId: playerId,
+        statType: statType,
+        time: getCurrentFormattedTime(),
+        text: msg
+      });
 
       saveToLocalStorage();
       renderCurrentMatch();
     }
 
-    function quickAddAwayStat(statType) {
+    /* 2. 타임라인 기록 삭제 & 스탯 차감 기능 구현 */
+    function deleteLog(logId) {
+      const m = matches[currentMatchId];
+      const targetLogIndex = m.logs.findIndex(l => l.id === logId);
+      if (targetLogIndex === -1) return;
+
+      const targetLog = m.logs[targetLogIndex];
+      if (confirm(`'${targetLog.text}' 기록을 취소/삭제하시겠습니까?`)) {
+        const qKey = `${targetLog.playerId}_q${targetLog.quarter}`;
+        if (m.stats[qKey] && m.stats[qKey][targetLog.statType] > 0) {
+          m.stats[qKey][targetLog.statType] -= 1;
+        }
+
+        m.logs.splice(targetLogIndex, 1);
+        saveToLocalStorage();
+        renderCurrentMatch();
+      }
+    }
+
+    function quickAddAwayStat(statType, pts = 0) {
       const m = matches[currentMatchId];
       const p = m.awayPlayers[0];
       applyStat(p.id, 'AWAY', statType, `${m.quarter}Q [AWAY ${m.awayTeam}] ${statType} 누적`);
@@ -861,7 +940,12 @@
         item.className = 'text-xs p-2 bg-slate-900/80 border border-slate-700/60 rounded-lg flex justify-between items-center text-slate-300';
         item.innerHTML = `
           <span>${log.text}</span>
-          <span class="text-[10px] text-slate-500 font-mono">${log.time}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-slate-500 font-mono">${log.time}</span>
+            <button onclick="deleteLog('${log.id}')" class="text-slate-500 hover:text-rose-400 p-1 transition" title="이 스탯 기록 삭제/취소">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
         `;
         container.appendChild(item);
       });
@@ -879,11 +963,11 @@
         clearInterval(timerInterval);
         isTimerRunning = false;
         document.getElementById('timerToggleBtn').innerHTML = `<i class="fa-solid fa-play"></i> 시작`;
-        document.getElementById('timerToggleBtn').className = 'bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded shadow';
+        document.getElementById('timerToggleBtn').className = 'bg-emerald-600 hover:bg-emerald-500 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-lg shadow';
       } else {
         isTimerRunning = true;
         document.getElementById('timerToggleBtn').innerHTML = `<i class="fa-solid fa-pause"></i> 일시정지`;
-        document.getElementById('timerToggleBtn').className = 'bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded shadow';
+        document.getElementById('timerToggleBtn').className = 'bg-amber-600 hover:bg-amber-500 text-white text-xs md:text-sm font-bold px-4 py-1.5 rounded-lg shadow';
         timerInterval = setInterval(() => {
           const m = matches[currentMatchId];
           if (m.timerSeconds > 0) {
@@ -943,11 +1027,12 @@
       return now.toTimeString().split(' ')[0];
     }
 
+    // EXCEL EXPORT (홈/어웨이 시트 분리 & 서식 적용)
     function exportToExcel() {
       const m = matches[currentMatchId];
       const wb = XLSX.utils.book_new();
 
-      const createTeamHtmlTable = (teamName, players) => {
+      const createTeamHtmlTable = (teamName, players, teamTag) => {
         let html = `<table border="1" style="border-collapse:collapse; text-align:center; font-family: Pretendard, sans-serif;">`;
         
         html += `
@@ -1048,12 +1133,12 @@
       };
 
       const homeTableElem = document.createElement('div');
-      homeTableElem.innerHTML = createTeamHtmlTable(m.homeTeam, m.homePlayers);
+      homeTableElem.innerHTML = createTeamHtmlTable(m.homeTeam, m.homePlayers, 'HOME');
       const wsHome = XLSX.utils.table_to_sheet(homeTableElem.querySelector('table'));
       XLSX.utils.book_append_sheet(wb, wsHome, `${m.homeTeam.substring(0, 10)} (홈)`);
 
       const awayTableElem = document.createElement('div');
-      awayTableElem.innerHTML = createTeamHtmlTable(m.awayTeam, m.awayPlayers);
+      awayTableElem.innerHTML = createTeamHtmlTable(m.awayTeam, m.awayPlayers, 'AWAY');
       const wsAway = XLSX.utils.table_to_sheet(awayTableElem.querySelector('table'));
       XLSX.utils.book_append_sheet(wb, wsAway, `${m.awayTeam.substring(0, 10)} (어웨이)`);
 
