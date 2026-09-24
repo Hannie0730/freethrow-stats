@@ -18,7 +18,13 @@
     .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none relative">
+
+  <!-- Toast Alert Notification (확인창 대신 뜨는 간편 알림) -->
+  <div id="toastNotification" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-rose-600 text-white font-bold text-sm md:text-base px-6 py-3 rounded-2xl shadow-2xl border border-rose-400 z-50 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-xl"></i>
+    <span id="toastMessage">기록이 삭제되었습니다.</span>
+  </div>
 
   <!-- Header -->
   <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex flex-wrap justify-between items-center gap-3">
@@ -48,10 +54,10 @@
     </div>
   </header>
 
-  <!-- Main Container (선수 영역 확대: col-span-4, 가운데 축소: col-span-4) -->
+  <!-- Main Container -->
   <main class="flex-1 p-2 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 w-full max-w-none mx-auto">
     
-    <!-- LEFT: HOME Team Panel (너비 확대) -->
+    <!-- LEFT: HOME Team Panel -->
     <section class="lg:col-span-4 bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
         <div class="flex items-center gap-2">
@@ -68,7 +74,7 @@
       </div>
     </section>
 
-    <!-- CENTER: Scoreboard & Timeline (너비 축소) -->
+    <!-- CENTER: Scoreboard & Timeline -->
     <section class="lg:col-span-4 flex flex-col gap-4">
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 md:p-5 shadow-lg text-center relative overflow-hidden">
         <div class="flex justify-between items-center mb-2 text-xs font-bold text-slate-400">
@@ -112,7 +118,7 @@
         </div>
       </div>
 
-      <!-- Live Timeline Log (폰트 확대 & X버튼 대폭 확대) -->
+      <!-- Live Timeline Log -->
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-4 flex-1 flex flex-col min-h-[220px]">
         <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700 text-sm font-bold text-slate-300">
           <span><i class="fa-solid fa-list-ul text-orange-500 mr-1.5"></i> 경기 타임라인</span>
@@ -124,7 +130,7 @@
       </div>
     </section>
 
-    <!-- RIGHT: AWAY Team Panel (너비 확대) -->
+    <!-- RIGHT: AWAY Team Panel -->
     <section class="lg:col-span-4 bg-slate-800 border border-slate-700 rounded-xl p-3 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
         <div class="flex items-center gap-2">
@@ -260,7 +266,7 @@
     </div>
   </div>
 
-  <!-- MODAL: Linked Smart Action Selection (연계 버튼 크기 2배 대폭 확대) -->
+  <!-- MODAL: Linked Smart Action Selection -->
   <div id="linkedModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 md:p-4">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-6 md:p-8 shadow-2xl">
       <h3 id="linkedModalTitle" class="text-2xl font-black text-orange-400 mb-1">연계 플레이 선택</h3>
@@ -321,6 +327,7 @@
     let currentMatchId = null;
     let timerInterval = null;
     let isTimerRunning = false;
+    let toastTimeout = null;
 
     let pendingEvent = null; 
     let activePlayer = null;
@@ -383,6 +390,22 @@
       const savedId = localStorage.getItem('bb_currentMatchId_v2');
       if (savedMatches) matches = JSON.parse(savedMatches);
       if (savedId && matches[savedId]) currentMatchId = savedId;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      toastMsg.textContent = msg;
+
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 1000);
     }
 
     function selectMatchMode(mode) {
@@ -684,29 +707,36 @@
         playerId: playerId,
         statType: statType,
         time: getCurrentFormattedTime(),
-        text: msg
+        text: msg,
+        rawPlayerName: pName,
+        rawStatLabel: labelMap[statType] || statType
       });
 
       saveToLocalStorage();
       renderCurrentMatch();
     }
 
+    /* confirm() 확인창 없이 즉시 삭제 + 토스트 알림 띄우기 */
     function deleteLog(logId) {
       const m = matches[currentMatchId];
       const targetLogIndex = m.logs.findIndex(l => l.id === logId);
       if (targetLogIndex === -1) return;
 
       const targetLog = m.logs[targetLogIndex];
-      if (confirm(`'${targetLog.text}' 기록을 취소/삭제하시겠습니까?`)) {
-        const qKey = `${targetLog.playerId}_q${targetLog.quarter}`;
-        if (m.stats[qKey] && m.stats[qKey][targetLog.statType] > 0) {
-          m.stats[qKey][targetLog.statType] -= 1;
-        }
 
-        m.logs.splice(targetLogIndex, 1);
-        saveToLocalStorage();
-        renderCurrentMatch();
+      const qKey = `${targetLog.playerId}_q${targetLog.quarter}`;
+      if (m.stats[qKey] && m.stats[qKey][targetLog.statType] > 0) {
+        m.stats[qKey][targetLog.statType] -= 1;
       }
+
+      m.logs.splice(targetLogIndex, 1);
+      saveToLocalStorage();
+      renderCurrentMatch();
+
+      // "이승준 블락슛 기록 삭제되었습니다" 형태 알림
+      const pName = targetLog.rawPlayerName || '선수';
+      const sLabel = targetLog.rawStatLabel || '스탯';
+      showToast(`${pName} ${sLabel} 기록이 취소되었습니다.`);
     }
 
     function quickAddAwayStat(statType, pts = 0) {
@@ -715,7 +745,6 @@
       applyStat(p.id, 'AWAY', statType, `${m.quarter}Q [AWAY ${m.awayTeam}] ${statType} 누적`);
     }
 
-    /* 연계 플레이 버튼을 2배 크기로 확대 (min-h-[96px], text-xl) */
     function openLinkedAssistModal(team, scorerId) {
       const m = matches[currentMatchId];
       const sameTeamPlayers = (team === 'HOME' ? m.homePlayers : m.awayPlayers).filter(p => p.id !== scorerId);
@@ -929,7 +958,6 @@
       document.getElementById('awayScoreDisplay').textContent = awayTotScore;
     }
 
-    /* 타임라인 폰트 확대 & X 삭제 버튼 대폭 확대 */
     function renderTimelineLogs() {
       const m = matches[currentMatchId];
       const container = document.getElementById('timelineLog');
