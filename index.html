@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>농구 경기 기록 시스템 (시간 직접 수정 가능 버전)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body { font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+    <div class="flex items-center gap-3">
+      <div class="bg-orange-500 text-white p-2 rounded-lg font-black text-xl shadow">
+        <i class="fa-solid font-bold fa-basketball"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-lg text-slate-100 leading-tight">농구 경기 기록지 시스템</h1>
+        <p class="text-xs text-slate-400">시간 수정 가능 / 팀별 시트 엑셀 내보내기 지원</p>
+      </div>
+    </div>
+
+    <!-- Match Controller -->
+    <div class="flex items-center gap-2">
+      <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500">
+      </select>
+      <button onclick="openNewMatchModal()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-1 shadow transition">
+        <i class="fa-solid fa-plus"></i> 새 경기
+      </button>
+      <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center gap-1 shadow transition">
+        <i class="fa-solid fa-file-excel"></i> 엑셀 내보내기 (팀별 시트)
+      </button>
+      <button onclick="deleteCurrentMatch()" class="bg-rose-800 hover:bg-rose-700 text-white text-xs px-2.5 py-2 rounded-lg font-bold transition" title="현재 경기 삭제">
+        <i class="fa-solid fa-trash-can"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 max-w-[1600px] w-full mx-auto">
+    
+    <!-- LEFT: HOME Team Panel -->
+    <section class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-xl p-3 flex flex-col shadow-lg">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+          <h2 id="homeTeamTitle" class="font-bold text-lg text-blue-400">HOME</h2>
+        </div>
+        <button onclick="addPlayerPrompt('HOME')" class="bg-slate-700 hover:bg-slate-600 text-blue-300 text-xs px-2.5 py-1 rounded border border-blue-500/30 flex items-center gap-1 font-bold">
+          <i class="fa-solid fa-user-plus"></i> + 선수 추가
+        </button>
+      </div>
+
+      <div id="homePlayerList" class="flex-1 space-y-2 overflow-y-auto custom-scroll pr-1 max-h-[500px] lg:max-h-[none]">
+      </div>
+    </section>
+
+    <!-- CENTER: Scoreboard & Timeline -->
+    <section class="lg:col-span-6 flex flex-col gap-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg text-center relative overflow-hidden">
+        <div class="flex justify-between items-center mb-2 text-xs font-bold text-slate-400">
+          <span id="matchTypeBadge" class="bg-slate-700 px-2 py-0.5 rounded text-orange-400">전체 기록 모드</span>
+          <span id="matchDateText">2026.09.25</span>
+        </div>
+
+        <div class="grid grid-cols-3 items-center">
+          <div class="flex flex-col items-center">
+            <span class="text-xs text-blue-400 font-bold mb-1" id="homeScoreLabel">HOME</span>
+            <span id="homeScoreDisplay" class="text-5xl md:text-6xl font-black text-white tracking-wider">0</span>
+          </div>
+
+          <div class="flex flex-col items-center justify-center">
+            <div class="flex items-center gap-1 mb-2">
+              <button onclick="changeQuarter(-1)" class="text-slate-400 hover:text-white px-1"><i class="fa-solid fa-chevron-left"></i></button>
+              <span id="quarterDisplay" class="bg-orange-500/20 text-orange-400 font-extrabold text-sm px-3 py-1 rounded-full border border-orange-500/30">1Q</span>
+              <button onclick="changeQuarter(1)" class="text-slate-400 hover:text-white px-1"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            
+            <!-- ⏱️ TIMER DISPLAY (터치 시 시간 직접 변경 가능) -->
+            <div onclick="editTimerManual()" title="클릭하여 남은 시간 직접 변경" class="text-3xl md:text-4xl font-mono font-bold text-amber-400 tracking-widest bg-slate-900/80 hover:bg-slate-900/100 cursor-pointer hover:border-amber-500/80 transition px-4 py-1.5 rounded-lg border border-slate-700 my-1 group relative">
+              <span id="timerDisplay">10:00</span>
+              <i class="fa-solid fa-pen-to-square text-xs text-amber-500/50 group-hover:text-amber-400 ml-1.5 transition"></i>
+            </div>
+
+            <div class="flex gap-1 mt-2">
+              <button id="timerToggleBtn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded shadow">
+                <i class="fa-solid fa-play"></i> 시작
+              </button>
+              <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold px-2.5 py-1 rounded">
+                <i class="fa-solid fa-rotate-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex flex-col items-center">
+            <span class="text-xs text-red-400 font-bold mb-1" id="awayScoreLabel">AWAY</span>
+            <span id="awayScoreDisplay" class="text-5xl md:text-6xl font-black text-white tracking-wider">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Timeline Log -->
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 flex-1 flex flex-col min-h-[220px]">
+        <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700 text-xs font-bold text-slate-300">
+          <span><i class="fa-solid fa-list-ul text-orange-500 mr-1"></i> 경기 타임라인 (최신순)</span>
+          <span id="logCount" class="text-slate-500">총 0개 기록</span>
+        </div>
+        <div id="timelineLog" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[260px] pr-1">
+          <div class="text-center text-xs text-slate-500 py-8">선수를 터치하여 경기 스탯을 기록해보세요.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: AWAY Team Panel -->
+    <section class="lg:col-span-3 bg-slate-800 border border-slate-700 rounded-xl p-3 flex flex-col shadow-lg">
+      <div class="flex justify-between items-center mb-3 pb-2 border-b border-slate-700">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-red-500"></span>
+          <h2 id="awayTeamTitle" class="font-bold text-lg text-red-400">AWAY</h2>
+        </div>
+        <button id="awayAddPlayerBtn" onclick="addPlayerPrompt('AWAY')" class="bg-slate-700 hover:bg-slate-600 text-red-300 text-xs px-2.5 py-1 rounded border border-red-500/30 flex items-center gap-1 font-bold">
+          <i class="fa-solid fa-user-plus"></i> + 선수 추가
+        </button>
+      </div>
+
+      <div id="awayPlayerList" class="flex-1 space-y-2 overflow-y-auto custom-scroll pr-1 max-h-[500px] lg:max-h-[none]">
+      </div>
+    </section>
+
+    <!-- BOTTOM: Box Score -->
+    <section class="lg:col-span-12 bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg overflow-hidden">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="font-extrabold text-slate-200 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-chart-simple text-orange-500"></i> 실시간 스탯 요약 (박스스코어)
+        </h3>
+        <div class="text-xs text-slate-400">FG% = 야투 성공률 | FT% = 자유투 성공률</div>
+      </div>
+
+      <div class="overflow-x-auto custom-scroll">
+        <table class="w-full text-xs text-center border-collapse">
+          <thead>
+            <tr class="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-700">
+              <th class="py-2 px-2 text-left">선수</th>
+              <th class="py-2 px-1">PTS</th>
+              <th class="py-2 px-1">2PM-A</th>
+              <th class="py-2 px-1">3PM-A</th>
+              <th class="py-2 px-1">FTM-A</th>
+              <th class="py-2 px-1">FG%</th>
+              <th class="py-2 px-1">DREB</th>
+              <th class="py-2 px-1">OREB</th>
+              <th class="py-2 px-1">REB</th>
+              <th class="py-2 px-1">AST</th>
+              <th class="py-2 px-1">STL</th>
+              <th class="py-2 px-1">BLK</th>
+              <th class="py-2 px-1">TO</th>
+              <th class="py-2 px-1">PF</th>
+            </tr>
+          </thead>
+          <tbody id="boxScoreTableBody" class="divide-y divide-slate-700/50">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Stat Input Pad -->
+  <div id="statModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+        <div>
+          <span id="modalTeamBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">HOME</span>
+          <h3 id="modalPlayerName" class="text-xl font-black text-white mt-0.5">#7 이승준</h3>
+        </div>
+        <button onclick="closeModal('statModal')" class="text-slate-400 hover:text-white p-1 text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 my-4">
+        <button onclick="handleStatClick('2PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold flex flex-col items-center shadow">
+          <span class="text-lg">2점 성공 +2</span>
+          <span class="text-[10px] text-emerald-200 font-normal">어시스트 연계</span>
+        </button>
+        <button onclick="handleStatClick('2PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-3 rounded-xl font-bold flex flex-col items-center border border-rose-700/50">
+          <span class="text-lg">2점 실패</span>
+          <span class="text-[10px] text-rose-300 font-normal">리바운드 연계</span>
+        </button>
+
+        <button onclick="handleStatClick('3PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-3 rounded-xl font-bold flex flex-col items-center shadow">
+          <span class="text-lg">3점 성공 +3</span>
+          <span class="text-[10px] text-emerald-200 font-normal">어시스트 연계</span>
+        </button>
+        <button onclick="handleStatClick('3PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-3 rounded-xl font-bold flex flex-col items-center border border-rose-700/50">
+          <span class="text-lg">3점 실패</span>
+          <span class="text-[10px] text-rose-300 font-normal">리바운드 연계</span>
+        </button>
+
+        <button onclick="handleStatClick('FT_MADE')" class="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-xl font-bold">
+          자유투 성공 +1
+        </button>
+        <button onclick="handleStatClick('FT_MISS')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 p-2.5 rounded-xl font-bold">
+          자유투 실패
+        </button>
+
+        <button onclick="handleStatClick('DEF_REB')" class="bg-cyan-700 hover:bg-cyan-600 text-white p-2.5 rounded-xl font-bold">
+          수비 리바운드
+        </button>
+        <button onclick="handleStatClick('OFF_REB')" class="bg-teal-700 hover:bg-teal-600 text-white p-2.5 rounded-xl font-bold">
+          공격 리바운드
+        </button>
+
+        <button onclick="handleStatClick('AST')" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl font-bold">
+          어시스트 (도움)
+        </button>
+        <button onclick="handleStatClick('STL')" class="bg-amber-600 hover:bg-amber-500 text-white p-2.5 rounded-xl font-bold flex flex-col items-center">
+          <span>스틸</span>
+          <span class="text-[10px] text-amber-200 font-normal">상대 턴오버 연계</span>
+        </button>
+
+        <button onclick="handleStatClick('BLK')" class="bg-purple-600 hover:bg-purple-500 text-white p-2.5 rounded-xl font-bold flex flex-col items-center">
+          <span>블락슛</span>
+          <span class="text-[10px] text-purple-200 font-normal">상대 야투실패 연계</span>
+        </button>
+        <button onclick="handleStatClick('TO')" class="bg-orange-800 hover:bg-orange-700 text-orange-100 p-2.5 rounded-xl font-bold">
+          턴오버 (실책)
+        </button>
+
+        <button onclick="handleStatClick('FOUL')" class="bg-red-700 hover:bg-red-600 text-white col-span-2 p-2.5 rounded-xl font-bold">
+          파울 (반칙)
+        </button>
+      </div>
+
+      <div class="text-right">
+        <button onclick="closeModal('statModal')" class="text-xs text-slate-400 hover:text-slate-200 underline">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Linked Smart Action Selection -->
+  <div id="linkedModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+      <h3 id="linkedModalTitle" class="text-base font-bold text-orange-400 mb-1">연계 플레이 선택</h3>
+      <p id="linkedModalSubtitle" class="text-xs text-slate-300 mb-4">어시스트를 기록한 선수를 선택하세요.</p>
+
+      <div id="linkedOptionsContainer" class="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scroll mb-4">
+      </div>
+
+      <div class="flex justify-between items-center border-t border-slate-700 pt-3">
+        <button onclick="skipLinkedAction()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-4 py-2 rounded-lg font-bold">
+          연계 없음 (건너뛰기)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Create New Match -->
+  <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+      <h3 class="text-lg font-extrabold text-white mb-4"><i class="fa-solid fa-basketball text-orange-500 mr-2"></i>새 경기 생성</h3>
+
+      <div class="space-y-4 text-sm">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 mb-1">경기 기록 방식 선택</label>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <button type="button" id="modeBtn1" onclick="selectMatchMode('FULL')" class="p-3 border-2 border-orange-500 bg-orange-500/10 rounded-xl text-left flex flex-col">
+              <span class="font-extrabold text-orange-400 text-sm mb-1">1. 양팀 전체 기록 모드</span>
+              <span class="text-xs text-slate-300">HOME / AWAY 두 팀 모두 개별 선수들을 등록하여 정밀하게 스탯 기록</span>
+            </button>
+            <button type="button" id="modeBtn2" onclick="selectMatchMode('SIMPLE')" class="p-3 border-2 border-slate-600 bg-slate-700/50 rounded-xl text-left flex flex-col">
+              <span class="font-extrabold text-slate-300 text-sm mb-1">2. 상대팀 간편 기록 모드</span>
+              <span class="text-xs text-slate-400">HOME팀은 상세 기록, AWAY팀은 선수 등록 없이 스탯 수치만 버튼으로 간편 추가</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1">HOME 팀명</label>
+            <input type="text" id="inputHomeTeam" value="블랙 (HOME)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-orange-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-400 mb-1">AWAY 팀명</label>
+            <input type="text" id="inputAwayTeam" value="화이트 (AWAY)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold focus:outline-none focus:border-orange-500">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <button onclick="closeModal('newMatchModal')" class="bg-slate-700 text-slate-300 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
+        <button onclick="createNewMatch()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-5 py-2 rounded-lg font-bold shadow">경기 생성 시작</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let matches = {};
+    let currentMatchId = null;
+    let timerInterval = null;
+    let isTimerRunning = false;
+
+    let pendingEvent = null; 
+    let activePlayer = null;
+
+    const DEFAULT_PLAYERS_HOME = [
+      { id: 'h1', number: '7', name: '이승준' },
+      { id: 'h2', number: '11', name: '이성호' },
+      { id: 'h3', number: '23', name: '채기호' },
+      { id: 'h4', number: '1', name: '안효빈' },
+      { id: 'h5', number: '99', name: '박종신' }
+    ];
+
+    const DEFAULT_PLAYERS_AWAY = [
+      { id: 'a1', number: '3', name: '김성한' },
+      { id: 'a2', number: '10', name: '최현우' },
+      { id: 'a3', number: '15', name: '정민재' },
+      { id: 'a4', number: '24', name: '강동원' },
+      { id: 'a5', number: '33', name: '윤서준' }
+    ];
+
+    let selectedNewMatchMode = 'FULL';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFromLocalStorage();
+      if (!matches || Object.keys(matches).length === 0) {
+        initDefaultMatch();
+      } else {
+        currentMatchId = Object.keys(matches)[0];
+      }
+      renderMatchSelectOptions();
+      renderCurrentMatch();
+    });
+
+    function initDefaultMatch() {
+      const matchId = 'match_' + Date.now();
+      matches[matchId] = {
+        id: matchId,
+        date: new Date().toISOString().split('T')[0],
+        mode: 'FULL',
+        homeTeam: '블랙 (HOME)',
+        awayTeam: '화이트 (AWAY)',
+        quarter: 1,
+        timerSeconds: 600,
+        homePlayers: JSON.parse(JSON.stringify(DEFAULT_PLAYERS_HOME)),
+        awayPlayers: JSON.parse(JSON.stringify(DEFAULT_PLAYERS_AWAY)),
+        stats: {},
+        logs: []
+      };
+      currentMatchId = matchId;
+      saveToLocalStorage();
+    }
+
+    function saveToLocalStorage() {
+      localStorage.setItem('bb_matches_v2', JSON.stringify(matches));
+      localStorage.setItem('bb_currentMatchId_v2', currentMatchId);
+    }
+
+    function loadFromLocalStorage() {
+      const savedMatches = localStorage.getItem('bb_matches_v2');
+      const savedId = localStorage.getItem('bb_currentMatchId_v2');
+      if (savedMatches) matches = JSON.parse(savedMatches);
+      if (savedId && matches[savedId]) currentMatchId = savedId;
+    }
+
+    function selectMatchMode(mode) {
+      selectedNewMatchMode = mode;
+      const b1 = document.getElementById('modeBtn1');
+      const b2 = document.getElementById('modeBtn2');
+      if (mode === 'FULL') {
+        b1.className = 'p-3 border-2 border-orange-500 bg-orange-500/10 rounded-xl text-left flex flex-col';
+        b2.className = 'p-3 border-2 border-slate-600 bg-slate-700/50 rounded-xl text-left flex flex-col';
+      } else {
+        b2.className = 'p-3 border-2 border-orange-500 bg-orange-500/10 rounded-xl text-left flex flex-col';
+        b1.className = 'p-3 border-2 border-slate-600 bg-slate-700/50 rounded-xl text-left flex flex-col';
+      }
+    }
+
+    function openNewMatchModal() {
+      selectMatchMode('FULL');
+      document.getElementById('newMatchModal').classList.remove('hidden');
+    }
+
+    function createNewMatch() {
+      const homeName = document.getElementById('inputHomeTeam').value.trim() || 'HOME';
+      const awayName = document.getElementById('inputAwayTeam').value.trim() || 'AWAY';
+      const matchId = 'match_' + Date.now();
+
+      matches[matchId] = {
+        id: matchId,
+        date: new Date().toISOString().split('T')[0],
+        mode: selectedNewMatchMode,
+        homeTeam: homeName,
+        awayTeam: awayName,
+        quarter: 1,
+        timerSeconds: 600,
+        homePlayers: JSON.parse(JSON.stringify(DEFAULT_PLAYERS_HOME)),
+        awayPlayers: selectedNewMatchMode === 'FULL' ? JSON.parse(JSON.stringify(DEFAULT_PLAYERS_AWAY)) : [{ id: 'away_team_guest', number: 'TEAM', name: awayName + ' (상대팀)' }],
+        stats: {},
+        logs: []
+      };
+
+      currentMatchId = matchId;
+      saveToLocalStorage();
+      renderMatchSelectOptions();
+      renderCurrentMatch();
+      closeModal('newMatchModal');
+    }
+
+    function switchMatch(id) {
+      if (matches[id]) {
+        currentMatchId = id;
+        saveToLocalStorage();
+        renderCurrentMatch();
+      }
+    }
+
+    function deleteCurrentMatch() {
+      if (Object.keys(matches).length <= 1) {
+        alert('최소 1개의 경기는 유지되어야 합니다.');
+        return;
+      }
+      if (confirm('현재 경기를 정말 삭제하시겠습니까?')) {
+        delete matches[currentMatchId];
+        currentMatchId = Object.keys(matches)[0];
+        saveToLocalStorage();
+        renderMatchSelectOptions();
+        renderCurrentMatch();
+      }
+    }
+
+    function renderMatchSelectOptions() {
+      const select = document.getElementById('matchSelect');
+      select.innerHTML = '';
+      Object.values(matches).forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `[${m.mode === 'FULL' ? '전체' : '간편'}] ${m.homeTeam} vs ${m.awayTeam} (${m.date})`;
+        if (m.id === currentMatchId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function renderCurrentMatch() {
+      const m = matches[currentMatchId];
+      if (!m) return;
+
+      document.getElementById('homeTeamTitle').textContent = m.homeTeam;
+      document.getElementById('awayTeamTitle').textContent = m.awayTeam;
+      document.getElementById('homeScoreLabel').textContent = m.homeTeam;
+      document.getElementById('awayScoreLabel').textContent = m.awayTeam;
+      document.getElementById('matchTypeBadge').textContent = m.mode === 'FULL' ? '양팀 전체기록' : '상대팀 간편기록';
+      document.getElementById('matchDateText').textContent = m.date;
+
+      document.getElementById('quarterDisplay').textContent = m.quarter + 'Q';
+      updateTimerDisplay();
+
+      renderPlayerRoster('HOME');
+      renderPlayerRoster('AWAY');
+
+      updateScoresAndBoxScore();
+      renderTimelineLogs();
+    }
+
+    function renderPlayerRoster(team) {
+      const m = matches[currentMatchId];
+      const isHome = team === 'HOME';
+      const container = document.getElementById(isHome ? 'homePlayerList' : 'awayPlayerList');
+      const players = isHome ? m.homePlayers : m.awayPlayers;
+      
+      container.innerHTML = '';
+
+      if (!isHome && m.mode === 'SIMPLE') {
+        document.getElementById('awayAddPlayerBtn').style.display = 'none';
+        const p = players[0] || { id: 'away_team_guest', number: 'TEAM', name: m.awayTeam };
+        const qKey = `${p.id}_q${m.quarter}`;
+        const pStats = m.stats[qKey] || getEmptyStat();
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900 border border-slate-700 rounded-xl p-3 shadow text-center space-y-2';
+        card.innerHTML = `
+          <div class="font-bold text-red-400 text-sm mb-2">${m.awayTeam} 팀 스탯 직접 누적</div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <button onclick="quickAddAwayStat('2PT_MADE', 2)" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded font-bold">2점 성공 (+2)</button>
+            <button onclick="quickAddAwayStat('2PT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded">2점 실패</button>
+            <button onclick="quickAddAwayStat('3PT_MADE', 3)" class="bg-emerald-700 hover:bg-emerald-600 text-white py-2 rounded font-bold">3점 성공 (+3)</button>
+            <button onclick="quickAddAwayStat('3PT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded">3점 실패</button>
+            <button onclick="quickAddAwayStat('FT_MADE', 1)" class="bg-blue-700 hover:bg-blue-600 text-white py-2 rounded font-bold">자유투 성공 (+1)</button>
+            <button onclick="quickAddAwayStat('FT_MISS', 0)" class="bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded">자유투 실패</button>
+            <button onclick="quickAddAwayStat('DEF_REB', 0)" class="bg-cyan-800 hover:bg-cyan-700 text-white py-2 rounded">수비 리바</button>
+            <button onclick="quickAddAwayStat('OFF_REB', 0)" class="bg-teal-800 hover:bg-teal-700 text-white py-2 rounded">공격 리바</button>
+            <button onclick="quickAddAwayStat('AST', 0)" class="bg-indigo-700 hover:bg-indigo-600 text-white py-2 rounded">어시스트</button>
+            <button onclick="quickAddAwayStat('STL', 0)" class="bg-amber-700 hover:bg-amber-600 text-white py-2 rounded">스틸</button>
+            <button onclick="quickAddAwayStat('BLK', 0)" class="bg-purple-700 hover:bg-purple-600 text-white py-2 rounded">블락</button>
+            <button onclick="quickAddAwayStat('TO', 0)" class="bg-orange-800 hover:bg-orange-700 text-white py-2 rounded">턴오버</button>
+          </div>
+        `;
+        container.appendChild(card);
+        return;
+      }
+
+      document.getElementById('awayAddPlayerBtn').style.display = 'block';
+
+      players.forEach(p => {
+        const qKey = `${p.id}_q${m.quarter}`;
+        const pStats = m.stats[qKey] || getEmptyStat();
+        const pts = (pStats['2PT_MADE'] || 0) * 2 + (pStats['3PT_MADE'] || 0) * 3 + (pStats['FT_MADE'] || 0);
+
+        const div = document.createElement('div');
+        div.onclick = () => openStatModal(p, team);
+        div.className = `p-3 bg-slate-900 hover:bg-slate-700/80 border border-slate-700/80 rounded-xl cursor-pointer transition shadow flex items-center justify-between group`;
+        
+        div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg ${isHome ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40' : 'bg-red-600/30 text-red-300 border border-red-500/40'} flex items-center justify-center font-black text-sm">
+              ${p.number}
+            </span>
+            <div>
+              <div class="font-extrabold text-sm text-slate-100 group-hover:text-orange-400 transition">${p.name}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">
+                PTS: <b class="text-orange-400">${pts}</b> | REB: ${pStats.DEF_REB + pStats.OFF_REB} | AST: ${pStats.AST} | PF: ${pStats.FOUL}
+              </div>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-xs text-slate-600 group-hover:text-slate-300"></i>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function addPlayerPrompt(team) {
+      const num = prompt(`${team} 팀 선수의 등번호를 입력하세요:`);
+      if (!num) return;
+      const name = prompt(`${team} 팀 선수의 이름을 입력하세요:`);
+      if (!name) return;
+
+      const m = matches[currentMatchId];
+      const newP = { id: (team === 'HOME' ? 'h_' : 'a_') + Date.now(), number: num, name: name };
+      if (team === 'HOME') m.homePlayers.push(newP);
+      else m.awayPlayers.push(newP);
+
+      saveToLocalStorage();
+      renderCurrentMatch();
+    }
+
+    function openStatModal(player, team) {
+      activePlayer = { ...player, team };
+      document.getElementById('modalTeamBadge').textContent = team;
+      document.getElementById('modalTeamBadge').className = team === 'HOME' ? 'text-xs font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400' : 'text-xs font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400';
+      document.getElementById('modalPlayerName').textContent = `#${player.number} ${player.name}`;
+      document.getElementById('statModal').classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function handleStatClick(statType) {
+      closeModal('statModal');
+      const m = matches[currentMatchId];
+
+      if (statType === '2PT_MADE' || statType === '3PT_MADE') {
+        pendingEvent = { type: statType, player: activePlayer };
+        openLinkedAssistModal(activePlayer.team, activePlayer.id);
+        return;
+      }
+      if (statType === '2PT_MISS' || statType === '3PT_MISS' || statType === 'FT_MISS') {
+        pendingEvent = { type: statType, player: activePlayer };
+        openLinkedReboundModal();
+        return;
+      }
+      if (statType === 'STL') {
+        pendingEvent = { type: 'STL', player: activePlayer };
+        openLinkedTurnoverModal(activePlayer.team);
+        return;
+      }
+      if (statType === 'BLK') {
+        pendingEvent = { type: 'BLK', player: activePlayer };
+        openLinkedBlockOpponentModal(activePlayer.team);
+        return;
+      }
+
+      applyStat(activePlayer.id, activePlayer.team, statType);
+    }
+
+    function applyStat(playerId, team, statType, customMsg = null) {
+      const m = matches[currentMatchId];
+      const qKey = `${playerId}_q${m.quarter}`;
+      if (!m.stats[qKey]) m.stats[qKey] = getEmptyStat();
+
+      m.stats[qKey][statType] = (m.stats[qKey][statType] || 0) + 1;
+
+      let pName = '상대팀';
+      let pNum = '';
+      const allP = [...m.homePlayers, ...m.awayPlayers];
+      const p = allP.find(x => x.id === playerId);
+      if (p) {
+        pName = p.name;
+        pNum = `#${p.number}`;
+      }
+
+      const labelMap = {
+        '2PT_MADE': '2점 득점 (+2)',
+        '2PT_MISS': '2점 실패',
+        '3PT_MADE': '3점 득점 (+3)',
+        '3PT_MISS': '3점 실패',
+        'FT_MADE': '자유투 성공 (+1)',
+        'FT_MISS': '자유투 실패',
+        'DEF_REB': '수비 리바운드',
+        'OFF_REB': '공격 리바운드',
+        'AST': '어시스트',
+        'STL': '스틸',
+        'BLK': '블락슛',
+        'TO': '턴오버',
+        'FOUL': '파울'
+      };
+
+      const msg = customMsg || `${m.quarter}Q [${team}] ${pNum} ${pName} - ${labelMap[statType] || statType}`;
+      m.logs.unshift({ time: getCurrentFormattedTime(), text: msg });
+
+      saveToLocalStorage();
+      renderCurrentMatch();
+    }
+
+    function quickAddAwayStat(statType, pts = 0) {
+      const m = matches[currentMatchId];
+      const p = m.awayPlayers[0];
+      applyStat(p.id, 'AWAY', statType, `${m.quarter}Q [AWAY ${m.awayTeam}] ${statType} 누적`);
+    }
+
+    function openLinkedAssistModal(team, scorerId) {
+      const m = matches[currentMatchId];
+      const sameTeamPlayers = (team === 'HOME' ? m.homePlayers : m.awayPlayers).filter(p => p.id !== scorerId);
+
+      const title = document.getElementById('linkedModalTitle');
+      const subtitle = document.getElementById('linkedModalSubtitle');
+      const container = document.getElementById('linkedOptionsContainer');
+
+      title.textContent = '🏀 어시스트(도움) 선수 선택';
+      subtitle.textContent = '득점을 도운 같은 팀 선수를 선택하세요.';
+      container.innerHTML = '';
+
+      if (sameTeamPlayers.length === 0) {
+        skipLinkedAction();
+        return;
+      }
+
+      sameTeamPlayers.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'p-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-sm text-left text-white border border-slate-600';
+        btn.textContent = `#${p.number} ${p.name}`;
+        btn.onclick = () => {
+          applyStat(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
+          applyStat(p.id, team, 'AST', `${m.quarter}Q [${team}] #${p.number} ${p.name} 어시스트 (득점: #${pendingEvent.player.number} ${pendingEvent.player.name})`);
+          closeModal('linkedModal');
+        };
+        container.appendChild(btn);
+      });
+
+      document.getElementById('linkedModal').classList.remove('hidden');
+    }
+
+    function openLinkedReboundModal() {
+      const m = matches[currentMatchId];
+      const title = document.getElementById('linkedModalTitle');
+      const subtitle = document.getElementById('linkedModalSubtitle');
+      const container = document.getElementById('linkedOptionsContainer');
+
+      title.textContent = '🗑️ 리바운드 잡은 선수 선택';
+      subtitle.textContent = '슛 실패 후 공격 또는 수비 리바운드를 획득한 선수를 선택하세요.';
+      container.innerHTML = '';
+
+      const allPlayers = [
+        ...m.homePlayers.map(p => ({ ...p, team: 'HOME' })),
+        ...m.awayPlayers.map(p => ({ ...p, team: 'AWAY' }))
+      ];
+
+      allPlayers.forEach(p => {
+        const btn = document.createElement('button');
+        const isSameTeam = p.team === pendingEvent.player.team;
+        const rebType = isSameTeam ? 'OFF_REB' : 'DEF_REB';
+        const rebLabel = isSameTeam ? '공리' : '수리';
+
+        btn.className = `p-2.5 ${isSameTeam ? 'bg-teal-900/60 border-teal-700' : 'bg-cyan-900/60 border-cyan-700'} border rounded-xl font-bold text-xs text-left text-white flex justify-between items-center`;
+        btn.innerHTML = `<span>#${p.number} ${p.name} <span class="text-[10px] text-slate-400">(${p.team})</span></span> <span class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px] text-orange-400">${rebLabel}</span>`;
+        btn.onclick = () => {
+          applyStat(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
+          applyStat(p.id, p.team, rebType, `${m.quarter}Q [${p.team}] #${p.number} ${p.name} ${rebLabel === '공리' ? '공격' : '수비'} 리바운드`);
+          closeModal('linkedModal');
+        };
+        container.appendChild(btn);
+      });
+
+      document.getElementById('linkedModal').classList.remove('hidden');
+    }
+
+    function openLinkedTurnoverModal(stealerTeam) {
+      const m = matches[currentMatchId];
+      const oppTeam = stealerTeam === 'HOME' ? 'AWAY' : 'HOME';
+      const oppPlayers = oppTeam === 'HOME' ? m.homePlayers : m.awayPlayers;
+
+      const title = document.getElementById('linkedModalTitle');
+      const subtitle = document.getElementById('linkedModalSubtitle');
+      const container = document.getElementById('linkedOptionsContainer');
+
+      title.textContent = '⚡ 턴오버(실책) 상대선수 선택';
+      subtitle.textContent = '스틸을 당한 상대 팀 선수를 선택하세요.';
+      container.innerHTML = '';
+
+      oppPlayers.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'p-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-sm text-left text-white border border-slate-600';
+        btn.textContent = `#${p.number} ${p.name}`;
+        btn.onclick = () => {
+          applyStat(pendingEvent.player.id, stealerTeam, 'STL');
+          applyStat(p.id, oppTeam, 'TO', `${m.quarter}Q [${oppTeam}] #${p.number} ${p.name} 턴오버 (스틸: #${pendingEvent.player.number} ${pendingEvent.player.name})`);
+          closeModal('linkedModal');
+        };
+        container.appendChild(btn);
+      });
+
+      document.getElementById('linkedModal').classList.remove('hidden');
+    }
+
+    function openLinkedBlockOpponentModal(blockerTeam) {
+      const m = matches[currentMatchId];
+      const oppTeam = blockerTeam === 'HOME' ? 'AWAY' : 'HOME';
+      const oppPlayers = oppTeam === 'HOME' ? m.homePlayers : m.awayPlayers;
+
+      const title = document.getElementById('linkedModalTitle');
+      const subtitle = document.getElementById('linkedModalSubtitle');
+      const container = document.getElementById('linkedOptionsContainer');
+
+      title.textContent = '🛡️ 블락당한 상대선수 & 슛 종류 선택';
+      subtitle.textContent = '블락당한 상대 선수와 시도했던 슛 유형을 선택하세요.';
+      container.innerHTML = '';
+
+      oppPlayers.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'col-span-2 bg-slate-900 border border-slate-700 rounded-xl p-2.5 flex items-center justify-between';
+        div.innerHTML = `
+          <span class="font-bold text-xs text-white">#${p.number} ${p.name}</span>
+          <div class="flex gap-1">
+            <button onclick="confirmBlockAction('${p.id}', '${oppTeam}', '2PT_MISS', '${p.number}', '${p.name}')" class="bg-purple-800 hover:bg-purple-700 text-white text-[11px] px-2 py-1 rounded font-bold">2점 블락 당함</button>
+            <button onclick="confirmBlockAction('${p.id}', '${oppTeam}', '3PT_MISS', '${p.number}', '${p.name}')" class="bg-purple-900 hover:bg-purple-800 text-white text-[11px] px-2 py-1 rounded font-bold">3점 블락 당함</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      document.getElementById('linkedModal').classList.remove('hidden');
+    }
+
+    function confirmBlockAction(oppId, oppTeam, shotMissType, oppNum, oppName) {
+      const m = matches[currentMatchId];
+      const blocker = pendingEvent.player;
+      applyStat(blocker.id, blocker.team, 'BLK');
+      applyStat(oppId, oppTeam, shotMissType, `${m.quarter}Q [${oppTeam}] #${oppNum} ${oppName} ${shotMissType === '2PT_MISS' ? '2점' : '3점'} 실패 (블락: #${blocker.number} ${blocker.name})`);
+      closeModal('linkedModal');
+    }
+
+    function skipLinkedAction() {
+      if (pendingEvent) {
+        applyStat(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
+      }
+      closeModal('linkedModal');
+    }
+
+    function getEmptyStat() {
+      return {
+        '2PT_MADE': 0, '2PT_MISS': 0,
+        '3PT_MADE': 0, '3PT_MISS': 0,
+        'FT_MADE': 0, 'FT_MISS': 0,
+        'DEF_REB': 0, 'OFF_REB': 0,
+        'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0
+      };
+    }
+
+    function updateScoresAndBoxScore() {
+      const m = matches[currentMatchId];
+      let homeTotScore = 0;
+      let awayTotScore = 0;
+
+      const tbody = document.getElementById('boxScoreTableBody');
+      tbody.innerHTML = '';
+
+      const processPlayerTotals = (players, team) => {
+        players.forEach(p => {
+          let tot = getEmptyStat();
+          for (let q = 1; q <= 4; q++) {
+            const st = m.stats[`${p.id}_q${q}`];
+            if (st) {
+              Object.keys(st).forEach(k => { tot[k] += st[k]; });
+            }
+          }
+
+          const pts = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
+          if (team === 'HOME') homeTotScore += pts;
+          else awayTotScore += pts;
+
+          const fgMade = tot['2PT_MADE'] + tot['3PT_MADE'];
+          const fgAtt = fgMade + tot['2PT_MISS'] + tot['3PT_MISS'];
+          const fgPct = fgAtt > 0 ? ((fgMade / fgAtt) * 100).toFixed(0) + '%' : '0%';
+          const reb = tot.DEF_REB + tot.OFF_REB;
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-700/40 text-slate-200';
+          tr.innerHTML = `
+            <td class="py-2 px-2 text-left font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full ${team === 'HOME' ? 'bg-blue-500' : 'bg-red-500'}"></span>
+              #${p.number} ${p.name}
+            </td>
+            <td class="py-2 px-1 font-extrabold text-orange-400">${pts}</td>
+            <td class="py-2 px-1">${tot['2PT_MADE']}-${tot['2PT_MADE'] + tot['2PT_MISS']}</td>
+            <td class="py-2 px-1">${tot['3PT_MADE']}-${tot['3PT_MADE'] + tot['3PT_MISS']}</td>
+            <td class="py-2 px-1">${tot['FT_MADE']}-${tot['FT_MADE'] + tot['FT_MISS']}</td>
+            <td class="py-2 px-1 font-semibold text-slate-300">${fgPct}</td>
+            <td class="py-2 px-1">${tot.DEF_REB}</td>
+            <td class="py-2 px-1">${tot.OFF_REB}</td>
+            <td class="py-2 px-1 font-bold text-cyan-400">${reb}</td>
+            <td class="py-2 px-1 font-bold text-indigo-300">${tot.AST}</td>
+            <td class="py-2 px-1">${tot.STL}</td>
+            <td class="py-2 px-1">${tot.BLK}</td>
+            <td class="py-2 px-1 text-orange-300">${tot.TO}</td>
+            <td class="py-2 px-1 text-red-400">${tot.FOUL}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      };
+
+      processPlayerTotals(m.homePlayers, 'HOME');
+      processPlayerTotals(m.awayPlayers, 'AWAY');
+
+      document.getElementById('homeScoreDisplay').textContent = homeTotScore;
+      document.getElementById('awayScoreDisplay').textContent = awayTotScore;
+    }
+
+    function renderTimelineLogs() {
+      const m = matches[currentMatchId];
+      const container = document.getElementById('timelineLog');
+      document.getElementById('logCount').textContent = `총 ${m.logs.length}개 기록`;
+
+      if (!m.logs || m.logs.length === 0) {
+        container.innerHTML = `<div class="text-center text-xs text-slate-500 py-8">선수를 터치하여 경기 스탯을 기록해보세요.</div>`;
+        return;
+      }
+
+      container.innerHTML = '';
+      m.logs.forEach(log => {
+        const item = document.createElement('div');
+        item.className = 'text-xs p-2 bg-slate-900/80 border border-slate-700/60 rounded-lg flex justify-between items-center text-slate-300';
+        item.innerHTML = `
+          <span>${log.text}</span>
+          <span class="text-[10px] text-slate-500 font-mono">${log.time}</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function changeQuarter(delta) {
+      const m = matches[currentMatchId];
+      m.quarter = Math.max(1, Math.min(4, m.quarter + delta));
+      saveToLocalStorage();
+      renderCurrentMatch();
+    }
+
+    function toggleTimer() {
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        document.getElementById('timerToggleBtn').innerHTML = `<i class="fa-solid fa-play"></i> 시작`;
+        document.getElementById('timerToggleBtn').className = 'bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded shadow';
+      } else {
+        isTimerRunning = true;
+        document.getElementById('timerToggleBtn').innerHTML = `<i class="fa-solid fa-pause"></i> 일시정지`;
+        document.getElementById('timerToggleBtn').className = 'bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded shadow';
+        timerInterval = setInterval(() => {
+          const m = matches[currentMatchId];
+          if (m.timerSeconds > 0) {
+            m.timerSeconds--;
+            updateTimerDisplay();
+          } else {
+            toggleTimer();
+            alert(`${m.quarter}쿼터 경기 시간이 종료되었습니다.`);
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      if (isTimerRunning) toggleTimer();
+      const m = matches[currentMatchId];
+      m.timerSeconds = 600;
+      saveToLocalStorage();
+      updateTimerDisplay();
+    }
+
+    // ⏱️ 시간을 직접 입력하여 수정한 함수
+    function editTimerManual() {
+      if (isTimerRunning) toggleTimer(); // 수정 중에는 타이머 자동 일시정지
+
+      const m = matches[currentMatchId];
+      const curMins = Math.floor(m.timerSeconds / 60);
+      const curSecs = m.timerSeconds % 60;
+
+      const inputMins = prompt('변경할 [분]을 입력하세요 (0 ~ 99):', curMins);
+      if (inputMins === null) return;
+
+      const inputSecs = prompt('변경할 [초]를 입력하세요 (0 ~ 59):', curSecs);
+      if (inputSecs === null) return;
+
+      const newMins = parseInt(inputMins, 10);
+      const newSecs = parseInt(inputSecs, 10);
+
+      if (isNaN(newMins) || isNaN(newSecs) || newMins < 0 || newSecs < 0 || newSecs >= 60) {
+        alert('올바른 숫자 형식(분: 0 이상, 초: 0~59)을 입력하세요.');
+        return;
+      }
+
+      m.timerSeconds = newMins * 60 + newSecs;
+      saveToLocalStorage();
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      const m = matches[currentMatchId];
+      const mins = Math.floor(m.timerSeconds / 60).toString().padStart(2, '0');
+      const secs = (m.timerSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
+    }
+
+    function getCurrentFormattedTime() {
+      const now = new Date();
+      return now.toTimeString().split(' ')[0];
+    }
+
+    // EXCEL EXPORT (홈/어웨이 시트 분리 & 서식 적용)
+    function exportToExcel() {
+      const m = matches[currentMatchId];
+      const wb = XLSX.utils.book_new();
+
+      const createTeamHtmlTable = (teamName, players, teamTag) => {
+        let html = `<table border="1" style="border-collapse:collapse; text-align:center; font-family: Pretendard, sans-serif;">`;
+        
+        html += `
+          <tr style="background-color: #1e293b; color: #ffffff; font-weight: bold; font-size: 16px;">
+            <td colspan="16" style="padding: 10px;">🏀 ${m.date} - ${teamName} 경기 스탯 기록지 (${m.homeTeam} VS ${m.awayTeam})</td>
+          </tr>
+        `;
+
+        for (let q = 1; q <= 4; q++) {
+          html += `
+            <tr style="background-color: #334155; color: #ffffff; font-weight: bold;">
+              <td colspan="16" style="text-align: left; padding: 6px 10px;">📌 ${q}쿼터 (${q}Q)</td>
+            </tr>
+            <tr style="background-color: #e2e8f0; font-weight: bold; color: #0f172a;">
+              <th rowspan="2">등번호</th>
+              <th rowspan="2">이름</th>
+              <th colspan="2" style="background-color: #fed7aa;">2 Point</th>
+              <th colspan="2" style="background-color: #fef08a;">3 Point</th>
+              <th colspan="2" style="background-color: #bfdbfe;">자유투</th>
+              <th colspan="2" style="background-color: #99f6e4;">리바운드</th>
+              <th rowspan="2">어시스트</th>
+              <th rowspan="2">스틸</th>
+              <th rowspan="2">블록슛</th>
+              <th rowspan="2">파울</th>
+              <th rowspan="2">턴오버</th>
+              <th rowspan="2" style="background-color: #fdba74;">득점</th>
+            </tr>
+            <tr style="background-color: #f1f5f9; font-size: 11px;">
+              <th>성공</th><th>실패</th>
+              <th>성공</th><th>실패</th>
+              <th>성공</th><th>실패</th>
+              <th>수비</th><th>공격</th>
+            </tr>
+          `;
+
+          players.forEach((p, idx) => {
+            const st = m.stats[`${p.id}_q${q}`] || getEmptyStat();
+            const pts = st['2PT_MADE'] * 2 + st['3PT_MADE'] * 3 + st['FT_MADE'];
+            const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+            html += `
+              <tr style="background-color: ${bg};">
+                <td style="font-weight:bold;">${p.number}</td>
+                <td style="font-weight:bold;">${p.name}</td>
+                <td>${st['2PT_MADE']}</td><td>${st['2PT_MISS']}</td>
+                <td>${st['3PT_MADE']}</td><td>${st['3PT_MISS']}</td>
+                <td>${st['FT_MADE']}</td><td>${st['FT_MISS']}</td>
+                <td>${st.DEF_REB}</td><td>${st.OFF_REB}</td>
+                <td>${st.AST}</td><td>${st.STL}</td><td>${st.BLK}</td>
+                <td style="color:red;">${st.FOUL}</td><td>${st.TO}</td>
+                <td style="font-weight:bold; background-color: #fff7ed;">${pts}</td>
+              </tr>
+            `;
+          });
+        }
+
+        html += `
+          <tr style="background-color: #0f766e; color: #ffffff; font-weight: bold;">
+            <td colspan="16" style="text-align: left; padding: 8px 10px;">📊 [경기 전체 (TOTAL)] 선수별 누적 통합 스탯</td>
+          </tr>
+          <tr style="background-color: #cbd5e1; font-weight: bold;">
+            <td>등번호</td><td>이름</td>
+            <td>2점 성공</td><td>2점 실패</td>
+            <td>3점 성공</td><td>3점 실패</td>
+            <td>FT 성공</td><td>FT 실패</td>
+            <td>수비 리바</td><td>공격 리바</td>
+            <td>어시스트</td><td>스틸</td><td>블록</td><td>파울</td><td>턴오버</td>
+            <td style="background-color: #ea580c; color: white;">총 득점</td>
+          </tr>
+        `;
+
+        players.forEach(p => {
+          let tot = getEmptyStat();
+          for (let q = 1; q <= 4; q++) {
+            const st = m.stats[`${p.id}_q${q}`];
+            if (st) {
+              Object.keys(st).forEach(k => { tot[k] += st[k]; });
+            }
+          }
+          const pts = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
+
+          html += `
+            <tr style="background-color: #ccfbf1; font-weight: bold;">
+              <td>${p.number}</td><td>${p.name}</td>
+              <td>${tot['2PT_MADE']}</td><td>${tot['2PT_MISS']}</td>
+              <td>${tot['3PT_MADE']}</td><td>${tot['3PT_MISS']}</td>
+              <td>${tot['FT_MADE']}</td><td>${tot['FT_MISS']}</td>
+              <td>${tot.DEF_REB}</td><td>${tot.OFF_REB}</td>
+              <td>${tot.AST}</td><td>${tot.STL}</td><td>${tot.BLK}</td>
+              <td>${tot.FOUL}</td><td>${tot.TO}</td>
+              <td style="background-color: #ffedd5; color: #c2410c; font-size: 14px;">${pts}</td>
+            </tr>
+          `;
+        });
+
+        html += `</table>`;
+        return html;
+      };
+
+      const homeTableElem = document.createElement('div');
+      homeTableElem.innerHTML = createTeamHtmlTable(m.homeTeam, m.homePlayers, 'HOME');
+      const wsHome = XLSX.utils.table_to_sheet(homeTableElem.querySelector('table'));
+      XLSX.utils.book_append_sheet(wb, wsHome, `${m.homeTeam.substring(0, 10)} (홈)`);
+
+      const awayTableElem = document.createElement('div');
+      awayTableElem.innerHTML = createTeamHtmlTable(m.awayTeam, m.awayPlayers, 'AWAY');
+      const wsAway = XLSX.utils.table_to_sheet(awayTableElem.querySelector('table'));
+      XLSX.utils.book_append_sheet(wb, wsAway, `${m.awayTeam.substring(0, 10)} (어웨이)`);
+
+      XLSX.writeFile(wb, `농구기록지_${m.homeTeam}_VS_${m.awayTeam}_${m.date}.xlsx`);
+    }
+  </script>
+</body>
+</html>
