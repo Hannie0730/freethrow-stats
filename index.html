@@ -1294,14 +1294,16 @@
 
     function openLinkedAssistModal(team, scorerId) {
       const m = matches[currentMatchId];
-      const sameTeamPlayers = (team === 'HOME' ? m.homePlayers : m.awayPlayers).filter(p => p.id !== scorerId);
+      const currentQuarterLineup = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][team.toLowerCase()]) || [];
+      const sameTeamPlayers = (team === 'HOME' ? m.homePlayers : m.awayPlayers)
+        .filter(p => p.id !== scorerId && currentQuarterLineup.includes(p.id));
 
       const title = document.getElementById('linkedModalTitle');
       const subtitle = document.getElementById('linkedModalSubtitle');
       const container = document.getElementById('linkedOptionsContainer');
 
       title.textContent = '🏀 어시스트(도움) 선수 선택';
-      subtitle.textContent = '득점을 도운 같은 팀 선수를 선택하세요.';
+      subtitle.textContent = '득점을 도운 같은 팀 출전 선수를 선택하세요.';
       container.innerHTML = '';
 
       if (sameTeamPlayers.length === 0) {
@@ -1330,21 +1332,19 @@
       const subtitle = document.getElementById('linkedModalSubtitle');
       const container = document.getElementById('linkedOptionsContainer');
 
-      title.textContent = '🗑️ 리바운드 잡은 선수 선택';
-      subtitle.textContent = '슛 실패 후 리바운드를 획득한 선수를 선택하세요.';
+      title.textContent = '🗑️️ 리바운드 잡은 선수 선택';
+      subtitle.textContent = '슛 실패 후 리바운드를 획득한 출전 선수를 선택하세요.';
       container.innerHTML = '';
 
       const currentHomeLineup = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter].home) || [];
       const currentAwayLineup = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter].away) || [];
 
-      const allPlayers = [
-        ...m.homePlayers.map(p => ({ ...p, team: 'HOME', isPlaying: currentHomeLineup.includes(p.id) })),
-        ...m.awayPlayers.map(p => ({ ...p, team: 'AWAY', isPlaying: currentAwayLineup.includes(p.id) }))
+      const activePlayers = [
+        ...m.homePlayers.filter(p => currentHomeLineup.includes(p.id)).map(p => ({ ...p, team: 'HOME' })),
+        ...m.awayPlayers.filter(p => currentAwayLineup.includes(p.id)).map(p => ({ ...p, team: 'AWAY' }))
       ];
 
-      allPlayers.sort((a, b) => (a.isPlaying === b.isPlaying ? 0 : a.isPlaying ? -1 : 1));
-
-      allPlayers.forEach(p => {
+      activePlayers.forEach(p => {
         const btn = document.createElement('button');
         const isSameTeam = p.team === pendingEvent.player.team;
         const rebType = isSameTeam ? 'OFF_REB' : 'DEF_REB';
@@ -1366,14 +1366,15 @@
     function openLinkedTurnoverModal(stealerTeam) {
       const m = matches[currentMatchId];
       const oppTeam = stealerTeam === 'HOME' ? 'AWAY' : 'HOME';
-      const oppPlayers = oppTeam === 'HOME' ? m.homePlayers : m.awayPlayers;
+      const currentOppLineup = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][oppTeam.toLowerCase()]) || [];
+      const oppPlayers = (oppTeam === 'HOME' ? m.homePlayers : m.awayPlayers).filter(p => currentOppLineup.includes(p.id));
 
       const title = document.getElementById('linkedModalTitle');
       const subtitle = document.getElementById('linkedModalSubtitle');
       const container = document.getElementById('linkedOptionsContainer');
 
       title.textContent = '⚡ 턴오버(실책) 상대선수 선택';
-      subtitle.textContent = '스틸을 당한 상대 팀 선수를 선택하세요.';
+      subtitle.textContent = '스틸을 당한 상대 팀 출전 선수를 선택하세요.';
       container.innerHTML = '';
 
       oppPlayers.forEach(p => {
@@ -1394,14 +1395,15 @@
     function openLinkedBlockOpponentModal(blockerTeam) {
       const m = matches[currentMatchId];
       const oppTeam = blockerTeam === 'HOME' ? 'AWAY' : 'HOME';
-      const oppPlayers = oppTeam === 'HOME' ? m.homePlayers : m.awayPlayers;
+      const currentOppLineup = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][oppTeam.toLowerCase()]) || [];
+      const oppPlayers = (oppTeam === 'HOME' ? m.homePlayers : m.awayPlayers).filter(p => currentOppLineup.includes(p.id));
 
       const title = document.getElementById('linkedModalTitle');
       const subtitle = document.getElementById('linkedModalSubtitle');
       const container = document.getElementById('linkedOptionsContainer');
 
       title.textContent = '🛡 블락당한 상대선수 선택';
-      subtitle.textContent = '블락당한 상대 선수와 시도했던 슛 유형을 선택하세요.';
+      subtitle.textContent = '블락당한 상대 출전 선수와 시도했던 슛 유형을 선택하세요.';
       container.innerHTML = '';
 
       oppPlayers.forEach(p => {
@@ -1639,7 +1641,7 @@
               <th rowspan="2">턴오버</th>
               <th rowspan="2" style="background-color: #fdba74;">득점</th>
             </tr>
-            <tr style="background-color: #f1f5f9; font-size: 11px;">
+            <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 11px;">
               <th>성공</th><th>실패</th>
               <th>성공</th><th>실패</th>
               <th>성공</th><th>실패</th>
@@ -1647,14 +1649,12 @@
             </tr>
           `;
 
-          players.forEach((p, idx) => {
+          players.forEach(p => {
             const st = m.stats[`${p.id}_q${q}`] || getEmptyStat();
-            const pts = st['2PT_MADE'] * 2 + st['3PT_MADE'] * 3 + st['FT_MADE'];
-            const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-
+            const qPts = st['2PT_MADE'] * 2 + st['3PT_MADE'] * 3 + st['FT_MADE'];
             html += `
-              <tr style="background-color: ${bg};">
-                <td style="font-weight:bold;">${p.number}</td>
+              <tr>
+                <td>#${p.number}</td>
                 <td style="font-weight:bold;">${p.name}</td>
                 <td>${st['2PT_MADE']}</td><td>${st['2PT_MISS']}</td>
                 <td>${st['3PT_MADE']}</td><td>${st['3PT_MISS']}</td>
@@ -1662,33 +1662,73 @@
                 <td>${st.DEF_REB}</td><td>${st.OFF_REB}</td>
                 <td>${st.AST}</td><td>${st.STL}</td><td>${st.BLK}</td>
                 <td>${st.FOUL}</td><td>${st.TO}</td>
-                <td style="font-weight:bold; background-color: #ffedd5;">${pts}</td>
+                <td style="font-weight:bold; color:#c2410c;">${qPts}</td>
               </tr>
             `;
           });
         }
 
+        html += `
+          <tr style="background-color: #0f172a; color: #ffffff; font-weight: bold;">
+            <td colspan="16" style="text-align: left; padding: 6px 10px;">📊 누적 총합 (TOTAL BOX SCORE)</td>
+          </tr>
+          <tr style="background-color: #cbd5e1; font-weight: bold; color: #0f172a;">
+            <th>등번호</th><th>이름</th>
+            <th>2PM</th><th>2PA</th>
+            <th>3PM</th><th>3PA</th>
+            <th>FTM</th><th>FTA</th>
+            <th>DREB</th><th>OREB</th>
+            <th>AST</th><th>STL</th><th>BLK</th>
+            <th>PF</th><th>TO</th>
+            <th style="background-color: #f97316; color:#ffffff;">TOTAL PTS</th>
+          </tr>
+        `;
+
+        players.forEach(p => {
+          let tot = getEmptyStat();
+          for (let q = 1; q <= 4; q++) {
+            const st = m.stats[`${p.id}_q${q}`];
+            if (st) {
+              Object.keys(st).forEach(k => { tot[k] += st[k]; });
+            }
+          }
+          const totPts = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
+          html += `
+            <tr style="font-weight:bold; background-color: #f8fafc;">
+              <td>#${p.number}</td>
+              <td>${p.name}</td>
+              <td>${tot['2PT_MADE']}</td><td>${tot['2PT_MADE'] + tot['2PT_MISS']}</td>
+              <td>${tot['3PT_MADE']}</td><td>${tot['3PT_MADE'] + tot['3PT_MISS']}</td>
+              <td>${tot['FT_MADE']}</td><td>${tot['FT_MADE'] + tot['FT_MISS']}</td>
+              <td>${tot.DEF_REB}</td><td>${tot.OFF_REB}</td>
+              <td>${tot.AST}</td><td>${tot.STL}</td><td>${tot.BLK}</td>
+              <td>${tot.FOUL}</td><td>${tot.TO}</td>
+              <td style="background-color: #ffedd5; color: #ea580c; font-size:14px;">${totPts}</td>
+            </tr>
+          `;
+        });
+
         html += `</table>`;
         return html;
       };
 
-      const homeHtml = createTeamHtmlTable(m.homeTeam, m.homePlayers);
-      const homeWs = XLSX.utils.table_to_sheet(DOMParserParseTable(homeHtml));
+      const homeTableHtml = createTeamHtmlTable(m.homeTeam, m.homePlayers);
+      const homeWs = XLSX.utils.table_to_sheet(elementFromHtml(homeTableHtml));
       XLSX.utils.book_append_sheet(wb, homeWs, m.homeTeam.substring(0, 30));
 
       if (m.mode === 'FULL') {
-        const awayHtml = createTeamHtmlTable(m.awayTeam, m.awayPlayers);
-        const awayWs = XLSX.utils.table_to_sheet(DOMParserParseTable(awayHtml));
+        const awayTableHtml = createTeamHtmlTable(m.awayTeam, m.awayPlayers);
+        const awayWs = XLSX.utils.table_to_sheet(elementFromHtml(awayTableHtml));
         XLSX.utils.book_append_sheet(wb, awayWs, m.awayTeam.substring(0, 30));
       }
 
-      XLSX.writeFile(wb, `농경기기록_${m.homeTeam}_vs_${m.awayTeam}_${m.date}.xlsx`);
+      XLSX.writeFile(wb, `농구경기기록_${m.homeTeam}_vs_${m.awayTeam}_${m.date}.xlsx`);
     }
 
-    function DOMParserParseTable(htmlString) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(htmlString, 'text/html');
-      return doc.querySelector('table');
+    function elementFromHtml(html) {
+      const div = document.createElement('div');
+      div.innerHTML = html.trim();
+      return div.firstChild;
     }
   </script>
 </body>
