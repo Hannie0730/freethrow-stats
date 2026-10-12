@@ -1716,10 +1716,10 @@
         const name = names[i].value.trim();
         const birth = births[i].value;
         const color = colors[i].value;
-        if (num && name) {
-          const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i;
-          insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
-        }
+        if (num !== '' && name !== '') {
+  const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i;
+  insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
+}
       }
 
       const chunkSize = 20;
