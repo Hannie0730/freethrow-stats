@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>농구 경기 기록 시스템 (라인업 & OCR 이미지 인식 지원)</title>
+  <title>농구 경기 기록 시스템 (Supabase 실시간 연동)</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <!-- Tesseract.js for OCR Image Recognition -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -55,8 +57,8 @@
         <i class="fa-solid font-bold fa-basketball"></i>
       </div>
       <div>
-        <h1 class="font-extrabold text-sm md:text-lg text-slate-100 leading-tight">농구 경기 기록 시스템</h1>
-        <p class="text-[10px] md:text-xs text-slate-400 hidden sm:block">쿼터별 출전선수 관리 및 스마트 스탯 기록 시스템</p>
+        <h1 class="font-extrabold text-sm md:text-lg text-slate-100 leading-tight">농구 경기 기록 시스템 <span class="text-xs text-emerald-400 font-normal">(Supabase 실시간)</span></h1>
+        <p class="text-[10px] md:text-xs text-slate-400 hidden sm:block">클라우드 DB 실시간 동기화 지원</p>
       </div>
     </div>
 
@@ -316,7 +318,7 @@
     </div>
   </div>
 
-  <!-- MODAL: 쿼터별 출전선수 선택 (Lineup Modal - 일괄선택 기능 추가) -->
+  <!-- MODAL: 쿼터별 출전선수 선택 (Lineup Modal) -->
   <div id="lineupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-4 md:p-5 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
@@ -507,6 +509,11 @@
   </div>
 
   <script>
+    // ========= Supabase 설정 (본인의 프로젝트 정보로 수정하세요) =========
+    const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     let matches = {};
     let currentMatchId = null;
     let timerInterval = null;
@@ -537,56 +544,158 @@
 
     let selectedNewMatchMode = 'FULL';
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadFromLocalStorage();
-      if (!matches || Object.keys(matches).length === 0) {
-        initDefaultMatch();
-      } else {
-        if (!currentMatchId || !matches[currentMatchId]) {
-          currentMatchId = Object.keys(matches)[0];
-        }
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadFromSupabase();
+      setupRealtimeSubscription();
+    });
+
+    // ========= Supabase 데이터 불러오기 =========
+    async function loadFromSupabase() {
+      const { data: matchData, error } = await supabase.from('matches').select('*').order('created_at', { ascending: false });
+      if (error) {
+        console.error('경기 목록 로드 실패:', error);
+        return;
+      }
+
+      if (!matchData || matchData.length === 0) {
+        await initDefaultMatchInSupabase();
+        return;
+      }
+
+      matches = {};
+      for (const m of matchData) {
+        const homePlayers = await fetchPlayers(m.id, 'HOME');
+        const awayPlayers = await fetchPlayers(m.id, 'AWAY');
+        const stats = await fetchStats(m.id);
+        const logs = await fetchLogs(m.id);
+        const lineups = await fetchLineups(m.id);
+
+        matches[m.id] = {
+          id: m.id,
+          date: m.date,
+          mode: m.mode,
+          homeTeam: m.home_team,
+          awayTeam: m.away_team,
+          quarter: m.quarter,
+          timerSeconds: m.timer_seconds,
+          homePlayers,
+          awayPlayers,
+          lineups,
+          stats,
+          logs
+        };
+      }
+
+      if (!currentMatchId || !matches[currentMatchId]) {
+        currentMatchId = Object.keys(matches)[0];
       }
       renderMatchSelectOptions();
       renderCurrentMatch();
-    });
+    }
 
-    function initDefaultMatch() {
+    async function fetchPlayers(matchId, teamType) {
+      const { data } = await supabase.from('players').select('*').eq('match_id', matchId).eq('team_type', teamType);
+      return data ? data.map(p => ({ id: p.id, number: p.number, name: p.name })) : [];
+    }
+
+    async function fetchStats(matchId) {
+      const { data } = await supabase.from('player_stats').select('*').eq('match_id', matchId);
+      let stats = {};
+      if (data) {
+        data.forEach(row => {
+          const qKey = `${row.player_id}_q${row.quarter}`;
+          stats[qKey] = {
+            '2PT_MADE': row.pt2_made,
+            '2PT_MISS': row.pt2_miss,
+            '3PT_MADE': row.pt3_made,
+            '3PT_MISS': row.pt3_miss,
+            'FT_MADE': row.ft_made,
+            'FT_MISS': row.ft_miss,
+            'DEF_REB': row.def_reb,
+            'OFF_REB': row.off_reb,
+            'AST': row.ast,
+            'STL': row.stl,
+            'BLK': row.blk,
+            'TO': row.to_count,
+            'FOUL': row.foul
+          };
+        });
+      }
+      return stats;
+    }
+
+    async function fetchLogs(matchId) {
+      const { data } = await supabase.from('logs').select('*').eq('match_id', matchId).order('created_at', { ascending: false });
+      return data ? data.map(l => ({
+        id: l.id,
+        quarter: l.quarter,
+        playerId: l.player_id,
+        statType: l.stat_type,
+        time: l.log_time,
+        text: l.text
+      })) : [];
+    }
+
+    async function fetchLineups(matchId) {
+      const { data } = await supabase.from('lineups').select('*').eq('match_id', matchId);
+      let lineups = { 1: { home: [], away: [] }, 2: { home: [], away: [] }, 3: { home: [], away: [] }, 4: { home: [], away: [] } };
+      if (data) {
+        data.forEach(row => {
+          if (!lineups[row.quarter]) lineups[row.quarter] = { home: [], away: [] };
+          if (row.team_type === 'HOME') lineups[row.quarter].home.push(row.player_id);
+          else lineups[row.quarter].away.push(row.player_id);
+        });
+      }
+      return lineups;
+    }
+
+    async function initDefaultMatchInSupabase() {
       const matchId = 'match_' + Date.now();
-      matches[matchId] = {
+      const defaultMatch = {
         id: matchId,
         date: new Date().toISOString().split('T')[0],
         mode: 'FULL',
-        homeTeam: '블랙 (HOME)',
-        awayTeam: '화이트 (AWAY)',
+        home_team: '블랙 (HOME)',
+        away_team: '화이트 (AWAY)',
         quarter: 1,
-        timerSeconds: 600,
-        homePlayers: JSON.parse(JSON.stringify(DEFAULT_PLAYERS_HOME)),
-        awayPlayers: JSON.parse(JSON.stringify(DEFAULT_PLAYERS_AWAY)),
-        lineups: {
-          1: { home: ['h1', 'h2', 'h3', 'h4', 'h5'], away: ['a1', 'a2', 'a3', 'a4', 'a5'] },
-          2: { home: ['h1', 'h2', 'h3', 'h4', 'h5'], away: ['a1', 'a2', 'a3', 'a4', 'a5'] },
-          3: { home: ['h1', 'h2', 'h3', 'h4', 'h5'], away: ['a1', 'a2', 'a3', 'a4', 'a5'] },
-          4: { home: ['h1', 'h2', 'h3', 'h4', 'h5'], away: ['a1', 'a2', 'a3', 'a4', 'a5'] }
-        },
-        stats: {},
-        logs: []
+        timer_seconds: 600
       };
+
+      await supabase.from('matches').insert([defaultMatch]);
+
+      // 기본 선수 등록
+      for (const p of DEFAULT_PLAYERS_HOME) {
+        await supabase.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name }]);
+      }
+      for (const p of DEFAULT_PLAYERS_AWAY) {
+        await supabase.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'AWAY', number: p.number, name: p.name }]);
+      }
+
+      // 기본 라인업 (1~4쿼터 전부 출전)
+      for (let q = 1; q <= 4; q++) {
+        for (const p of DEFAULT_PLAYERS_HOME) {
+          await supabase.from('lineups').insert([{ match_id: matchId, quarter: q, team_type: 'HOME', player_id: p.id }]);
+        }
+        for (const p of DEFAULT_PLAYERS_AWAY) {
+          await supabase.from('lineups').insert([{ match_id: matchId, quarter: q, team_type: 'AWAY', player_id: p.id }]);
+        }
+      }
+
       currentMatchId = matchId;
-      saveToLocalStorage();
+      await loadFromSupabase();
     }
 
-    function saveToLocalStorage() {
-      localStorage.setItem('bb_matches_v3', JSON.stringify(matches));
-      localStorage.setItem('bb_currentMatchId_v3', currentMatchId);
+    // ========= Supabase Realtime 구독 (실시간 동기화) =========
+    function setupRealtimeSubscription() {
+      supabase.channel('public-db-changes')
+        .on('postgres_changes', { event: '*', schema: 'public' }, async (payload) => {
+          console.log('실시간 DB 변경 감지:', payload);
+          await loadFromSupabase();
+        })
+        .subscribe();
     }
 
-    function loadFromLocalStorage() {
-      const savedMatches = localStorage.getItem('bb_matches_v3');
-      const savedId = localStorage.getItem('bb_currentMatchId_v3');
-      if (savedMatches) matches = JSON.parse(savedMatches);
-      if (savedId && matches[savedId]) currentMatchId = savedId;
-    }
-
+    // ========= UI 로직 및 이벤트 핸들러 =========
     function selectMatchMode(mode) {
       selectedNewMatchMode = mode;
       const b1 = document.getElementById('modeBtn1');
@@ -605,60 +714,61 @@
       document.getElementById('newMatchModal').classList.remove('hidden');
     }
 
-    function createNewMatch() {
+    async function createNewMatch() {
       const homeName = document.getElementById('inputHomeTeam').value.trim() || 'HOME';
       const awayName = document.getElementById('inputAwayTeam').value.trim() || 'AWAY';
       const matchId = 'match_' + Date.now();
 
       const homeP = JSON.parse(JSON.stringify(DEFAULT_PLAYERS_HOME));
-      const awayP = selectedNewMatchMode === 'FULL' ? JSON.parse(JSON.stringify(DEFAULT_PLAYERS_AWAY)) : [{ id: 'away_team_guest', number: 'TEAM', name: awayName + ' (상대팀)' }];
+      const awayP = selectedNewMatchMode === 'FULL' ? JSON.parse(JSON.stringify(DEFAULT_PLAYERS_AWAY)) : [{ id: 'away_team_guest_' + Date.now(), number: 'TEAM', name: awayName + ' (상대팀)' }];
 
-      matches[matchId] = {
+      await supabase.from('matches').insert([{
         id: matchId,
         date: new Date().toISOString().split('T')[0],
         mode: selectedNewMatchMode,
-        homeTeam: homeName,
-        awayTeam: awayName,
+        home_team: homeName,
+        away_team: awayName,
         quarter: 1,
-        timerSeconds: 600,
-        homePlayers: homeP,
-        awayPlayers: awayP,
-        lineups: {
-          1: { home: homeP.map(p=>p.id), away: awayP.map(p=>p.id) },
-          2: { home: homeP.map(p=>p.id), away: awayP.map(p=>p.id) },
-          3: { home: homeP.map(p=>p.id), away: awayP.map(p=>p.id) },
-          4: { home: homeP.map(p=>p.id), away: awayP.map(p=>p.id) }
-        },
-        stats: {},
-        logs: []
-      };
+        timer_seconds: 600
+      }]);
+
+      for (const p of homeP) {
+        await supabase.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name }]);
+      }
+      for (const p of awayP) {
+        await supabase.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'AWAY', number: p.number, name: p.name }]);
+      }
+
+      for (let q = 1; q <= 4; q++) {
+        for (const p of homeP) {
+          await supabase.from('lineups').insert([{ match_id: matchId, quarter: q, team_type: 'HOME', player_id: p.id }]);
+        }
+        for (const p of awayP) {
+          await supabase.from('lineups').insert([{ match_id: matchId, quarter: q, team_type: 'AWAY', player_id: p.id }]);
+        }
+      }
 
       currentMatchId = matchId;
-      saveToLocalStorage();
-      renderMatchSelectOptions();
-      renderCurrentMatch();
+      await loadFromSupabase();
       closeModal('newMatchModal');
     }
 
     function switchMatch(id) {
       if (matches[id]) {
         currentMatchId = id;
-        saveToLocalStorage();
         renderCurrentMatch();
       }
     }
 
-    function deleteCurrentMatch() {
+    async function deleteCurrentMatch() {
       if (Object.keys(matches).length <= 1) {
         alert('최소 1개의 경기는 유지되어야 합니다.');
         return;
       }
       if (confirm('현재 경기를 정말 삭제하시겠습니까?')) {
-        delete matches[currentMatchId];
+        await supabase.from('matches').delete().eq('id', currentMatchId);
         currentMatchId = Object.keys(matches)[0];
-        saveToLocalStorage();
-        renderMatchSelectOptions();
-        renderCurrentMatch();
+        await loadFromSupabase();
       }
     }
 
@@ -677,15 +787,6 @@
     function renderCurrentMatch() {
       const m = matches[currentMatchId];
       if (!m) return;
-
-      if (!m.lineups) {
-        m.lineups = {
-          1: { home: m.homePlayers.map(p=>p.id), away: m.awayPlayers.map(p=>p.id) },
-          2: { home: m.homePlayers.map(p=>p.id), away: m.awayPlayers.map(p=>p.id) },
-          3: { home: m.homePlayers.map(p=>p.id), away: m.awayPlayers.map(p=>p.id) },
-          4: { home: m.homePlayers.map(p=>p.id), away: m.awayPlayers.map(p=>p.id) }
-        };
-      }
 
       document.getElementById('homeTeamTitle').textContent = m.homeTeam;
       document.getElementById('awayTeamTitle').textContent = m.awayTeam;
@@ -727,8 +828,6 @@
 
       if (!isHome && m.mode === 'SIMPLE') {
         document.getElementById('awayAddPlayerBtn').style.display = 'none';
-        const p = players[0] || { id: 'away_team_guest', number: 'TEAM', name: m.awayTeam };
-
         const card = document.createElement('div');
         card.className = 'bg-slate-900 border border-slate-700 rounded-xl p-2 md:p-3 shadow text-center space-y-1.5';
         card.innerHTML = `
@@ -753,7 +852,6 @@
       }
 
       document.getElementById('awayAddPlayerBtn').style.display = 'block';
-
       const filterOnly = isHome ? homeFilterOnlyLineup : awayFilterOnlyLineup;
       
       let displayPlayers = [...players];
@@ -775,17 +873,15 @@
       }
 
       displayPlayers.forEach(p => {
-        let pts = 0, reb = 0, ast = 0, pf = 0;
+        let pts = 0, reb = 0, ast = 0;
         for (let q = 1; q <= 4; q++) {
           const pStats = m.stats[`${p.id}_q${q}`] || getEmptyStat();
           pts += (pStats['2PT_MADE'] || 0) * 2 + (pStats['3PT_MADE'] || 0) * 3 + (pStats['FT_MADE'] || 0);
           reb += (pStats.DEF_REB || 0) + (pStats.OFF_REB || 0);
           ast += (pStats.AST || 0);
-          pf += (pStats.FOUL || 0);
         }
 
         const isPlaying = currentLineupIds.includes(p.id);
-
         const div = document.createElement('div');
         div.onclick = () => openStatModal(p, team);
         div.className = `p-2 md:p-2.5 rounded-xl cursor-pointer transition shadow flex items-center justify-between group ${
@@ -846,7 +942,6 @@
 
       const currentLineups = m.lineups[q] || { home: [], away: [] };
 
-      // Render HOME Checklist
       const homeList = document.getElementById('lineupHomeChecklist');
       homeList.innerHTML = '';
       m.homePlayers.forEach(p => {
@@ -860,7 +955,6 @@
         homeList.appendChild(lbl);
       });
 
-      // Render AWAY Checklist
       const awayList = document.getElementById('lineupAwayChecklist');
       awayList.innerHTML = '';
       if (m.mode === 'SIMPLE') {
@@ -877,107 +971,89 @@
           awayList.appendChild(lbl);
         });
       }
-
       updateLineupCount();
     }
 
     function selectAllLineupCheckboxes(selectState) {
       const checkboxes = document.querySelectorAll('#lineupHomeChecklist input[type="checkbox"], #lineupAwayChecklist input[type="checkbox"]');
-      checkboxes.forEach(cb => {
-        cb.checked = selectState;
-      });
+      checkboxes.forEach(cb => cb.checked = selectState);
       updateLineupCount();
     }
 
     function updateLineupCount() {
       const homeChecked = document.querySelectorAll('#lineupHomeChecklist input[type="checkbox"]:checked').length;
       const awayChecked = document.querySelectorAll('#lineupAwayChecklist input[type="checkbox"]:checked').length;
-
       document.getElementById('lineupHomeCount').textContent = `${homeChecked}명 선택`;
       document.getElementById('lineupAwayCount').textContent = `${awayChecked}명 선택`;
     }
 
-    function saveLineupSelection() {
-      const m = matches[currentMatchId];
+    async function saveLineupSelection() {
       const q = activeLineupModalQuarter;
-
       const homeSelected = Array.from(document.querySelectorAll('#lineupHomeChecklist input[type="checkbox"]:checked')).map(cb => cb.value);
       const awaySelected = Array.from(document.querySelectorAll('#lineupAwayChecklist input[type="checkbox"]:checked')).map(cb => cb.value);
 
-      if (!m.lineups) m.lineups = {};
-      m.lineups[q] = {
-        home: homeSelected,
-        away: m.mode === 'SIMPLE' ? m.awayPlayers.map(p=>p.id) : awaySelected
-      };
+      // 기존 해당 쿼터 라인업 삭제 후 새로 삽입
+      await supabase.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q);
 
-      saveToLocalStorage();
-      renderCurrentMatch();
+      for (const pid of homeSelected) {
+        await supabase.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: pid }]);
+      }
+      for (const pid of awaySelected) {
+        await supabase.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id: pid }]);
+      }
+
+      await loadFromSupabase();
       closeModal('lineupModal');
     }
 
-    function saveLineupAllQuarters() {
-      const m = matches[currentMatchId];
+    async function saveLineupAllQuarters() {
       const homeSelected = Array.from(document.querySelectorAll('#lineupHomeChecklist input[type="checkbox"]:checked')).map(cb => cb.value);
       const awaySelected = Array.from(document.querySelectorAll('#lineupAwayChecklist input[type="checkbox"]:checked')).map(cb => cb.value);
 
-      if (!m.lineups) m.lineups = {};
+      await supabase.from('lineups').delete().eq('match_id', currentMatchId);
+
       for (let q = 1; q <= 4; q++) {
-        m.lineups[q] = {
-          home: [...homeSelected],
-          away: m.mode === 'SIMPLE' ? m.awayPlayers.map(p=>p.id) : [...awaySelected]
-        };
+        for (const pid of homeSelected) {
+          await supabase.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: pid }]);
+        }
+        for (const pid of awaySelected) {
+          await supabase.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id: pid }]);
+        }
       }
 
-      saveToLocalStorage();
-      renderCurrentMatch();
+      await loadFromSupabase();
       closeModal('lineupModal');
-      alert('1쿼터부터 4쿼터까지 전체 출전선수가 성공적으로 적용되었습니다.');
+      alert('1~4쿼터 전체 출전선수가 적용되었습니다.');
     }
 
     function openTeamInfoModal() {
       const m = matches[currentMatchId];
       document.getElementById('editHomeTeamName').value = m.homeTeam;
       document.getElementById('editAwayTeamName').value = m.awayTeam;
-
       renderRosterEditors();
       document.getElementById('teamInfoModal').classList.remove('hidden');
     }
 
     function renderRosterEditors() {
       const m = matches[currentMatchId];
-
       const homeEditor = document.getElementById('homeRosterEditor');
       homeEditor.innerHTML = '';
-      m.homePlayers.forEach((p, idx) => {
-        const row = document.createElement('div');
-        row.className = 'flex items-center gap-2';
-        row.innerHTML = `
-          <input type="text" value="${p.number}" placeholder="등번호" class="home-num w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center font-bold text-white">
-          <input type="text" value="${p.name}" placeholder="선수 이름" class="home-name flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-bold text-white">
-          <button onclick="removeRosterRow(this)" class="text-rose-400 hover:text-rose-300 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
-        `;
-        homeEditor.appendChild(row);
+      m.homePlayers.forEach((p) => {
+        addRosterEditorRow('HOME', p.number, p.name);
       });
 
       const awayEditor = document.getElementById('awayRosterEditor');
       awayEditor.innerHTML = '';
-      if (m.mode === 'SIMPLE') {
-        awayEditor.innerHTML = `<div class="text-xs text-slate-500">상대팀 간편 기록 모드입니다.</div>`;
-      } else {
-        m.awayPlayers.forEach((p, idx) => {
-          const row = document.createElement('div');
-          row.className = 'flex items-center gap-2';
-          row.innerHTML = `
-            <input type="text" value="${p.number}" placeholder="등번호" class="away-num w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center font-bold text-white">
-            <input type="text" value="${p.name}" placeholder="선수 이름" class="away-name flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-bold text-white">
-            <button onclick="removeRosterRow(this)" class="text-rose-400 hover:text-rose-300 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
-          `;
-          awayEditor.appendChild(row);
+      if (m.mode === 'FULL') {
+        m.awayPlayers.forEach((p) => {
+          addRosterEditorRow('AWAY', p.number, p.name);
         });
+      } else {
+        awayEditor.innerHTML = `<div class="text-xs text-slate-500">상대팀 간편 기록 모드입니다.</div>`;
       }
     }
 
-    function addRosterRow(team, number = '', name = '') {
+    function addRosterEditorRow(team, number = '', name = '') {
       const container = document.getElementById(team === 'HOME' ? 'homeRosterEditor' : 'awayRosterEditor');
       const row = document.createElement('div');
       row.className = 'flex items-center gap-2';
@@ -989,70 +1065,56 @@
       container.appendChild(row);
     }
 
+    function addRosterRow(team) {
+      addRosterEditorRow(team, '', '');
+    }
+
     function removeRosterRow(btn) {
       btn.parentElement.remove();
     }
 
-    function saveTeamInfoChanges() {
+    async function saveTeamInfoChanges() {
       const m = matches[currentMatchId];
       const newHomeName = document.getElementById('editHomeTeamName').value.trim() || 'HOME';
       const newAwayName = document.getElementById('editAwayTeamName').value.trim() || 'AWAY';
 
-      m.homeTeam = newHomeName;
-      m.awayTeam = newAwayName;
+      await supabase.from('matches').update({ home_team: newHomeName, away_team: newAwayName }).eq('id', currentMatchId);
 
-      // Extract Home Roster
-      const homeNumInputs = document.querySelectorAll('.home-num');
-      const homeNameInputs = document.querySelectorAll('.home-name');
-      const newHomePlayers = [];
-      homeNumInputs.forEach((inp, idx) => {
-        const num = inp.value.trim();
-        const name = homeNameInputs[idx].value.trim();
+      // 홈 선수단 갱신
+      await supabase.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
+      const homeNums = document.querySelectorAll('.home-num');
+      const homeNames = document.querySelectorAll('.home-name');
+      for (let i = 0; i < homeNums.length; i++) {
+        const num = homeNums[i].value.trim();
+        const name = homeNames[i].value.trim();
         if (num && name) {
-          const oldP = m.homePlayers[idx];
-          newHomePlayers.push({
-            id: oldP ? oldP.id : 'h_' + Date.now() + '_' + idx,
-            number: num,
-            name: name
-          });
+          const pid = 'h_' + Date.now() + '_' + i;
+          await supabase.from('players').insert([{ id: pid, match_id: currentMatchId, team_type: 'HOME', number: num, name: name }]);
         }
-      });
-
-      m.homePlayers = newHomePlayers;
-
-      // Extract Away Roster
-      if (m.mode === 'FULL') {
-        const awayNumInputs = document.querySelectorAll('.away-num');
-        const awayNameInputs = document.querySelectorAll('.away-name');
-        const newAwayPlayers = [];
-        awayNumInputs.forEach((inp, idx) => {
-          const num = inp.value.trim();
-          const name = awayNameInputs[idx].value.trim();
-          if (num && name) {
-            const oldP = m.awayPlayers[idx];
-            newAwayPlayers.push({
-              id: oldP ? oldP.id : 'a_' + Date.now() + '_' + idx,
-              number: num,
-              name: name
-            });
-          }
-        });
-        m.awayPlayers = newAwayPlayers;
       }
 
-      saveToLocalStorage();
-      renderMatchSelectOptions();
-      renderCurrentMatch();
+      if (m.mode === 'FULL') {
+        await supabase.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'AWAY');
+        const awayNums = document.querySelectorAll('.away-num');
+        const awayNames = document.querySelectorAll('.away-name');
+        for (let i = 0; i < awayNums.length; i++) {
+          const num = awayNums[i].value.trim();
+          const name = awayNames[i].value.trim();
+          if (num && name) {
+            const pid = 'a_' + Date.now() + '_' + i;
+            await supabase.from('players').insert([{ id: pid, match_id: currentMatchId, team_type: 'AWAY', number: num, name: name }]);
+          }
+        }
+      }
+
+      await loadFromSupabase();
       closeModal('teamInfoModal');
     }
 
-    /* OCR Image Processing Engine */
+    // ========= OCR 연동 =========
     function triggerOcrUpload(team) {
-      if (team === 'HOME') {
-        document.getElementById('ocrInputHome').click();
-      } else {
-        document.getElementById('ocrInputAway').click();
-      }
+      if (team === 'HOME') document.getElementById('ocrInputHome').click();
+      else document.getElementById('ocrInputAway').click();
     }
 
     async function processOcrImage(event, team) {
@@ -1065,33 +1127,27 @@
       const progressBar = document.getElementById('ocrProgressBar');
 
       overlay.classList.remove('hidden');
-      progressBar.style.width = '10%';
-      title.textContent = '이미지 분석 및 문자 인식 중...';
-      detail.textContent = '이미지에서 선수 등번호와 이름을 읽고 있습니다.';
+      progressBar.style.width = '20%';
+      title.textContent = '이미지 분석 중...';
+      detail.textContent = 'Tesseract OCR 엔진으로 텍스트를 읽고 있습니다.';
 
       try {
         const worker = await Tesseract.createWorker('kor+eng');
-        
         const ret = await worker.recognize(file);
-        const text = ret.data.text;
         await worker.terminate();
 
         progressBar.style.width = '90%';
-        detail.textContent = '선수 데이터를 정리하는 중입니다...';
+        const extracted = parseOcrRosterText(ret.data.text);
 
-        const extractedPlayers = parseOcrRosterText(text);
-
-        if (extractedPlayers.length === 0) {
-          alert('이미지에서 인식된 선수 정보가 없습니다. 좀 더 선명한 표/이름표 이미지를 사용해 보세요.');
+        if (extracted.length === 0) {
+          alert('인식된 선수 정보가 없습니다.');
         } else {
-          extractedPlayers.forEach(p => {
-            addRosterRow(team, p.number, p.name);
-          });
-          alert(`${extractedPlayers.length}명의 선수 명단이 인식되어 목록에 추가되었습니다!`);
+          extracted.forEach(p => addRosterEditorRow(team, p.number, p.name));
+          alert(`${extracted.length명의 선수 명단이 추가되었습니다!`);
         }
       } catch (err) {
         console.error(err);
-        alert('OCR 이미지 분석 중 오류가 발생했습니다. 다시 시도해 주세요.');
+        alert('OCR 분석 오류 발생');
       } finally {
         overlay.classList.add('hidden');
         event.target.value = '';
@@ -1101,82 +1157,43 @@
     function parseOcrRosterText(rawText) {
       const lines = rawText.split('\n');
       const results = [];
-
       lines.forEach(line => {
-        const cleanLine = line.trim();
-        if (!cleanLine) return;
-
-        // Pattern 1: #7 이승준 or 7번 이승준 or 7. 이승준
-        const matchNumName = cleanLine.match(/(?:#|NO\.?|번)?\s*(\d{1,3})\s*[\.\:\-\s]\s*([가-힣a-zA-Z]{2,8})/i);
-        if (matchNumName) {
-          results.push({ number: matchNumName[1], name: matchNumName[2] });
-          return;
-        }
-
-        // Pattern 2: 이승준 7 or 이승준 (7)
-        const matchNameNum = cleanLine.match(/([가-힣a-zA-Z]{2,8})\s*\(?\s*(\d{1,3})\s*\)?/);
-        if (matchNameNum && !/Q|쿼터|점수|득점/i.test(cleanLine)) {
-          results.push({ number: matchNameNum[2], name: matchNameNum[1] });
-          return;
-        }
-
-        // Pattern 3: Simple space separator e.g. "23 채기호"
-        const simpleMatch = cleanLine.match(/^(\d{1,3})\s+([가-힣a-zA-Z]{2,8})$/);
-        if (simpleMatch) {
-          results.push({ number: simpleMatch[1], name: simpleMatch[2] });
-        }
+        const clean = line.trim();
+        if (!clean) return;
+        const match = clean.match(/(?:#|NO\.?|번)?\s*(\d{1,3})\s*[\.\:\-\s]\s*([가-힣a-zA-Z]{2,8})/i);
+        if (match) results.push({ number: match[1], name: match[2] });
       });
-
       return results;
     }
 
-    function addPlayerPrompt(team) {
+    async function addPlayerPrompt(team) {
       const num = prompt(`${team} 팀 선수의 등번호를 입력하세요:`);
       if (num === null) return;
       const name = prompt(`${team} 팀 선수의 이름을 입력하세요:`);
       if (!name) return;
 
-      const m = matches[currentMatchId];
-      const newP = { id: (team === 'HOME' ? 'h_' : 'a_') + Date.now(), number: num.trim(), name: name.trim() };
-      if (team === 'HOME') m.homePlayers.push(newP);
-      else m.awayPlayers.push(newP);
-
-      saveToLocalStorage();
-      renderCurrentMatch();
+      const pid = (team === 'HOME' ? 'h_' : 'a_') + Date.now();
+      await supabase.from('players').insert([{ id: pid, match_id: currentMatchId, team_type: team, number: num.trim(), name: name.trim() }]);
+      await loadFromSupabase();
     }
 
-    function editActivePlayer() {
+    async function editActivePlayer() {
       if (!activePlayer) return;
-      const newNum = prompt("수정할 등번호를 입력하세요:", activePlayer.number);
+      const newNum = prompt("수정할 등번호:", activePlayer.number);
       if (newNum === null) return;
-      const newName = prompt("수정할 이름을 입력하세요:", activePlayer.name);
+      const newName = prompt("수정할 이름:", activePlayer.name);
       if (!newName) return;
 
-      const m = matches[currentMatchId];
-      const targetList = activePlayer.team === 'HOME' ? m.homePlayers : m.awayPlayers;
-      const player = targetList.find(p => p.id === activePlayer.id);
-      
-      if (player) {
-        player.number = newNum.trim();
-        player.name = newName.trim();
-        saveToLocalStorage();
-        renderCurrentMatch();
-        closeModal('statModal');
-      }
+      await supabase.from('players').update({ number: newNum.trim(), name: newName.trim() }).eq('id', activePlayer.id);
+      await loadFromSupabase();
+      closeModal('statModal');
     }
 
-    function deleteActivePlayer() {
+    async function deleteActivePlayer() {
       if (!activePlayer) return;
-      if (confirm(`'#${activePlayer.number} ${activePlayer.name}' 선수를 삭제하시겠습니까?\n해당 선수의 스탯 기록도 삭제됩니다.`)) {
-        const m = matches[currentMatchId];
-        if (activePlayer.team === 'HOME') {
-          m.homePlayers = m.homePlayers.filter(p => p.id !== activePlayer.id);
-        } else {
-          m.awayPlayers = m.awayPlayers.filter(p => p.id !== activePlayer.id);
-        }
-        
-        saveToLocalStorage();
-        renderCurrentMatch();
+      if (confirm(`'#${activePlayer.number} ${activePlayer.name}' 선수를 삭제하시겠습니까?`)) {
+        await supabase.from('players').delete().eq('id', activePlayer.id);
+        await loadFromSupabase();
         closeModal('statModal');
       }
     }
@@ -1193,6 +1210,7 @@
       document.getElementById(id).classList.add('hidden');
     }
 
+    // ========= 스탯 기록 및 DB 반영 =========
     function handleStatClick(statType) {
       closeModal('statModal');
 
@@ -1217,86 +1235,108 @@
         return;
       }
 
-      applyStat(activePlayer.id, activePlayer.team, statType);
+      applyStatAndSave(activePlayer.id, activePlayer.team, statType);
     }
 
-    function applyStat(playerId, team, statType, customMsg = null) {
+    async function applyStatAndSave(playerId, team, statType, customMsg = null) {
       const m = matches[currentMatchId];
-      const qKey = `${playerId}_q${m.quarter}`;
-      if (!m.stats[qKey]) m.stats[qKey] = getEmptyStat();
+      const q = m.quarter;
+      const qKey = `${playerId}_q${q}`;
 
+      if (!m.stats[qKey]) m.stats[qKey] = getEmptyStat();
       m.stats[qKey][statType] = (m.stats[qKey][statType] || 0) + 1;
+
+      const st = m.stats[qKey];
+
+      // Upsert to player_stats
+      await supabase.from('player_stats').upsert({
+        match_id: currentMatchId,
+        player_id: playerId,
+        quarter: q,
+        pt2_made: st['2PT_MADE'],
+        pt2_miss: st['2PT_MISS'],
+        pt3_made: st['3PT_MADE'],
+        pt3_miss: st['3PT_MISS'],
+        ft_made: st['FT_MADE'],
+        ft_miss: st['FT_MISS'],
+        def_reb: st['DEF_REB'],
+        off_reb: st['OFF_REB'],
+        ast: st['AST'],
+        stl: st['STL'],
+        blk: st['BLK'],
+        to_count: st['TO'],
+        foul: st['FOUL']
+      }, { onConflict: 'match_id,player_id,quarter' });
 
       let pName = '상대팀';
       let pNum = '';
       const allP = [...m.homePlayers, ...m.awayPlayers];
       const p = allP.find(x => x.id === playerId);
-      if (p) {
-        pName = p.name;
-        pNum = `#${p.number}`;
-      }
+      if (p) { pName = p.name; pNum = `#${p.number}`; }
 
       const labelMap = {
-        '2PT_MADE': '2점 득점 (+2)',
-        '2PT_MISS': '2점 실패',
-        '3PT_MADE': '3점 득점 (+3)',
-        '3PT_MISS': '3점 실패',
-        'FT_MADE': '자유투 성공 (+1)',
-        'FT_MISS': '자유투 실패',
-        'DEF_REB': '수비 리바운드',
-        'OFF_REB': '공격 리바운드',
-        'AST': '어시스트',
-        'STL': '스틸',
-        'BLK': '블락슛',
-        'TO': '턴오버',
-        'FOUL': '파울'
+        '2PT_MADE': '2점 득점 (+2)', '2PT_MISS': '2점 실패',
+        '3PT_MADE': '3점 득점 (+3)', '3PT_MISS': '3점 실패',
+        'FT_MADE': '자유투 성공 (+1)', 'FT_MISS': '자유투 실패',
+        'DEF_REB': '수비 리바운드', 'OFF_REB': '공격 리바운드',
+        'AST': '어시스트', 'STL': '스틸', 'BLK': '블락슛', 'TO': '턴오버', 'FOUL': '파울'
       };
 
-      const msg = customMsg || `${m.quarter}Q [${team}] ${pNum} ${pName} - ${labelMap[statType] || statType}`;
+      const msg = customMsg || `${q}Q [${team}] ${pNum} ${pName} - ${labelMap[statType] || statType}`;
       const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
 
-      m.logs.unshift({
+      await supabase.from('logs').insert([{
         id: logId,
-        quarter: m.quarter,
-        playerId: playerId,
-        statType: statType,
-        time: getCurrentFormattedTime(),
+        match_id: currentMatchId,
+        quarter: q,
+        player_id: playerId,
+        stat_type: statType,
+        log_time: getCurrentFormattedTime(),
         text: msg
-      });
+      }]);
 
-      saveToLocalStorage();
-      renderCurrentMatch();
+      await loadFromSupabase();
     }
 
-    function deleteLog(logId) {
+    async function deleteLog(logId) {
       const m = matches[currentMatchId];
-      const targetLogIndex = m.logs.findIndex(l => l.id === logId);
-      if (targetLogIndex === -1) return;
+      const targetLog = m.logs.find(l => l.id === logId);
+      if (!targetLog) return;
 
-      const targetLog = m.logs[targetLogIndex];
       if (confirm(`'${targetLog.text}' 기록을 취소/삭제하시겠습니까?`)) {
         const qKey = `${targetLog.playerId}_q${targetLog.quarter}`;
         if (m.stats[qKey] && m.stats[qKey][targetLog.statType] > 0) {
           m.stats[qKey][targetLog.statType] -= 1;
+          const st = m.stats[qKey];
+
+          await supabase.from('player_stats').upsert({
+            match_id: currentMatchId,
+            player_id: targetLog.playerId,
+            quarter: targetLog.quarter,
+            pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
+            pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
+            ft_made: st['FT_MADE'], ft_miss: st['FT_MISS'],
+            def_reb: st['DEF_REB'], off_reb: st['OFF_REB'],
+            ast: st['AST'], stl: st['STL'], blk: st['BLK'],
+            to_count: st['TO'], foul: st['FOUL']
+          }, { onConflict: 'match_id,player_id,quarter' });
         }
 
-        m.logs.splice(targetLogIndex, 1);
-        saveToLocalStorage();
-        renderCurrentMatch();
+        await supabase.from('logs').delete().eq('id', logId);
+        await loadFromSupabase();
       }
     }
 
     function quickAddAwayStat(statType) {
       const m = matches[currentMatchId];
       const p = m.awayPlayers[0];
-      applyStat(p.id, 'AWAY', statType, `${m.quarter}Q [AWAY ${m.awayTeam}] ${statType} 누적`);
+      applyStatAndSave(p.id, 'AWAY', statType, `${m.quarter}Q [AWAY ${m.awayTeam}] ${statType} 누적`);
     }
 
     function openLinkedAssistModal(team, scorerId) {
       const m = matches[currentMatchId];
       const currentQuarterLineup = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][team.toLowerCase()]) || [];
-      const sameTeamPlayers = (team === 'HOME' ? m.homePlayers : m.awayPlayers)
-        .filter(p => p.id !== scorerId && currentQuarterLineup.includes(p.id));
+      const sameTeamPlayers = (team === 'HOME' ? m.homePlayers : m.awayPlayers).filter(p => p.id !== scorerId && currentQuarterLineup.includes(p.id));
 
       const title = document.getElementById('linkedModalTitle');
       const subtitle = document.getElementById('linkedModalSubtitle');
@@ -1306,23 +1346,19 @@
       subtitle.textContent = '득점을 도운 같은 팀 출전 선수를 선택하세요.';
       container.innerHTML = '';
 
-      if (sameTeamPlayers.length === 0) {
-        skipLinkedAction();
-        return;
-      }
+      if (sameTeamPlayers.length === 0) { skipLinkedAction(); return; }
 
       sameTeamPlayers.forEach(p => {
         const btn = document.createElement('button');
         btn.className = 'p-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-xs text-left text-white border border-slate-600';
         btn.textContent = `#${p.number} ${p.name}`;
-        btn.onclick = () => {
-          applyStat(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
-          applyStat(p.id, team, 'AST', `${m.quarter}Q [${team}] #${p.number} ${p.name} 어시스트 (득점: #${pendingEvent.player.number} ${pendingEvent.player.name})`);
+        btn.onclick = async () => {
+          await applyStatAndSave(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
+          await applyStatAndSave(p.id, team, 'AST', `${m.quarter}Q [${team}] #${p.number} ${p.name} 어시스트 (득점: #${pendingEvent.player.number} ${pendingEvent.player.name})`);
           closeModal('linkedModal');
         };
         container.appendChild(btn);
       });
-
       document.getElementById('linkedModal').classList.remove('hidden');
     }
 
@@ -1332,7 +1368,7 @@
       const subtitle = document.getElementById('linkedModalSubtitle');
       const container = document.getElementById('linkedOptionsContainer');
 
-      title.textContent = '🗑️️ 리바운드 잡은 선수 선택';
+      title.textContent = '🗑 리바운드 잡은 선수 선택';
       subtitle.textContent = '슛 실패 후 리바운드를 획득한 출전 선수를 선택하세요.';
       container.innerHTML = '';
 
@@ -1352,14 +1388,13 @@
 
         btn.className = `p-2 ${isSameTeam ? 'bg-teal-900/60 border-teal-700' : 'bg-cyan-900/60 border-cyan-700'} border rounded-xl font-bold text-[11px] text-left text-white flex justify-between items-center`;
         btn.innerHTML = `<span>#${p.number} ${p.name} <span class="text-[9px] text-slate-400">(${p.team})</span></span> <span class="bg-slate-800 px-1 py-0.5 rounded text-[9px] text-orange-400">${rebLabel}</span>`;
-        btn.onclick = () => {
-          applyStat(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
-          applyStat(p.id, p.team, rebType, `${m.quarter}Q [${p.team}] #${p.number} ${p.name} ${rebLabel === '공리' ? '공격' : '수비'} 리바운드`);
+        btn.onclick = async () => {
+          await applyStatAndSave(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
+          await applyStatAndSave(p.id, p.team, rebType, `${m.quarter}Q [${p.team}] #${p.number} ${p.name} ${rebLabel === '공리' ? '공격' : '수비'} 리바운드`);
           closeModal('linkedModal');
         };
         container.appendChild(btn);
       });
-
       document.getElementById('linkedModal').classList.remove('hidden');
     }
 
@@ -1381,14 +1416,13 @@
         const btn = document.createElement('button');
         btn.className = 'p-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl font-bold text-xs text-left text-white border border-slate-600';
         btn.textContent = `#${p.number} ${p.name}`;
-        btn.onclick = () => {
-          applyStat(pendingEvent.player.id, stealerTeam, 'STL');
-          applyStat(p.id, oppTeam, 'TO', `${m.quarter}Q [${oppTeam}] #${p.number} ${p.name} 턴오버 (스틸: #${pendingEvent.player.number} ${pendingEvent.player.name})`);
+        btn.onclick = async () => {
+          await applyStatAndSave(pendingEvent.player.id, stealerTeam, 'STL');
+          await applyStatAndSave(p.id, oppTeam, 'TO', `${m.quarter}Q [${oppTeam}] #${p.number} ${p.name} 턴오버 (스틸: #${pendingEvent.player.number} ${pendingEvent.player.name})`);
           closeModal('linkedModal');
         };
         container.appendChild(btn);
       });
-
       document.getElementById('linkedModal').classList.remove('hidden');
     }
 
@@ -1403,7 +1437,7 @@
       const container = document.getElementById('linkedOptionsContainer');
 
       title.textContent = '🛡 블락당한 상대선수 선택';
-      subtitle.textContent = '블락당한 상대 출전 선수와 시도했던 슛 유형을 선택하세요.';
+      subtitle.textContent = '블락당한 상대 출전 선수와 슛 유형을 선택하세요.';
       container.innerHTML = '';
 
       oppPlayers.forEach(p => {
@@ -1418,21 +1452,20 @@
         `;
         container.appendChild(div);
       });
-
       document.getElementById('linkedModal').classList.remove('hidden');
     }
 
-    function confirmBlockAction(oppId, oppTeam, shotMissType, oppNum, oppName) {
+    async function confirmBlockAction(oppId, oppTeam, shotMissType, oppNum, oppName) {
       const m = matches[currentMatchId];
       const blocker = pendingEvent.player;
-      applyStat(blocker.id, blocker.team, 'BLK');
-      applyStat(oppId, oppTeam, shotMissType, `${m.quarter}Q [${oppTeam}] #${oppNum} ${oppName} ${shotMissType === '2PT_MISS' ? '2점' : '3점'} 실패 (블락: #${blocker.number} ${blocker.name})`);
+      await applyStatAndSave(blocker.id, blocker.team, 'BLK');
+      await applyStatAndSave(oppId, oppTeam, shotMissType, `${m.quarter}Q [${oppTeam}] #${oppNum} ${oppName} ${shotMissType === '2PT_MISS' ? '2점' : '3점'} 실패 (블락: #${blocker.number} ${blocker.name})`);
       closeModal('linkedModal');
     }
 
-    function skipLinkedAction() {
+    async function skipLinkedAction() {
       if (pendingEvent) {
-        applyStat(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
+        await applyStatAndSave(pendingEvent.player.id, pendingEvent.player.team, pendingEvent.type);
       }
       closeModal('linkedModal');
     }
@@ -1460,9 +1493,7 @@
           let tot = getEmptyStat();
           for (let q = 1; q <= 4; q++) {
             const st = m.stats[`${p.id}_q${q}`];
-            if (st) {
-              Object.keys(st).forEach(k => { tot[k] += st[k]; });
-            }
+            if (st) { Object.keys(st).forEach(k => { tot[k] += st[k]; }); }
           }
 
           const pts = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
@@ -1533,11 +1564,11 @@
       });
     }
 
-    function changeQuarter(delta) {
+    async function changeQuarter(delta) {
       const m = matches[currentMatchId];
       m.quarter = Math.max(1, Math.min(4, m.quarter + delta));
-      saveToLocalStorage();
-      renderCurrentMatch();
+      await supabase.from('matches').update({ quarter: m.quarter }).eq('id', currentMatchId);
+      await loadFromSupabase();
     }
 
     function toggleTimer() {
@@ -1550,11 +1581,14 @@
         isTimerRunning = true;
         document.getElementById('timerToggleBtn').innerHTML = `<i class="fa-solid fa-pause"></i> 일시정지`;
         document.getElementById('timerToggleBtn').className = 'bg-amber-600 hover:bg-amber-500 text-white text-[11px] md:text-sm font-bold px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg shadow';
-        timerInterval = setInterval(() => {
+        timerInterval = setInterval(async () => {
           const m = matches[currentMatchId];
           if (m.timerSeconds > 0) {
             m.timerSeconds--;
             updateTimerDisplay();
+            if (m.timerSeconds % 10 === 0) {
+              await supabase.from('matches').update({ timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
+            }
           } else {
             toggleTimer();
             alert(`${m.quarter}쿼터 시간이 종료되었습니다.`);
@@ -1563,37 +1597,31 @@
       }
     }
 
-    function resetTimer() {
+    async function resetTimer() {
       if (isTimerRunning) toggleTimer();
       const m = matches[currentMatchId];
       m.timerSeconds = 600;
-      saveToLocalStorage();
+      await supabase.from('matches').update({ timer_seconds: 600 }).eq('id', currentMatchId);
       updateTimerDisplay();
     }
 
-    function editTimerManual() {
+    async function editTimerManual() {
       if (isTimerRunning) toggleTimer();
-
       const m = matches[currentMatchId];
       const curMins = Math.floor(m.timerSeconds / 60);
       const curSecs = m.timerSeconds % 60;
 
-      const inputMins = prompt('변경할 [분]을 입력하세요 (0 ~ 99):', curMins);
+      const inputMins = prompt('변경할 [분]을 입력하세요:', curMins);
       if (inputMins === null) return;
-
-      const inputSecs = prompt('변경할 [초]를 입력하세요 (0 ~ 59):', curSecs);
+      const inputSecs = prompt('변경할 [초]를 입력하세요:', curSecs);
       if (inputSecs === null) return;
 
       const newMins = parseInt(inputMins, 10);
       const newSecs = parseInt(inputSecs, 10);
-
-      if (isNaN(newMins) || isNaN(newSecs) || newMins < 0 || newSecs < 0 || newSecs >= 60) {
-        alert('올바른 숫자 형식(분: 0 이상, 초: 0~59)을 입력하세요.');
-        return;
-      }
+      if (isNaN(newMins) || isNaN(newSecs) || newMins < 0 || newSecs < 0 || newSecs >= 60) return;
 
       m.timerSeconds = newMins * 60 + newSecs;
-      saveToLocalStorage();
+      await supabase.from('matches').update({ timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
       updateTimerDisplay();
     }
 
@@ -1605,8 +1633,7 @@
     }
 
     function getCurrentFormattedTime() {
-      const now = new Date();
-      return now.toTimeString().split(' ')[0];
+      return new Date().toTimeString().split(' ')[0];
     }
 
     function exportToExcel() {
@@ -1615,110 +1642,33 @@
 
       const createTeamHtmlTable = (teamName, players) => {
         let html = `<table border="1" style="border-collapse:collapse; text-align:center; font-family: Pretendard, sans-serif;">`;
-        
-        html += `
-          <tr style="background-color: #1e293b; color: #ffffff; font-weight: bold; font-size: 16px;">
-            <td colspan="16" style="padding: 10px;">🏀 ${m.date} - ${teamName} 경기 스탯 기록지 (${m.homeTeam} VS ${m.awayTeam})</td>
-          </tr>
-        `;
+        html += `<tr style="background-color: #1e293b; color: #ffffff; font-weight: bold; font-size: 16px;"><td colspan="16" style="padding: 10px;">🏀 ${m.date} - ${teamName} 경기 스탯 기록지</td></tr>`;
 
         for (let q = 1; q <= 4; q++) {
           html += `
-            <tr style="background-color: #334155; color: #ffffff; font-weight: bold;">
-              <td colspan="16" style="text-align: left; padding: 6px 10px;">📌 ${q}쿼터 (${q}Q)</td>
-            </tr>
+            <tr style="background-color: #334155; color: #ffffff; font-weight: bold;"><td colspan="16" style="text-align: left; padding: 6px 10px;">📌 ${q}쿼터 (${q}Q)</td></tr>
             <tr style="background-color: #e2e8f0; font-weight: bold; color: #0f172a;">
-              <th rowspan="2">등번호</th>
-              <th rowspan="2">이름</th>
-              <th colspan="2" style="background-color: #fed7aa;">2 Point</th>
-              <th colspan="2" style="background-color: #fef08a;">3 Point</th>
-              <th colspan="2" style="background-color: #bfdbfe;">자유투</th>
-              <th colspan="2" style="background-color: #99f6e4;">리바운드</th>
-              <th rowspan="2">어시스트</th>
-              <th rowspan="2">스틸</th>
-              <th rowspan="2">블록슛</th>
-              <th rowspan="2">파울</th>
-              <th rowspan="2">턴오버</th>
-              <th rowspan="2" style="background-color: #fdba74;">득점</th>
+              <th rowspan="2">등번호</th><th rowspan="2">이름</th>
+              <th colspan="2">2 Point</th><th colspan="2">3 Point</th><th colspan="2">자유투</th><th colspan="2">리바운드</th>
+              <th rowspan="2">어시스트</th><th rowspan="2">스틸</th><th rowspan="2">블록슛</th><th rowspan="2">파울</th><th rowspan="2">턴오버</th><th rowspan="2">득점</th>
             </tr>
-            <tr style="background-color: #f1f5f9; font-weight: bold; font-size: 11px;">
-              <th>성공</th><th>실패</th>
-              <th>성공</th><th>실패</th>
-              <th>성공</th><th>실패</th>
-              <th>수비</th><th>공격</th>
-            </tr>
+            <tr style="background-color: #f1f5f9; font-size: 11px;"><th>성공</th><th>실패</th><th>성공</th><th>실패</th><th>성공</th><th>실패</th><th>수비</th><th>공격</th></tr>
           `;
-
           players.forEach(p => {
             const st = m.stats[`${p.id}_q${q}`] || getEmptyStat();
             const qPts = st['2PT_MADE'] * 2 + st['3PT_MADE'] * 3 + st['FT_MADE'];
-            html += `
-              <tr>
-                <td>#${p.number}</td>
-                <td style="font-weight:bold;">${p.name}</td>
-                <td>${st['2PT_MADE']}</td><td>${st['2PT_MISS']}</td>
-                <td>${st['3PT_MADE']}</td><td>${st['3PT_MISS']}</td>
-                <td>${st['FT_MADE']}</td><td>${st['FT_MISS']}</td>
-                <td>${st.DEF_REB}</td><td>${st.OFF_REB}</td>
-                <td>${st.AST}</td><td>${st.STL}</td><td>${st.BLK}</td>
-                <td>${st.FOUL}</td><td>${st.TO}</td>
-                <td style="font-weight:bold; color:#c2410c;">${qPts}</td>
-              </tr>
-            `;
+            html += `<tr><td>#${p.number}</td><td style="font-weight:bold;">${p.name}</td><td>${st['2PT_MADE']}</td><td>${st['2PT_MISS']}</td><td>${st['3PT_MADE']}</td><td>${st['3PT_MISS']}</td><td>${st['FT_MADE']}</td><td>${st['FT_MISS']}</td><td>${st.DEF_REB}</td><td>${st.OFF_REB}</td><td>${st.AST}</td><td>${st.STL}</td><td>${st.BLK}</td><td>${st.FOUL}</td><td>${st.TO}</td><td style="font-weight:bold; color:#c2410c;">${qPts}</td></tr>`;
           });
         }
-
-        html += `
-          <tr style="background-color: #0f172a; color: #ffffff; font-weight: bold;">
-            <td colspan="16" style="text-align: left; padding: 6px 10px;">📊 누적 총합 (TOTAL BOX SCORE)</td>
-          </tr>
-          <tr style="background-color: #cbd5e1; font-weight: bold; color: #0f172a;">
-            <th>등번호</th><th>이름</th>
-            <th>2PM</th><th>2PA</th>
-            <th>3PM</th><th>3PA</th>
-            <th>FTM</th><th>FTA</th>
-            <th>DREB</th><th>OREB</th>
-            <th>AST</th><th>STL</th><th>BLK</th>
-            <th>PF</th><th>TO</th>
-            <th style="background-color: #f97316; color:#ffffff;">TOTAL PTS</th>
-          </tr>
-        `;
-
-        players.forEach(p => {
-          let tot = getEmptyStat();
-          for (let q = 1; q <= 4; q++) {
-            const st = m.stats[`${p.id}_q${q}`];
-            if (st) {
-              Object.keys(st).forEach(k => { tot[k] += st[k]; });
-            }
-          }
-          const totPts = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
-          html += `
-            <tr style="font-weight:bold; background-color: #f8fafc;">
-              <td>#${p.number}</td>
-              <td>${p.name}</td>
-              <td>${tot['2PT_MADE']}</td><td>${tot['2PT_MADE'] + tot['2PT_MISS']}</td>
-              <td>${tot['3PT_MADE']}</td><td>${tot['3PT_MADE'] + tot['3PT_MISS']}</td>
-              <td>${tot['FT_MADE']}</td><td>${tot['FT_MADE'] + tot['FT_MISS']}</td>
-              <td>${tot.DEF_REB}</td><td>${tot.OFF_REB}</td>
-              <td>${tot.AST}</td><td>${tot.STL}</td><td>${tot.BLK}</td>
-              <td>${tot.FOUL}</td><td>${tot.TO}</td>
-              <td style="background-color: #ffedd5; color: #ea580c; font-size:14px;">${totPts}</td>
-            </tr>
-          `;
-        });
-
         html += `</table>`;
         return html;
       };
 
-      const homeTableHtml = createTeamHtmlTable(m.homeTeam, m.homePlayers);
-      const homeWs = XLSX.utils.table_to_sheet(elementFromHtml(homeTableHtml));
+      const homeWs = XLSX.utils.table_to_sheet(elementFromHtml(createTeamHtmlTable(m.homeTeam, m.homePlayers)));
       XLSX.utils.book_append_sheet(wb, homeWs, m.homeTeam.substring(0, 30));
 
       if (m.mode === 'FULL') {
-        const awayTableHtml = createTeamHtmlTable(m.awayTeam, m.awayPlayers);
-        const awayWs = XLSX.utils.table_to_sheet(elementFromHtml(awayTableHtml));
+        const awayWs = XLSX.utils.table_to_sheet(elementFromHtml(createTeamHtmlTable(m.awayTeam, m.awayPlayers)));
         XLSX.utils.book_append_sheet(wb, awayWs, m.awayTeam.substring(0, 30));
       }
 
