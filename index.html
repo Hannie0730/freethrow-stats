@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>팀FREE THROW 농구 기록 시스템</title>
+  <title>우리팀 농구 포털 & 기록 시스템</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel import/export -->
@@ -595,7 +595,7 @@
 
     async function fetchPlayers(matchId, teamType) {
       const { data } = await supabaseClient.from('players').select('*').eq('match_id', matchId).eq('team_type', teamType);
-      return data ? data.map(p => ({ id: p.id, number: p.number, name: p.name, birth: p.birth_date || '', color: p.team_color || '블랙' })) : [];
+      return data ? data.map(p => ({ id: p.id, number: String(p.number), name: p.name, birth: p.birth_date || '', color: p.team_color || '블랙' })) : [];
     }
 
     async function fetchStats(matchId) {
@@ -1702,7 +1702,7 @@
       if (el) el.textContent = rows.length;
     }
 
-    /* 대용량 데이터 전송 및 고유 ID 무작위 부여 (32명 이상 무제한 업로드 대응) */
+    /* 대용량 데이터 전송 및 고유 ID 무작위 부여 (0번/00번 등번호 및 32명 이상 무제한 업로드 대응) */
     async function saveTeamInfoChanges() {
       await supabaseClient.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
       const nums = document.querySelectorAll('.home-num');
@@ -1716,10 +1716,11 @@
         const name = names[i].value.trim();
         const birth = births[i].value;
         const color = colors[i].value;
+        // 💡 num이 '0'이어도 정상 인식하도록 (num !== '') 조건 체크
         if (num !== '' && name !== '') {
-  const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i;
-  insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
-}
+          const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i;
+          insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
+        }
       }
 
       const chunkSize = 20;
@@ -1739,6 +1740,7 @@
     function downloadTeamTemplateExcel() {
       const templateData = [
         ["등번호", "이름", "생년월일", "팀컬러/상태"],
+        ["0", "김영희", "1997-05-10", "블랙"],
         ["7", "이승준", "1995-03-12", "블랙"],
         ["11", "이성호", "1993-07-20", "블루/화이트"],
         ["99", "박종신", "1994-09-28", "부상/휴면"]
@@ -1769,12 +1771,12 @@
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (row && row.length >= 2) {
-              const num = String(row[0] || '').trim();
+              const num = String(row[0] !== undefined ? row[0] : '').trim();
               const name = String(row[1] || '').trim();
               const birth = String(row[2] || '').trim();
               const color = String(row[3] || '블랙').trim();
 
-              if (num && name) {
+              if (num !== '' && name !== '') {
                 let foundRow = null;
                 for (const r of existingRows) {
                   const rNum = r.querySelector('.home-num').value.trim();
@@ -1824,7 +1826,7 @@
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (row && row.length >= 2) {
-              const num = String(row[0] || '').trim();
+              const num = String(row[0] !== undefined ? row[0] : '').trim();
               const name = String(row[1] || '').trim();
 
               const p = [...m.homePlayers, ...m.awayPlayers].find(x => String(x.number).trim() === num || String(x.name).trim() === name);
