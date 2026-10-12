@@ -72,7 +72,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="teamMembersGrid">
-      <!-- 동적 생성 -->
     </div>
   </div>
 
@@ -86,7 +85,6 @@
         <p class="text-xs text-slate-400">원하는 날짜 구간을 선택하거나 경기별 세부 기록 및 효율성 지표를 확인하세요.</p>
       </div>
 
-      <!-- Date Filter Controls -->
       <div class="flex items-center gap-2 flex-wrap text-xs">
         <span class="text-slate-400 font-bold">기간 선택:</span>
         <input type="date" id="filterStartDate" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
@@ -96,21 +94,19 @@
       </div>
     </div>
 
-    <!-- Stats Table View Options -->
     <div class="flex gap-2 border-b border-slate-700 pb-2">
       <button onclick="switchStatsSubTab('period')" id="subTabPeriod" class="px-3 py-1 rounded-lg text-xs font-bold bg-orange-500 text-white">기간별 총 누적 & 2차스탯</button>
       <button onclick="switchStatsSubTab('match')" id="subTabMatch" class="px-3 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white">경기별 상세 스탯</button>
     </div>
 
-    <!-- SubTab 1: Period Cumulative & Advanced Stats -->
     <div id="statsSubViewPeriod" class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg overflow-x-auto custom-scroll">
-      <div class="text-xs text-slate-400 mb-2">📌 **2차 스탯 용어 설명:** eFG%(야투 효율성), TS%(진실 슈팅 성공률 - 자유투 반영), AST/TO(어시스트/턴오버 비율)</div>
+      <div class="text-xs text-slate-400 mb-2">📌 **2차 스탯 용어:** eFG%(야투 효율성), TS%(진실 슈팅 성공률), AST/TO(어시스트/턴오버 비율)</div>
       <table class="w-full text-xs md:text-sm text-center border-collapse">
         <thead>
           <tr class="bg-slate-900 text-slate-400 font-semibold border-b border-slate-700">
             <th class="py-2.5 px-2 text-left">선수</th>
-            <th class="py-2">GP(경기)</th>
-            <th class="py-2">PTS(득점)</th>
+            <th class="py-2">GP</th>
+            <th class="py-2">PTS</th>
             <th class="py-2">REB</th>
             <th class="py-2">AST</th>
             <th class="py-2">STL</th>
@@ -126,10 +122,9 @@
       </table>
     </div>
 
-    <!-- SubTab 2: Match by Match Stats -->
     <div id="statsSubViewMatch" class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg hidden">
       <div class="flex items-center gap-2 mb-3">
-        <label class="text-xs font-bold text-slate-300">조회할 경기 선택:</label>
+        <label class="text-xs font-bold text-slate-300">조회할 경기:</label>
         <select id="statsMatchSelect" onchange="renderMatchDetailStats(this.value)" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-1.5">
         </select>
       </div>
@@ -157,9 +152,8 @@
     </div>
   </div>
 
-  <!-- ================= PAGE 3: 경기 기록지 (기존 실시간 기록 프로그램) ================= -->
+  <!-- ================= PAGE 3: 경기 기록지 ================= -->
   <div id="pageRecorder" class="flex-1 p-2 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-4 w-full max-w-none mx-auto">
-    <!-- Match Header Selectors -->
     <div class="lg:col-span-12 flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
       <div class="flex items-center gap-2">
         <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none">
@@ -187,13 +181,11 @@
         </div>
 
         <div class="grid grid-cols-3 items-center my-1 md:my-2">
-          <!-- HOME Score -->
           <div class="flex flex-col items-center">
             <span class="text-xs md:text-base text-blue-400 font-extrabold mb-0.5" id="homeScoreLabel">HOME</span>
             <span id="homeScoreDisplay" class="text-4xl md:text-7xl font-black text-white tracking-wider">0</span>
           </div>
 
-          <!-- Quarter & Timer Box -->
           <div class="flex flex-col items-center justify-center">
             <div class="flex items-center gap-1 md:gap-2 mb-1">
               <button onclick="changeQuarter(-1)" class="text-slate-400 hover:text-white px-1.5"><i class="fa-solid fa-chevron-left"></i></button>
@@ -215,7 +207,6 @@
             </button>
           </div>
 
-          <!-- AWAY Score -->
           <div class="flex flex-col items-center">
             <span class="text-xs md:text-base text-red-400 font-extrabold mb-0.5" id="awayScoreLabel">AWAY</span>
             <span id="awayScoreDisplay" class="text-4xl md:text-7xl font-black text-white tracking-wider">0</span>
@@ -298,8 +289,7 @@
     </section>
   </div>
 
-  <!-- MODALS (Stat Input, Lineup, Team Info, New Match, Linked Actions) -->
-  <!-- MODAL: Stat Input Pad -->
+  <!-- MODALS -->
   <div id="statModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2.5 border-b border-slate-700">
@@ -332,7 +322,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Lineup -->
   <div id="lineupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
@@ -362,7 +351,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Team Info & Members Editor with BirthDate & Color -->
   <div id="teamInfoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
@@ -388,10 +376,8 @@
     </div>
   </div>
 
-  <!-- Hidden OCR Input -->
   <input type="file" id="ocrInputHome" accept="image/*" class="hidden" onchange="processOcrImage(event, 'HOME')">
 
-  <!-- MODAL: New Match -->
   <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
       <h3 class="text-base font-extrabold text-white mb-3">새 경기 생성</h3>
@@ -412,29 +398,15 @@
     </div>
   </div>
 
-  <!-- MODAL: Linked Assist/Rebound -->
-  <div id="linkedModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-4 shadow-2xl">
-      <h3 id="linkedModalTitle" class="text-sm font-bold text-orange-400 mb-1">연계 플레이 선택</h3>
-      <p id="linkedModalSubtitle" class="text-xs text-slate-300 mb-3">선수를 선택하세요.</p>
-      <div id="linkedOptionsContainer" class="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto custom-scroll mb-3"></div>
-      <div class="flex justify-between items-center border-t border-slate-700 pt-2.5">
-        <button onclick="skipLinkedAction()" class="bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg font-bold">건너뛰기</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- JavaScript Application Logic -->
   <script>
-    const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
+    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let matches = {};
     let currentMatchId = null;
     let timerInterval = null;
     let isTimerRunning = false;
-    let pendingEvent = null;
     let activePlayer = null;
     let activeLineupModalQuarter = 1;
     let homeFilterOnlyLineup = false;
@@ -451,10 +423,9 @@
     window.addEventListener('DOMContentLoaded', async () => {
       await loadFromSupabase();
       setupRealtimeSubscription();
-      switchPage('recorder'); // 기본 페이지: 경기 기록지
+      switchPage('recorder');
     });
 
-    // ========= 페이지 전환 로직 =========
     function switchPage(page) {
       document.getElementById('pageMembers').classList.add('hidden');
       document.getElementById('pageStats').classList.add('hidden');
@@ -478,7 +449,6 @@
       }
     }
 
-    // ========= Supabase 데이터 동기화 =========
     async function loadFromSupabase() {
       const { data: matchData, error } = await supabase.from('matches').select('*').order('created_at', { ascending: false });
       if (error || !matchData || matchData.length === 0) {
@@ -559,16 +529,13 @@
       supabase.channel('public-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, async () => { await loadFromSupabase(); }).subscribe();
     }
 
-    // ========= PAGE 1: 팀원 정보 렌더링 =========
     function renderTeamMembersPage() {
       const m = matches[currentMatchId];
       const grid = document.getElementById('teamMembersGrid');
       grid.innerHTML = '';
-
       if (!m || !m.homePlayers) return;
 
       m.homePlayers.forEach(p => {
-        // 통산 누적 스탯 계산
         let gp = 0, pts = 0, reb = 0, ast = 0, stl = 0, blk = 0;
         Object.values(matches).forEach(match => {
           let pInMatch = false;
@@ -593,9 +560,7 @@
           <div>
             <div class="flex justify-between items-start mb-3">
               <div class="flex items-center gap-2.5">
-                <span class="w-10 h-10 rounded-xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-black text-base">
-                  ${p.number}
-                </span>
+                <span class="w-10 h-10 rounded-xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-black text-base">${p.number}</span>
                 <div>
                   <h3 class="font-extrabold text-white text-base">${p.name}</h3>
                   <p class="text-[11px] text-slate-400">생년월일: ${p.birth || '미등록'}</p>
@@ -610,13 +575,11 @@
               <div><span class="block text-[10px] text-slate-400">STL/BLK</span><span class="font-black text-emerald-400 text-sm">${stl}/${blk}</span></div>
             </div>
           </div>
-          <div class="text-[10px] text-slate-500 text-right mt-1">우리팀 선수 프로필</div>
         `;
         grid.appendChild(card);
       });
     }
 
-    // ========= PAGE 2: 누적 및 2차 스탯 계산 =========
     function switchStatsSubTab(tab) {
       if (tab === 'period') {
         document.getElementById('statsSubViewPeriod').classList.remove('hidden');
@@ -643,14 +606,11 @@
     function applyDateFilter() {
       const startDate = document.getElementById('filterStartDate').value;
       const endDate = document.getElementById('filterEndDate').value;
-
       const m = matches[currentMatchId];
       if (!m) return;
 
       const tbody = document.getElementById('periodStatsTableBody');
       tbody.innerHTML = '';
-
-      // 기간 내 경기 필터링
       const targetMatches = Object.values(matches).filter(match => match.date >= startDate && match.date <= endDate);
 
       m.homePlayers.forEach(p => {
@@ -666,7 +626,6 @@
               const p2m = st['2PT_MADE'] || 0, p2s = st['2PT_MISS'] || 0;
               const p3m = st['3PT_MADE'] || 0, p3s = st['3PT_MISS'] || 0;
               const f_m = st['FT_MADE'] || 0, f_s = st['FT_MISS'] || 0;
-
               fgm += (p2m + p3m);
               fga += (p2m + p2s + p3m + p3s);
               tpm += p3m;
@@ -684,7 +643,6 @@
         });
 
         const fgPct = fga > 0 ? ((fgm / fga) * 100).toFixed(1) + '%' : '0%';
-        // 2차 스탯 계산
         const eFgPct = fga > 0 ? (((fgm + 0.5 * tpm) / fga) * 100).toFixed(1) + '%' : '0%';
         const tsPct = (2 * (fga + 0.44 * fta)) > 0 ? ((pts / (2 * (fga + 0.44 * fta))) * 100).toFixed(1) + '%' : '0%';
         const astToRatio = to > 0 ? (ast / to).toFixed(2) : (ast > 0 ? ast.toFixed(2) : '0.00');
@@ -717,9 +675,7 @@
         opt.textContent = `${m.date} | ${m.homeTeam} vs ${m.awayTeam}`;
         select.appendChild(opt);
       });
-      if (Object.keys(matches).length > 0) {
-        renderMatchDetailStats(Object.keys(matches)[0]);
-      }
+      if (Object.keys(matches).length > 0) renderMatchDetailStats(Object.keys(matches)[0]);
     }
 
     function renderMatchDetailStats(matchId) {
@@ -756,7 +712,6 @@
       });
     }
 
-    // ========= PAGE 3: 경기 기록지 핵심 로직 =========
     function renderMatchSelectOptions() {
       const select = document.getElementById('matchSelect');
       select.innerHTML = '';
@@ -861,7 +816,6 @@
       const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.id === playerId);
       const msg = customMsg || `${q}Q [${team}] #${p.number} ${p.name} - ${statType}`;
       await supabase.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
-
       await loadFromSupabase();
     }
 
