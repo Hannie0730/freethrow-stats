@@ -401,7 +401,8 @@
   <script>
     const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 충돌 방지를 위해 supabaseClient로 선언
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let matches = {};
     let currentMatchId = null;
@@ -450,7 +451,7 @@
     }
 
     async function loadFromSupabase() {
-      const { data: matchData, error } = await supabase.from('matches').select('*').order('created_at', { ascending: false });
+      const { data: matchData, error } = await supabaseClient.from('matches').select('*').order('created_at', { ascending: false });
       if (error || !matchData || matchData.length === 0) {
         await initDefaultMatchInSupabase();
         return;
@@ -475,12 +476,12 @@
     }
 
     async function fetchPlayers(matchId, teamType) {
-      const { data } = await supabase.from('players').select('*').eq('match_id', matchId).eq('team_type', teamType);
+      const { data } = await supabaseClient.from('players').select('*').eq('match_id', matchId).eq('team_type', teamType);
       return data ? data.map(p => ({ id: p.id, number: p.number, name: p.name, birth: p.birth_date || '' })) : [];
     }
 
     async function fetchStats(matchId) {
-      const { data } = await supabase.from('player_stats').select('*').eq('match_id', matchId);
+      const { data } = await supabaseClient.from('player_stats').select('*').eq('match_id', matchId);
       let stats = {};
       if (data) {
         data.forEach(row => {
@@ -498,12 +499,12 @@
     }
 
     async function fetchLogs(matchId) {
-      const { data } = await supabase.from('logs').select('*').eq('match_id', matchId).order('created_at', { ascending: false });
+      const { data } = await supabaseClient.from('logs').select('*').eq('match_id', matchId).order('created_at', { ascending: false });
       return data ? data.map(l => ({ id: l.id, quarter: l.quarter, playerId: l.player_id, statType: l.stat_type, time: l.log_time, text: l.text })) : [];
     }
 
     async function fetchLineups(matchId) {
-      const { data } = await supabase.from('lineups').select('*').eq('match_id', matchId);
+      const { data } = await supabaseClient.from('lineups').select('*').eq('match_id', matchId);
       let lineups = { 1: { home: [], away: [] }, 2: { home: [], away: [] }, 3: { home: [], away: [] }, 4: { home: [], away: [] } };
       if (data) {
         data.forEach(row => {
@@ -517,16 +518,16 @@
 
     async function initDefaultMatchInSupabase() {
       const matchId = 'match_' + Date.now();
-      await supabase.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: 'FULL', home_team: '우리팀 (HOME)', away_team: '상대팀 (AWAY)', quarter: 1, timer_seconds: 600 }]);
+      await supabaseClient.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: 'FULL', home_team: '우리팀 (HOME)', away_team: '상대팀 (AWAY)', quarter: 1, timer_seconds: 600 }]);
       for (const p of DEFAULT_PLAYERS_HOME) {
-        await supabase.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth }]);
+        await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth }]);
       }
       currentMatchId = matchId;
       await loadFromSupabase();
     }
 
     function setupRealtimeSubscription() {
-      supabase.channel('public-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, async () => { await loadFromSupabase(); }).subscribe();
+      supabaseClient.channel('public-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, async () => { await loadFromSupabase(); }).subscribe();
     }
 
     function renderTeamMembersPage() {
@@ -804,7 +805,7 @@
       m.stats[qKey][statType] = (m.stats[qKey][statType] || 0) + 1;
 
       const st = m.stats[qKey];
-      await supabase.from('player_stats').upsert({
+      await supabaseClient.from('player_stats').upsert({
         match_id: currentMatchId, player_id: playerId, quarter: q,
         pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
         pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
@@ -815,7 +816,7 @@
 
       const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.id === playerId);
       const msg = customMsg || `${q}Q [${team}] #${p.number} ${p.name} - ${statType}`;
-      await supabase.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
+      await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
       await loadFromSupabase();
     }
 
@@ -826,7 +827,7 @@
       if (confirm('이 기록을 삭제하시겠습니까?')) {
         const qKey = `${tLog.playerId}_q${tLog.quarter}`;
         if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) m.stats[qKey][tLog.statType]--;
-        await supabase.from('logs').delete().eq('id', logId);
+        await supabaseClient.from('logs').delete().eq('id', logId);
         await loadFromSupabase();
       }
     }
@@ -888,7 +889,7 @@
     async function changeQuarter(delta) {
       const m = matches[currentMatchId];
       m.quarter = Math.max(1, Math.min(4, m.quarter + delta));
-      await supabase.from('matches').update({ quarter: m.quarter }).eq('id', currentMatchId);
+      await supabaseClient.from('matches').update({ quarter: m.quarter }).eq('id', currentMatchId);
       await loadFromSupabase();
     }
 
@@ -924,9 +925,9 @@
     function openNewMatchModal() { document.getElementById('newMatchModal').classList.remove('hidden'); }
     async function createNewMatch() {
       const matchId = 'match_' + Date.now();
-      await supabase.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: 'FULL', home_team: document.getElementById('inputHomeTeam').value, away_team: document.getElementById('inputAwayTeam').value, quarter: 1, timer_seconds: 600 }]);
+      await supabaseClient.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: 'FULL', home_team: document.getElementById('inputHomeTeam').value, away_team: document.getElementById('inputAwayTeam').value, quarter: 1, timer_seconds: 600 }]);
       for (const p of DEFAULT_PLAYERS_HOME) {
-        await supabase.from('players').insert([{ id: 'h_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth }]);
+        await supabaseClient.from('players').insert([{ id: 'h_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth }]);
       }
       currentMatchId = matchId;
       await loadFromSupabase();
@@ -937,7 +938,7 @@
     async function deleteCurrentMatch() {
       if (Object.keys(matches).length <= 1) { alert('최소 1개의 경기는 유지되어야 합니다.'); return; }
       if (confirm('현재 경기를 삭제하시겠습니까?')) {
-        await supabase.from('matches').delete().eq('id', currentMatchId);
+        await supabaseClient.from('matches').delete().eq('id', currentMatchId);
         currentMatchId = Object.keys(matches)[0];
         await loadFromSupabase();
       }
@@ -966,7 +967,7 @@
     function addRosterRow(team) { addRosterEditorRow(team); }
 
     async function saveTeamInfoChanges() {
-      await supabase.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
+      await supabaseClient.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
       const nums = document.querySelectorAll('.home-num');
       const names = document.querySelectorAll('.home-name');
       const births = document.querySelectorAll('.home-birth');
@@ -975,7 +976,7 @@
         const name = names[i].value.trim();
         const birth = births[i].value;
         if (num && name) {
-          await supabase.from('players').insert([{ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null }]);
+          await supabaseClient.from('players').insert([{ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null }]);
         }
       }
       await loadFromSupabase();
