@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>우리팀 농구 매니저 & 기록 시스템</title>
+  <title>우리팀 농구 포털</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel import/export -->
@@ -97,7 +97,7 @@
     </div>
 
     <div id="statsSubViewPeriod" class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg overflow-x-auto custom-scroll">
-      <div class="text-xs text-slate-400 mb-2">📌 **2차 스탯 용어:** eFG%(야투 효율성), TS%(진실 슈팅 성공률), AST/TO(어시스트/턴오버 비율)</div>
+      <div class="text-xs text-slate-400 mb-2">📌 2차 스탯 용어: eFG%(야투 효율성), TS%(진실 슈팅 성공률), AST/TO(어시스트/턴오버 비율)</div>
       <table class="w-full text-xs md:text-sm text-center border-collapse">
         <thead>
           <tr class="bg-slate-900 text-slate-400 font-semibold border-b border-slate-700">
@@ -1222,7 +1222,6 @@
           const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
           let count = 0;
-          // 첫 번째 행은 헤더로 가정하고 1행부터 읽음
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (row && row.length >= 2) {
@@ -1236,7 +1235,7 @@
               }
             }
           }
-          alert(`엑셀에서 팀원 ${count명을 성공적으로 불러왔습니다! 저장 버튼을 누르세요.`);
+          alert(`엑셀에서 팀원 ${count}명을 불러왔습니다! 저장 버튼을 누르세요.`);
         } catch (err) {
           alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
         }
@@ -1268,7 +1267,6 @@
               const num = String(row[0] || '').trim();
               const name = String(row[1] || '').trim();
 
-              // 선수 찾기
               const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.number === num || x.name === name);
               if (p) {
                 const pt2_made = parseInt(row[2]) || 0;
