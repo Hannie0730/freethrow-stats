@@ -6,10 +6,8 @@
   <title>우리팀 농구 매니저 & 기록 시스템</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- SheetJS for Excel export -->
+  <!-- SheetJS for Excel import/export -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- Tesseract.js for OCR Image Recognition -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- FontAwesome -->
@@ -150,16 +148,19 @@
 
   <!-- ================= PAGE 3: 경기 기록지 ================= -->
   <div id="pageRecorder" class="flex-1 p-2 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-4 w-full max-w-none mx-auto">
-    <div class="lg:col-span-12 flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
+    <div class="lg:col-span-12 flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700 flex-wrap gap-2">
       <div class="flex items-center gap-2">
         <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none"></select>
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button onclick="document.getElementById('excelInputMatchStats').click()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow" title="현재 쿼터 스탯 엑셀 일괄 등록">
+          <i class="fa-solid fa-file-import mr-1"></i> 스탯 엑셀업로드
+        </button>
         <button onclick="openNewMatchModal()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
           <i class="fa-solid fa-plus mr-1"></i> 새 경기
         </button>
         <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
-          <i class="fa-solid fa-file-excel mr-1"></i> 엑셀
+          <i class="fa-solid fa-file-excel mr-1"></i> 엑셀다운
         </button>
         <button onclick="deleteCurrentMatch()" class="bg-rose-900 hover:bg-rose-800 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold" title="경기 삭제">
           <i class="fa-solid fa-trash-can"></i>
@@ -197,7 +198,6 @@
               <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-2.5 py-1 rounded-lg"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
 
-            <!-- 핵심 기능 3: 가운데 쿼터별 출전 선수 5명 선택 설정 버튼 -->
             <button onclick="openLineupModal()" class="mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow border border-indigo-400/30">
               <i class="fa-solid fa-user-check text-amber-300 mr-1"></i> 출전 선수 5명 선택 (<span id="lineupQuarterText">1Q</span>)
             </button>
@@ -348,7 +348,7 @@
     </div>
   </div>
 
-  <!-- 핵심 기능 1: 팀원 편집 모달 (팀컬러 선택 포함) -->
+  <!-- 팀원 편집 모달 (엑셀 업로드 지원) -->
   <div id="teamInfoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
@@ -357,11 +357,11 @@
       </div>
       <div class="overflow-y-auto custom-scroll my-3 space-y-4 flex-1 pr-1">
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
-          <div class="flex justify-between items-center mb-2">
+          <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
             <span class="text-xs font-bold text-blue-400">팀원 정보 (등번호, 이름, 생년월일, 팀컬러)</span>
             <div class="flex gap-1.5">
-              <button onclick="triggerOcrUpload()" class="text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded font-bold"><i class="fa-solid fa-camera mr-1"></i>OCR 인식</button>
-              <button onclick="addRosterRow()" class="text-[11px] bg-blue-600 text-white px-2 py-1 rounded font-bold">+ 추가</button>
+              <button onclick="document.getElementById('excelInputHome').click()" class="text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded font-bold shadow"><i class="fa-solid fa-file-excel mr-1"></i>엑셀 업로드</button>
+              <button onclick="addRosterRow()" class="text-[11px] bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded font-bold">+ 추가</button>
             </div>
           </div>
           <div id="homeRosterEditor" class="space-y-1.5"></div>
@@ -374,9 +374,11 @@
     </div>
   </div>
 
-  <input type="file" id="ocrInputHome" accept="image/*" class="hidden" onchange="processOcrImage(event)">
+  <!-- 숨겨진 파일 업로드 인풋들 -->
+  <input type="file" id="excelInputHome" accept=".xlsx, .xls, .csv" class="hidden" onchange="processExcelTeamMembers(event)">
+  <input type="file" id="excelInputMatchStats" accept=".xlsx, .xls, .csv" class="hidden" onchange="processExcelMatchStats(event)">
 
-  <!-- 핵심 기능 2: 새 경기 모달 (자체전 총 참석 인원 선택) -->
+  <!-- 새 경기 모달 -->
   <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
       <h3 class="text-base font-extrabold text-white mb-3">새 경기 생성</h3>
@@ -1081,7 +1083,6 @@
       if (display) display.textContent = `${mins}:${secs}`;
     }
 
-    // 핵심 기능 2: 새 경기 모달 토글 및 인원수 선택 리스트 생성
     function openNewMatchModal() { 
       const m = matches[currentMatchId];
       const countSelect = document.getElementById('inputPlayerCount');
@@ -1131,7 +1132,6 @@
 
         for (let i = 0; i < selectedPlayers.length; i++) {
           const p = selectedPlayers[i];
-          // 팀컬러 기반으로 Black / White 팀 자동 분배
           const teamType = (p.color === '블루/화이트') ? 'AWAY' : 'HOME';
           await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: teamType, number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
         }
@@ -1156,7 +1156,6 @@
       }
     }
 
-    // 핵심 기능 1: 팀원 편집 모달에서 팀컬러 드롭다운 지원
     function openTeamInfoModal() {
       const m = matches[currentMatchId];
       const editor = document.getElementById('homeRosterEditor');
@@ -1209,7 +1208,102 @@
       renderTeamMembersPage();
     }
 
-    // 핵심 기능 3: 쿼터별 출전 선수 5명 선택 모달
+    // 엑셀 파일로 팀원 명단 업로드 처리
+    function processExcelTeamMembers(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          let count = 0;
+          // 첫 번째 행은 헤더로 가정하고 1행부터 읽음
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row && row.length >= 2) {
+              const num = String(row[0] || '').trim();
+              const name = String(row[1] || '').trim();
+              const birth = String(row[2] || '').trim();
+              const color = String(row[3] || '블랙').trim();
+              if (num && name) {
+                addRosterEditorRow(num, name, birth, color);
+                count++;
+              }
+            }
+          }
+          alert(`엑셀에서 팀원 ${count명을 성공적으로 불러왔습니다! 저장 버튼을 누르세요.`);
+        } catch (err) {
+          alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+        }
+        event.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 엑셀 파일로 경기별 스탯 업로드 처리
+    function processExcelMatchStats(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          const m = matches[currentMatchId];
+          const q = m.quarter;
+          let count = 0;
+
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row && row.length >= 2) {
+              const num = String(row[0] || '').trim();
+              const name = String(row[1] || '').trim();
+
+              // 선수 찾기
+              const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.number === num || x.name === name);
+              if (p) {
+                const pt2_made = parseInt(row[2]) || 0;
+                const pt2_miss = parseInt(row[3]) || 0;
+                const pt3_made = parseInt(row[4]) || 0;
+                const pt3_miss = parseInt(row[5]) || 0;
+                const ft_made = parseInt(row[6]) || 0;
+                const ft_miss = parseInt(row[7]) || 0;
+                const def_reb = parseInt(row[8]) || 0;
+                const off_reb = parseInt(row[9]) || 0;
+                const ast = parseInt(row[10]) || 0;
+                const stl = parseInt(row[11]) || 0;
+                const blk = parseInt(row[12]) || 0;
+                const to_count = parseInt(row[13]) || 0;
+                const foul = parseInt(row[14]) || 0;
+
+                await supabaseClient.from('player_stats').upsert({
+                  match_id: currentMatchId, player_id: p.id, quarter: q,
+                  pt2_made, pt2_miss, pt3_made, pt3_miss, ft_made, ft_miss,
+                  def_reb, off_reb, ast, stl, blk, to_count, foul
+                }, { onConflict: 'match_id,player_id,quarter' });
+                count++;
+              }
+            }
+          }
+          alert(`${q}쿼터 스탯 엑셀 업로드 완료 (${count}명 반영)!`);
+          await loadFromSupabase();
+        } catch (err) {
+          alert('스탯 엑셀 처리 중 오류가 발생했습니다.');
+        }
+        event.target.value = '';
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
     function openLineupModal() {
       const m = matches[currentMatchId];
       if (!m) return;
@@ -1236,7 +1330,6 @@
 
       const qLineup = (m.lineups && m.lineups[activeLineupModalQuarter]) || { home: [], away: [] };
 
-      // HOME checklist
       homeBox.innerHTML = '';
       m.homePlayers.forEach(p => {
         const checked = qLineup.home.includes(p.id) ? 'checked' : '';
@@ -1246,7 +1339,6 @@
         homeBox.appendChild(div);
       });
 
-      // AWAY checklist
       awayBox.innerHTML = '';
       if (m.mode === '교류전') {
         awayBox.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">교류전 모드에서는 상대팀 스탯이 직접 기록됩니다.</div>';
@@ -1295,29 +1387,6 @@
 
       closeModal('lineupModal');
       await loadFromSupabase();
-    }
-
-    function triggerOcrUpload() { 
-      const input = document.getElementById('ocrInputHome');
-      if (input) input.click(); 
-    }
-
-    async function processOcrImage(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      try {
-        const worker = await Tesseract.createWorker('kor+eng');
-        const ret = await worker.recognize(file);
-        await worker.terminate();
-        const lines = ret.data.text.split('\n');
-        let count = 0;
-        lines.forEach(line => {
-          const match = line.match(/(?:#|NO\.?|번)?\s*(\d{1,3})\s*[\.\:\-\s]\s*([가-힣a-zA-Z]{2,8})/i);
-          if (match) { addRosterEditorRow(match[1], match[2]); count++; }
-        });
-        alert(`${count}명 인식 완료! 저장 버튼을 누르세요.`);
-      } catch (err) { alert('OCR 오류 발생'); }
-      event.target.value = '';
     }
 
     function exportToExcel() {
