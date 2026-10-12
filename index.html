@@ -60,9 +60,9 @@
     <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
       <div>
         <h2 class="text-lg md:text-xl font-black text-white flex items-center gap-2">
-          <i class="fa-solid fa-users text-indigo-400"></i> 팀원 명단 및 누적 요약
+          <i class="fa-solid fa-users text-indigo-400"></i> 팀원 명단 및 팀컬러 요약
         </h2>
-        <p class="text-xs text-slate-400">우리팀 선수들의 생년월일, 등번호 및 전체 통산 누적 기록을 관리합니다.</p>
+        <p class="text-xs text-slate-400">우리팀 선수들의 팀컬러(블랙 vs 블루/화이트), 생년월일, 등번호 및 통산 누적 기록을 관리합니다.</p>
       </div>
       <div class="flex gap-2">
         <button onclick="openTeamInfoModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-bold shadow">
@@ -71,11 +71,10 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="teamMembersGrid">
-    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="teamMembersGrid"></div>
   </div>
 
-  <!-- ================= PAGE 2: 누적 및 경기별 스탯 (2차스탯 포함) ================= -->
+  <!-- ================= PAGE 2: 누적 및 경기별 스탯 ================= -->
   <div id="pageStats" class="flex-1 p-3 md:p-6 hidden max-w-7xl mx-auto w-full flex flex-col gap-4">
     <div class="flex justify-between items-center flex-wrap gap-3 bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
       <div>
@@ -117,16 +116,14 @@
             <th class="py-2 text-indigo-400 font-bold">AST/TO</th>
           </tr>
         </thead>
-        <tbody id="periodStatsTableBody" class="divide-y divide-slate-700/50">
-        </tbody>
+        <tbody id="periodStatsTableBody" class="divide-y divide-slate-700/50"></tbody>
       </table>
     </div>
 
     <div id="statsSubViewMatch" class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg hidden">
       <div class="flex items-center gap-2 mb-3">
         <label class="text-xs font-bold text-slate-300">조회할 경기:</label>
-        <select id="statsMatchSelect" onchange="renderMatchDetailStats(this.value)" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-1.5">
-        </select>
+        <select id="statsMatchSelect" onchange="renderMatchDetailStats(this.value)" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-3 py-1.5"></select>
       </div>
       <div class="overflow-x-auto custom-scroll">
         <table class="w-full text-xs md:text-sm text-center border-collapse">
@@ -145,8 +142,7 @@
               <th class="py-2">PF</th>
             </tr>
           </thead>
-          <tbody id="matchDetailTableBody" class="divide-y divide-slate-700/50">
-          </tbody>
+          <tbody id="matchDetailTableBody" class="divide-y divide-slate-700/50"></tbody>
         </table>
       </div>
     </div>
@@ -156,8 +152,7 @@
   <div id="pageRecorder" class="flex-1 p-2 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-4 w-full max-w-none mx-auto">
     <div class="lg:col-span-12 flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700">
       <div class="flex items-center gap-2">
-        <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none">
-        </select>
+        <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none"></select>
       </div>
       <div class="flex items-center gap-1.5">
         <button onclick="openNewMatchModal()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
@@ -201,6 +196,11 @@
               <button id="timerToggleBtn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow"><i class="fa-solid fa-play mr-1"></i> 시작</button>
               <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-2.5 py-1 rounded-lg"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
+
+            <!-- 핵심 기능 3: 가운데 쿼터별 출전 선수 5명 선택 설정 버튼 -->
+            <button onclick="openLineupModal()" class="mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow border border-indigo-400/30">
+              <i class="fa-solid fa-user-check text-amber-300 mr-1"></i> 출전 선수 5명 선택 (<span id="lineupQuarterText">1Q</span>)
+            </button>
           </div>
 
           <div class="flex flex-col items-center">
@@ -237,7 +237,7 @@
       <div id="homePlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
     </section>
 
-    <!-- RIGHT: AWAY Team Panel (교류전이면 스탯 버튼, 자체전이면 선수 목록) -->
+    <!-- RIGHT: AWAY Team Panel -->
     <section class="col-span-1 lg:col-span-3 lg:order-3 bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700">
         <div class="flex items-center gap-1.5 truncate">
@@ -281,6 +281,43 @@
   </div>
 
   <!-- MODALS -->
+  <!-- 쿼터별 출전 선수 5명 선택 모달 -->
+  <div id="lineupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+        <h3 class="text-base font-black text-amber-400"><i class="fa-solid fa-users-viewfinder mr-1"></i> <span id="lineupModalTitle">1쿼터 출전 선수 선택 (5명)</span></h3>
+        <button onclick="closeModal('lineupModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="flex gap-1 my-3 bg-slate-900 p-1 rounded-xl">
+        <button onclick="setLineupModalQuarter(1)" id="lqTab1" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-orange-500 text-white">1Q</button>
+        <button onclick="setLineupModalQuarter(2)" id="lqTab2" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">2Q</button>
+        <button onclick="setLineupModalQuarter(3)" id="lqTab3" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">3Q</button>
+        <button onclick="setLineupModalQuarter(4)" id="lqTab4" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">4Q</button>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto custom-scroll my-2 flex-1">
+        <div class="bg-slate-900 border border-blue-500/30 rounded-xl p-3">
+          <div class="font-bold text-xs text-blue-400 mb-2 flex justify-between">
+            <span>HOME 출전 라인업</span>
+            <span id="homeLineupCount" class="text-amber-400">0/5 선택</span>
+          </div>
+          <div id="lineupHomeChecklist" class="space-y-1.5"></div>
+        </div>
+        <div class="bg-slate-900 border border-red-500/30 rounded-xl p-3">
+          <div class="font-bold text-xs text-red-400 mb-2 flex justify-between">
+            <span>AWAY 출전 라인업</span>
+            <span id="awayLineupCount" class="text-amber-400">0/5 선택</span>
+          </div>
+          <div id="lineupAwayChecklist" class="space-y-1.5"></div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+        <button onclick="closeModal('lineupModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
+        <button onclick="saveLineupSelection()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-5 py-2 rounded-lg font-bold shadow">라인업 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 스탯 입력 모달 -->
   <div id="statModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2.5 border-b border-slate-700">
@@ -311,17 +348,17 @@
     </div>
   </div>
 
-  <!-- 팀원 편집 및 추가 모달 -->
+  <!-- 핵심 기능 1: 팀원 편집 모달 (팀컬러 선택 포함) -->
   <div id="teamInfoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-2xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
-        <h3 class="text-base font-black text-indigo-400"><i class="fa-solid fa-users-gear mr-1"></i> 팀원 명단 및 정보 편집</h3>
+        <h3 class="text-base font-black text-indigo-400"><i class="fa-solid fa-users-gear mr-1"></i> 팀원 명단 및 팀컬러 편집</h3>
         <button onclick="closeModal('teamInfoModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="overflow-y-auto custom-scroll my-3 space-y-4 flex-1 pr-1">
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-blue-400">팀원 정보 (등번호, 이름, 생년월일)</span>
+            <span class="text-xs font-bold text-blue-400">팀원 정보 (등번호, 이름, 생년월일, 팀컬러)</span>
             <div class="flex gap-1.5">
               <button onclick="triggerOcrUpload()" class="text-[11px] bg-amber-600 hover:bg-amber-500 text-white px-2 py-1 rounded font-bold"><i class="fa-solid fa-camera mr-1"></i>OCR 인식</button>
               <button onclick="addRosterRow()" class="text-[11px] bg-blue-600 text-white px-2 py-1 rounded font-bold">+ 추가</button>
@@ -339,18 +376,25 @@
 
   <input type="file" id="ocrInputHome" accept="image/*" class="hidden" onchange="processOcrImage(event)">
 
-  <!-- 새 경기 모달 (교류전 / 자체전 선택 포함) -->
+  <!-- 핵심 기능 2: 새 경기 모달 (자체전 총 참석 인원 선택) -->
   <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
       <h3 class="text-base font-extrabold text-white mb-3">새 경기 생성</h3>
       <div class="space-y-3 text-xs">
         <div>
           <label class="block font-bold text-slate-400 mb-1">경기 유형</label>
-          <select id="inputMatchType" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
+          <select id="inputMatchType" onchange="toggleMatchModeInputs(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
             <option value="교류전">교류전</option>
             <option value="자체전">자체전</option>
           </select>
         </div>
+
+        <div id="internalMatchSection" class="hidden bg-slate-900/90 p-3 rounded-xl border border-indigo-500/40">
+          <label class="block font-bold text-indigo-300 mb-1">오늘 참석 총 인원 선택 (팀원DB 연동)</label>
+          <select id="inputPlayerCount" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"></select>
+          <p class="text-[10px] text-slate-400 mt-1.5">선택한 인원만큼 팀원 DB에서 자동으로 불러와 Black팀과 White팀으로 배정합니다.</p>
+        </div>
+
         <div>
           <label class="block font-bold text-slate-400 mb-1">HOME 팀명</label>
           <input type="text" id="inputHomeTeam" value="우리팀 (HOME)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
@@ -377,13 +421,14 @@
     let timerInterval = null;
     let isTimerRunning = false;
     let activePlayer = null;
+    let activeLineupModalQuarter = 1;
 
     const DEFAULT_PLAYERS_HOME = [
-      { id: 'h1', number: '7', name: '이승준', birth: '1995-03-12' },
-      { id: 'h2', number: '11', name: '이성호', birth: '1993-07-20' },
-      { id: 'h3', number: '23', name: '채기호', birth: '1996-11-05' },
-      { id: 'h4', number: '1', name: '안효빈', birth: '1998-01-15' },
-      { id: 'h5', number: '99', name: '박종신', birth: '1994-09-28' }
+      { id: 'h1', number: '7', name: '이승준', birth: '1995-03-12', color: '블랙' },
+      { id: 'h2', number: '11', name: '이성호', birth: '1993-07-20', color: '블루/화이트' },
+      { id: 'h3', number: '23', name: '채기호', birth: '1996-11-05', color: '블랙' },
+      { id: 'h4', number: '1', name: '안효빈', birth: '1998-01-15', color: '블루/화이트' },
+      { id: 'h5', number: '99', name: '박종신', birth: '1994-09-28', color: '블랙' }
     ];
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -442,7 +487,7 @@
 
     async function fetchPlayers(matchId, teamType) {
       const { data } = await supabaseClient.from('players').select('*').eq('match_id', matchId).eq('team_type', teamType);
-      return data ? data.map(p => ({ id: p.id, number: p.number, name: p.name, birth: p.birth_date || '' })) : [];
+      return data ? data.map(p => ({ id: p.id, number: p.number, name: p.name, birth: p.birth_date || '', color: p.team_color || '블랙' })) : [];
     }
 
     async function fetchStats(matchId) {
@@ -485,7 +530,7 @@
       const matchId = 'match_' + Date.now();
       await supabaseClient.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: '교류전', home_team: '우리팀 (HOME)', away_team: '상대팀 (AWAY)', quarter: 1, timer_seconds: 600 }]);
       for (const p of DEFAULT_PLAYERS_HOME) {
-        await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth }]);
+        await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
       }
       currentMatchId = matchId;
       await loadFromSupabase();
@@ -521,6 +566,8 @@
           if (pInMatch) { gp++; pts += mPts; reb += mReb; ast += mAst; }
         });
 
+        const colorBadgeClass = p.color === '블랙' ? 'bg-slate-900 text-slate-200 border-slate-700' : 'bg-blue-600/30 text-blue-300 border-blue-400/40';
+
         const card = document.createElement('div');
         card.className = 'bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-lg flex flex-col justify-between';
         card.innerHTML = `
@@ -529,7 +576,10 @@
               <div class="flex items-center gap-2.5">
                 <span class="w-10 h-10 rounded-xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 flex items-center justify-center font-black text-base">${p.number}</span>
                 <div>
-                  <h3 class="font-extrabold text-white text-base">${p.name}</h3>
+                  <h3 class="font-extrabold text-white text-base flex items-center gap-1.5">
+                    ${p.name}
+                    <span class="text-[10px] px-2 py-0.5 rounded-full border ${colorBadgeClass}">${p.color || '블랙'}</span>
+                  </h3>
                   <p class="text-[11px] text-slate-400">생년월일: ${p.birth || '미등록'}</p>
                 </div>
               </div>
@@ -694,7 +744,6 @@
       });
     }
 
-    // 안전장치(방어 코드)가 적용된 핵심 렌더링 함수
     function renderCurrentMatch() {
       const m = matches[currentMatchId];
       if (!m) return;
@@ -711,6 +760,7 @@
       setElemText('matchDateText', m.date);
       setElemText('matchTypeBadge', m.mode || '교류전');
       setElemText('quarterDisplay', (m.quarter || 1) + 'Q');
+      setElemText('lineupQuarterText', (m.quarter || 1) + 'Q');
 
       updateTimerDisplay();
       renderPlayerRoster('HOME');
@@ -725,6 +775,7 @@
       const container = document.getElementById(isHome ? 'homePlayerList' : 'awayPlayerList');
       if (!container) return;
       const players = isHome ? m.homePlayers : m.awayPlayers;
+      const currentLineupIds = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][isHome ? 'home' : 'away']) || [];
       container.innerHTML = '';
 
       players.forEach(p => {
@@ -733,14 +784,20 @@
           const st = m.stats[`${p.id}_q${q}`];
           if (st) pts += (st['2PT_MADE'] || 0) * 2 + (st['3PT_MADE'] || 0) * 3 + (st['FT_MADE'] || 0);
         }
+
+        const isPlaying = currentLineupIds.includes(p.id);
+
         const div = document.createElement('div');
         div.onclick = () => openStatModal(p, team);
-        div.className = 'p-2 rounded-xl cursor-pointer transition shadow flex items-center justify-between bg-slate-900/80 border border-slate-700 hover:border-orange-500';
+        div.className = `p-2 rounded-xl cursor-pointer transition shadow flex items-center justify-between ${isPlaying ? 'bg-blue-950/80 border-2 border-amber-400 shadow-amber-500/10' : 'bg-slate-900/80 opacity-70 border border-slate-700 hover:border-orange-500'}`;
         div.innerHTML = `
           <div class="flex items-center gap-2 truncate">
             <span class="w-6 h-6 rounded-lg bg-blue-600/30 text-blue-300 flex items-center justify-center font-bold text-xs">${p.number}</span>
             <div class="truncate">
-              <div class="font-bold text-xs text-slate-100 truncate">${p.name}</div>
+              <div class="font-bold text-xs text-slate-100 flex items-center gap-1.5 truncate">
+                <span>${p.name}</span>
+                ${isPlaying ? '<span class="bg-amber-400 text-slate-950 font-black text-[9px] px-1 rounded">ON</span>' : ''}
+              </div>
               <div class="text-[9px] text-slate-400">PTS: <span class="text-orange-400 font-bold">${pts}</span></div>
             </div>
           </div>
@@ -817,7 +874,10 @@
       document.getElementById('statModal').classList.remove('hidden');
     }
 
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function closeModal(id) { 
+      const modal = document.getElementById(id);
+      if (modal) modal.classList.add('hidden'); 
+    }
 
     async function handleStatClick(statType) {
       closeModal('statModal');
@@ -1021,9 +1081,39 @@
       if (display) display.textContent = `${mins}:${secs}`;
     }
 
+    // 핵심 기능 2: 새 경기 모달 토글 및 인원수 선택 리스트 생성
     function openNewMatchModal() { 
+      const m = matches[currentMatchId];
+      const countSelect = document.getElementById('inputPlayerCount');
+      if (m && m.homePlayers && countSelect) {
+        countSelect.innerHTML = '';
+        const total = m.homePlayers.length;
+        for (let i = 5; i <= total; i++) {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = `${i}명 참석 (전체 ${total}명 중)`;
+          if (i === total) opt.selected = true;
+          countSelect.appendChild(opt);
+        }
+      }
+      toggleMatchModeInputs('교류전');
       const modal = document.getElementById('newMatchModal');
       if (modal) modal.classList.remove('hidden'); 
+    }
+
+    function toggleMatchModeInputs(mode) {
+      const sec = document.getElementById('internalMatchSection');
+      const homeIn = document.getElementById('inputHomeTeam');
+      const awayIn = document.getElementById('inputAwayTeam');
+      if (mode === '자체전') {
+        if (sec) sec.classList.remove('hidden');
+        if (homeIn) homeIn.value = "Black 팀";
+        if (awayIn) awayIn.value = "White 팀";
+      } else {
+        if (sec) sec.classList.add('hidden');
+        if (homeIn) homeIn.value = "우리팀 (HOME)";
+        if (awayIn) awayIn.value = "상대팀 (AWAY)";
+      }
     }
 
     async function createNewMatch() {
@@ -1033,9 +1123,24 @@
       const awayTeam = document.getElementById('inputAwayTeam').value;
 
       await supabaseClient.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: 600 }]);
-      for (const p of DEFAULT_PLAYERS_HOME) {
-        await supabaseClient.from('players').insert([{ id: 'h_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth }]);
+
+      const m = matches[currentMatchId];
+      if (mode === '자체전' && m && m.homePlayers) {
+        const count = parseInt(document.getElementById('inputPlayerCount').value) || m.homePlayers.length;
+        const selectedPlayers = m.homePlayers.slice(0, count);
+
+        for (let i = 0; i < selectedPlayers.length; i++) {
+          const p = selectedPlayers[i];
+          // 팀컬러 기반으로 Black / White 팀 자동 분배
+          const teamType = (p.color === '블루/화이트') ? 'AWAY' : 'HOME';
+          await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: teamType, number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+        }
+      } else {
+        for (const p of DEFAULT_PLAYERS_HOME) {
+          await supabaseClient.from('players').insert([{ id: 'h_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+        }
       }
+
       currentMatchId = matchId;
       await loadFromSupabase();
       closeModal('newMatchModal');
@@ -1051,19 +1156,20 @@
       }
     }
 
+    // 핵심 기능 1: 팀원 편집 모달에서 팀컬러 드롭다운 지원
     function openTeamInfoModal() {
       const m = matches[currentMatchId];
       const editor = document.getElementById('homeRosterEditor');
       if (!editor) return;
       editor.innerHTML = '';
       if (m && m.homePlayers) {
-        m.homePlayers.forEach(p => addRosterEditorRow(p.number, p.name, p.birth));
+        m.homePlayers.forEach(p => addRosterEditorRow(p.number, p.name, p.birth, p.color));
       }
       const modal = document.getElementById('teamInfoModal');
       if (modal) modal.classList.remove('hidden');
     }
 
-    function addRosterEditorRow(num = '', name = '', birth = '') {
+    function addRosterEditorRow(num = '', name = '', birth = '', color = '블랙') {
       const container = document.getElementById('homeRosterEditor');
       if (!container) return;
       const row = document.createElement('div');
@@ -1072,6 +1178,10 @@
         <input type="text" value="${num}" placeholder="등번호" class="home-num w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center font-bold text-white">
         <input type="text" value="${name}" placeholder="선수 이름" class="home-name flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-bold text-white">
         <input type="date" value="${birth}" class="home-birth bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+        <select class="home-color bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-amber-400 font-bold">
+          <option value="블랙" ${color === '블랙' ? 'selected' : ''}>블랙</option>
+          <option value="블루/화이트" ${color === '블루/화이트' ? 'selected' : ''}>블루/화이트</option>
+        </select>
         <button onclick="this.parentElement.remove()" class="text-rose-400 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
       `;
       container.appendChild(row);
@@ -1083,17 +1193,108 @@
       const nums = document.querySelectorAll('.home-num');
       const names = document.querySelectorAll('.home-name');
       const births = document.querySelectorAll('.home-birth');
+      const colors = document.querySelectorAll('.home-color');
+
       for (let i = 0; i < nums.length; i++) {
         const num = nums[i].value.trim();
         const name = names[i].value.trim();
         const birth = births[i].value;
+        const color = colors[i].value;
         if (num && name) {
-          await supabaseClient.from('players').insert([{ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null }]);
+          await supabaseClient.from('players').insert([{ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color }]);
         }
       }
       await loadFromSupabase();
       closeModal('teamInfoModal');
       renderTeamMembersPage();
+    }
+
+    // 핵심 기능 3: 쿼터별 출전 선수 5명 선택 모달
+    function openLineupModal() {
+      const m = matches[currentMatchId];
+      if (!m) return;
+      activeLineupModalQuarter = m.quarter || 1;
+      setLineupModalQuarter(activeLineupModalQuarter);
+      const modal = document.getElementById('lineupModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function setLineupModalQuarter(q) {
+      activeLineupModalQuarter = q;
+      for (let i = 1; i <= 4; i++) {
+        const tab = document.getElementById(`lqTab${i}`);
+        if (tab) tab.className = i === q ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-orange-500 text-white' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400';
+      }
+      renderLineupChecklists();
+    }
+
+    function renderLineupChecklists() {
+      const m = matches[currentMatchId];
+      const homeBox = document.getElementById('lineupHomeChecklist');
+      const awayBox = document.getElementById('lineupAwayChecklist');
+      if (!homeBox || !awayBox) return;
+
+      const qLineup = (m.lineups && m.lineups[activeLineupModalQuarter]) || { home: [], away: [] };
+
+      // HOME checklist
+      homeBox.innerHTML = '';
+      m.homePlayers.forEach(p => {
+        const checked = qLineup.home.includes(p.id) ? 'checked' : '';
+        const div = document.createElement('label');
+        div.className = 'flex items-center gap-2 bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-slate-700/60 text-xs text-white';
+        div.innerHTML = `<input type="checkbox" name="homeLineup" value="${p.id}" ${checked} onchange="limitLineupCheck(this, 'homeLineup', 'homeLineupCount')" class="rounded border-slate-600"> <span>#${p.number} ${p.name}</span>`;
+        homeBox.appendChild(div);
+      });
+
+      // AWAY checklist
+      awayBox.innerHTML = '';
+      if (m.mode === '교류전') {
+        awayBox.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">교류전 모드에서는 상대팀 스탯이 직접 기록됩니다.</div>';
+      } else {
+        m.awayPlayers.forEach(p => {
+          const checked = qLineup.away.includes(p.id) ? 'checked' : '';
+          const div = document.createElement('label');
+          div.className = 'flex items-center gap-2 bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-slate-700/60 text-xs text-white';
+          div.innerHTML = `<input type="checkbox" name="awayLineup" value="${p.id}" ${checked} onchange="limitLineupCheck(this, 'awayLineup', 'awayLineupCount')" class="rounded border-slate-600"> <span>#${p.number} ${p.name}</span>`;
+          awayBox.appendChild(div);
+        });
+      }
+
+      updateLineupCountText('homeLineup', 'homeLineupCount');
+      updateLineupCountText('awayLineup', 'awayLineupCount');
+    }
+
+    function limitLineupCheck(chk, name, countId) {
+      const checkedBoxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+      if (checkedBoxes.length > 5) {
+        alert('쿼터당 출전 선수는 최대 5명까지만 선택 가능합니다.');
+        chk.checked = false;
+      }
+      updateLineupCountText(name, countId);
+    }
+
+    function updateLineupCountText(name, countId) {
+      const checked = document.querySelectorAll(`input[name="${name}"]:checked`).length;
+      const el = document.getElementById(countId);
+      if (el) el.textContent = `${checked}/5 선택`;
+    }
+
+    async function saveLineupSelection() {
+      const q = activeLineupModalQuarter;
+      await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q);
+
+      const homeChecked = document.querySelectorAll('input[name="homeLineup"]:checked');
+      for (const chk of homeChecked) {
+        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: chk.value }]);
+      }
+
+      const awayChecked = document.querySelectorAll('input[name="awayLineup"]:checked');
+      for (const chk of awayChecked) {
+        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id: chk.value }]);
+      }
+
+      closeModal('lineupModal');
+      await loadFromSupabase();
     }
 
     function triggerOcrUpload() { 
