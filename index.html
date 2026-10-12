@@ -34,7 +34,7 @@
         </div>
         <div>
           <h1 class="font-extrabold text-sm md:text-base text-white leading-tight">우리팀 농구 포털 <span class="text-xs text-emerald-400 font-normal">(Supabase 실시간)</span></h1>
-          <p class="text-[10px] text-slate-400">팀원 관리 • 사진 기반 누적/2차 스탯 • 실시간 기록지</p>
+          <p class="text-[10px] text-slate-400">팀원 관리 • 사진 기반 누적/2차 스탯 • 날짜별 경기 관리</p>
         </div>
       </div>
     </div>
@@ -71,90 +71,154 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="teamMembersGrid"></div>
   </div>
 
-  <!-- ================= PAGE 2: 누적 및 2차 스탯 (3,4,5번째 사진 기준) ================= -->
-  <div id="pageStats" class="flex-1 p-3 md:p-6 hidden max-w-full mx-auto w-full flex flex-col gap-4">
-    <div class="flex justify-between items-center flex-wrap gap-3 bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-lg">
-      <div>
-        <h2 class="text-base md:text-lg font-black text-white flex items-center gap-2">
-          <i class="fa-solid fa-chart-pie text-orange-400"></i> 기간별 총 누적 및 2차 스탯 (사진 기준)
-        </h2>
-        <p class="text-xs text-slate-400">날짜 구간을 선택하여 팀원들의 정밀 통계 지표를 확인하세요.</p>
+  <!-- ================= PAGE 2: 누적 및 2차 스탯 + 경기별 스탯 뷰어 ================= -->
+  <div id="pageStats" class="flex-1 p-3 md:p-6 hidden max-w-full mx-auto w-full flex flex-col gap-5">
+    <!-- 기간별 누적 & 2차 스탯 섹션 -->
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+      <div class="flex justify-between items-center flex-wrap gap-3">
+        <div>
+          <h2 class="text-base md:text-lg font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-chart-pie text-orange-400"></i> 기간별 총 누적 및 2차 스탯
+          </h2>
+          <p class="text-xs text-slate-400">날짜 구간을 선택하여 팀원들의 정밀 통계 지표를 확인하세요.</p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap text-xs">
+          <span class="text-slate-400 font-bold">기간 선택:</span>
+          <input type="date" id="filterStartDate" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+          <span class="text-slate-500">~</span>
+          <input type="date" id="filterEndDate" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+          <button onclick="applyDateFilter()" class="bg-orange-600 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg font-bold shadow">조회</button>
+        </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap text-xs">
-        <span class="text-slate-400 font-bold">기간 선택:</span>
-        <input type="date" id="filterStartDate" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
-        <span class="text-slate-500">~</span>
-        <input type="date" id="filterEndDate" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
-        <button onclick="applyDateFilter()" class="bg-orange-600 hover:bg-orange-500 text-white px-3 py-1.5 rounded-lg font-bold shadow">조회</button>
+      <div class="overflow-x-auto custom-scroll">
+        <table class="w-full text-[11px] md:text-xs text-center border-collapse whitespace-nowrap">
+          <thead>
+            <tr class="bg-slate-900 text-slate-300 font-semibold border-b border-slate-700">
+              <th class="py-2.5 px-2 text-left sticky left-0 bg-slate-900 z-10">이름</th>
+              <th class="py-2 px-1.5">참석수</th>
+              <th class="py-2 px-1.5">게임수</th>
+              <th class="py-2 px-1.5">출전시간(분)</th>
+              <th class="py-2 px-1.5 bg-slate-800">PTS</th>
+              <th class="py-2 px-1.5">FGA</th>
+              <th class="py-2 px-1.5">FGM</th>
+              <th class="py-2 px-1.5 text-orange-400">PPG</th>
+              <th class="py-2 px-1.5">FG(%)</th>
+              <th class="py-2 px-1.5">2P시도</th>
+              <th class="py-2 px-1.5">2P성공</th>
+              <th class="py-2 px-1.5">2P득점</th>
+              <th class="py-2 px-1.5">2-PPG</th>
+              <th class="py-2 px-1.5">2FG(%)</th>
+              <th class="py-2 px-1.5">3P시도</th>
+              <th class="py-2 px-1.5">3P성공</th>
+              <th class="py-2 px-1.5">3P득점</th>
+              <th class="py-2 px-1.5">3-PPG</th>
+              <th class="py-2 px-1.5">3FG(%)</th>
+              <th class="py-2 px-1.5">FT시도</th>
+              <th class="py-2 px-1.5">FT성공</th>
+              <th class="py-2 px-1.5">FT득점</th>
+              <th class="py-2 px-1.5">FT-PPG</th>
+              <th class="py-2 px-1.5">FT(%)</th>
+              <th class="py-2 px-1.5 bg-blue-950">DREB</th>
+              <th class="py-2 px-1.5 bg-blue-950">OREB</th>
+              <th class="py-2 px-1.5 bg-blue-950 font-bold">TOTAL</th>
+              <th class="py-2 px-1.5 bg-blue-950">RPG</th>
+              <th class="py-2 px-1.5">AST합</th>
+              <th class="py-2 px-1.5">APG</th>
+              <th class="py-2 px-1.5">STL합</th>
+              <th class="py-2 px-1.5">SPG</th>
+              <th class="py-2 px-1.5">BLK합</th>
+              <th class="py-2 px-1.5">BPG</th>
+              <th class="py-2 px-1.5">PF합</th>
+              <th class="py-2 px-1.5">PF/G</th>
+              <th class="py-2 px-1.5">TOV합</th>
+              <th class="py-2 px-1.5">TOV/G</th>
+              <th class="py-2 px-1.5 text-amber-400 font-bold">eFG(%)</th>
+              <th class="py-2 px-1.5 text-emerald-400 font-bold">TS(%)</th>
+              <th class="py-2 px-1.5 text-indigo-300 font-bold">AST/TO</th>
+              <th class="py-2 px-1.5">USG(%)</th>
+              <th class="py-2 px-1.5">OFFRTG</th>
+              <th class="py-2 px-1.5">DEFRTG</th>
+              <th class="py-2 px-1.5">NETRTG</th>
+              <th class="py-2 px-1.5">EFF</th>
+              <th class="py-2 px-1.5">PIE</th>
+              <th class="py-2 px-1.5">PER</th>
+              <th class="py-2 px-1.5">DD</th>
+              <th class="py-2 px-1.5">TD</th>
+            </tr>
+          </thead>
+          <tbody id="periodStatsTableBody" class="divide-y divide-slate-700/50"></tbody>
+        </table>
       </div>
     </div>
 
-    <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg overflow-x-auto custom-scroll">
-      <table class="w-full text-[11px] md:text-xs text-center border-collapse whitespace-nowrap">
-        <thead>
-          <tr class="bg-slate-900 text-slate-300 font-semibold border-b border-slate-700">
-            <th class="py-2.5 px-2 text-left sticky left-0 bg-slate-900 z-10">이름</th>
-            <th class="py-2 px-1.5">참석수</th>
-            <th class="py-2 px-1.5">게임수</th>
-            <th class="py-2 px-1.5">출전시간(분)</th>
-            <th class="py-2 px-1.5 bg-slate-800">PTS</th>
-            <th class="py-2 px-1.5">FGA</th>
-            <th class="py-2 px-1.5">FGM</th>
-            <th class="py-2 px-1.5 text-orange-400">PPG</th>
-            <th class="py-2 px-1.5">FG(%)</th>
-            <th class="py-2 px-1.5">2P시도</th>
-            <th class="py-2 px-1.5">2P성공</th>
-            <th class="py-2 px-1.5">2P득점</th>
-            <th class="py-2 px-1.5">2-PPG</th>
-            <th class="py-2 px-1.5">2FG(%)</th>
-            <th class="py-2 px-1.5">3P시도</th>
-            <th class="py-2 px-1.5">3P성공</th>
-            <th class="py-2 px-1.5">3P득점</th>
-            <th class="py-2 px-1.5">3-PPG</th>
-            <th class="py-2 px-1.5">3FG(%)</th>
-            <th class="py-2 px-1.5">FT시도</th>
-            <th class="py-2 px-1.5">FT성공</th>
-            <th class="py-2 px-1.5">FT득점</th>
-            <th class="py-2 px-1.5">FT-PPG</th>
-            <th class="py-2 px-1.5">FT(%)</th>
-            <th class="py-2 px-1.5 bg-blue-950">DREB</th>
-            <th class="py-2 px-1.5 bg-blue-950">OREB</th>
-            <th class="py-2 px-1.5 bg-blue-950 font-bold">TOTAL</th>
-            <th class="py-2 px-1.5 bg-blue-950">RPG</th>
-            <th class="py-2 px-1.5">AST합</th>
-            <th class="py-2 px-1.5">APG</th>
-            <th class="py-2 px-1.5">STL합</th>
-            <th class="py-2 px-1.5">SPG</th>
-            <th class="py-2 px-1.5">BLK합</th>
-            <th class="py-2 px-1.5">BPG</th>
-            <th class="py-2 px-1.5">PF합</th>
-            <th class="py-2 px-1.5">PF/G</th>
-            <th class="py-2 px-1.5">TOV합</th>
-            <th class="py-2 px-1.5">TOV/G</th>
-            <th class="py-2 px-1.5 text-amber-400 font-bold">eFG(%)</th>
-            <th class="py-2 px-1.5 text-emerald-400 font-bold">TS(%)</th>
-            <th class="py-2 px-1.5 text-indigo-300 font-bold">AST/TO</th>
-            <th class="py-2 px-1.5">USG(%)</th>
-            <th class="py-2 px-1.5">OFFRTG</th>
-            <th class="py-2 px-1.5">DEFRTG</th>
-            <th class="py-2 px-1.5">NETRTG</th>
-            <th class="py-2 px-1.5">EFF</th>
-            <th class="py-2 px-1.5">PIE</th>
-            <th class="py-2 px-1.5">PER</th>
-            <th class="py-2 px-1.5">DD</th>
-            <th class="py-2 px-1.5">TD</th>
-          </tr>
-        </thead>
-        <tbody id="periodStatsTableBody" class="divide-y divide-slate-700/50"></tbody>
-      </table>
+    <!-- 하위 페이지: 날짜별 경기별 박스스코어 뷰어 -->
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
+      <div class="flex justify-between items-center flex-wrap gap-3 pb-2 border-b border-slate-700">
+        <div>
+          <h2 class="text-base md:text-lg font-black text-white flex items-center gap-2">
+            <i class="fa-solid fa-calendar-days text-indigo-400"></i> 일자별 경기별 스탯 조회 (첫 번째 사진 양식)
+          </h2>
+          <p class="text-xs text-slate-400">날짜를 선택하고 해당 일자의 경기(1경기, 2경기...)를 선택하여 세부 박스스코어를 확인하세요.</p>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap text-xs">
+          <span class="text-slate-400 font-bold">날짜 선택:</span>
+          <input type="date" id="viewerDateSelect" onchange="onViewerDateChange()" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-mono">
+        </div>
+      </div>
+
+      <!-- 해당 날짜의 경기 목록 탭 -->
+      <div id="viewerMatchTabs" class="flex gap-2 flex-wrap">
+        <span class="text-xs text-slate-500 py-1">날짜를 선택하면 해당 일자의 경기들이 표시됩니다.</span>
+      </div>
+
+      <!-- 선택된 경기 박스스코어 테이블 -->
+      <div class="overflow-x-auto custom-scroll mt-1">
+        <table class="w-full text-[11px] md:text-xs text-center border-collapse whitespace-nowrap">
+          <thead>
+            <tr class="bg-slate-900 text-slate-300 font-semibold border-b border-slate-700">
+              <th class="py-2.5 px-2 text-left sticky left-0 bg-slate-900 z-10">이름</th>
+              <th class="py-2 px-1.5">출전시간(MIN)</th>
+              <th class="py-2 px-1.5 bg-slate-800">PTS</th>
+              <th class="py-2 px-1.5">FGA</th>
+              <th class="py-2 px-1.5">FGM</th>
+              <th class="py-2 px-1.5">FG(%)</th>
+              <th class="py-2 px-1.5">2P 시도(A)</th>
+              <th class="py-2 px-1.5">2P 성공(M)</th>
+              <th class="py-2 px-1.5">2P 득점(P)</th>
+              <th class="py-2 px-1.5">2FG(%)</th>
+              <th class="py-2 px-1.5">3P 시도(A)</th>
+              <th class="py-2 px-1.5">3P 성공(M)</th>
+              <th class="py-2 px-1.5">3P 득점(P)</th>
+              <th class="py-2 px-1.5">3FG(%)</th>
+              <th class="py-2 px-1.5">FT 시도(A)</th>
+              <th class="py-2 px-1.5">FT 성공(M)</th>
+              <th class="py-2 px-1.5">FT 득점(P)</th>
+              <th class="py-2 px-1.5">FT(%)</th>
+              <th class="py-2 px-1.5 bg-blue-950">DREB</th>
+              <th class="py-2 px-1.5 bg-blue-950">OREB</th>
+              <th class="py-2 px-1.5 bg-blue-950 font-bold">TOTAL</th>
+              <th class="py-2 px-1.5">AST</th>
+              <th class="py-2 px-1.5">STL</th>
+              <th class="py-2 px-1.5">BLK</th>
+              <th class="py-2 px-1.5">PF</th>
+              <th class="py-2 px-1.5">TOV</th>
+            </tr>
+          </thead>
+          <tbody id="viewerBoxScoreTableBody" class="divide-y divide-slate-700/50">
+            <tr><td colspan="26" class="py-6 text-slate-500 text-center">조회할 경기를 선택해주세요.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- ================= PAGE 3: 경기 기록지 ================= -->
   <div id="pageRecorder" class="flex-1 p-2 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-4 w-full max-w-none mx-auto">
     <div class="lg:col-span-12 flex justify-between items-center bg-slate-800 p-2.5 rounded-xl border border-slate-700 flex-wrap gap-2">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none"></select>
       </div>
       <div class="flex items-center gap-1.5 flex-wrap">
@@ -162,7 +226,7 @@
           <i class="fa-solid fa-file-import mr-1"></i> 스탯 엑셀업로드
         </button>
         <button onclick="openNewMatchModal()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
-          <i class="fa-solid fa-plus mr-1"></i> 새 경기
+          <i class="fa-solid fa-plus mr-1"></i> 새 경기 추가
         </button>
         <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
           <i class="fa-solid fa-file-excel mr-1"></i> 엑셀다운
@@ -396,10 +460,15 @@
   <input type="file" id="excelInputHome" accept=".xlsx, .xls, .csv" class="hidden" onchange="processExcelTeamMembers(event)">
   <input type="file" id="excelInputMatchStats" accept=".xlsx, .xls, .csv" class="hidden" onchange="processExcelMatchStats(event)">
 
+  <!-- 새 경기 추가 모달 (날짜 지정 가능) -->
   <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
-      <h3 class="text-base font-extrabold text-white mb-3">새 경기 생성</h3>
+      <h3 class="text-base font-extrabold text-white mb-3">새 경기 추가 (날짜별 관리)</h3>
       <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-400 mb-1">경기 날짜</label>
+          <input type="date" id="inputMatchDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono">
+        </div>
         <div>
           <label class="block font-bold text-slate-400 mb-1">경기 유형</label>
           <select id="inputMatchType" onchange="toggleMatchModeInputs(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
@@ -441,6 +510,8 @@
     let isTimerRunning = false;
     let activePlayer = null;
     let activeLineupModalQuarter = 1;
+    let selectedViewerDate = null;
+    let selectedViewerMatchId = null;
 
     const DEFAULT_PLAYERS_HOME = [
       { id: 'h1', number: '7', name: '이승준', birth: '1995-03-12', color: '블랙' },
@@ -480,7 +551,7 @@
     }
 
     async function loadFromSupabase() {
-      const { data: matchData, error } = await supabaseClient.from('matches').select('*').order('created_at', { ascending: false });
+      const { data: matchData, error } = await supabaseClient.from('matches').select('*').order('date', { ascending: false }).order('created_at', { ascending: false });
       if (error || !matchData || matchData.length === 0) {
         await initDefaultMatchInSupabase();
         return;
@@ -502,6 +573,10 @@
       }
       renderMatchSelectOptions();
       renderCurrentMatch();
+
+      if (!document.getElementById('pageStats').classList.contains('hidden')) {
+        initStatsPageViewerDates();
+      }
     }
 
     async function fetchPlayers(matchId, teamType) {
@@ -547,7 +622,8 @@
 
     async function initDefaultMatchInSupabase() {
       const matchId = 'match_' + Date.now();
-      await supabaseClient.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: '교류전', home_team: '우리팀 (HOME)', away_team: '상대팀 (AWAY)', quarter: 1, timer_seconds: 600 }]);
+      const today = new Date().toISOString().split('T')[0];
+      await supabaseClient.from('matches').insert([{ id: matchId, date: today, mode: '교류전', home_team: '우리팀 (HOME)', away_team: '상대팀 (AWAY)', quarter: 1, timer_seconds: 600 }]);
       for (const p of DEFAULT_PLAYERS_HOME) {
         await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
       }
@@ -573,13 +649,16 @@
           let mPts = 0, mReb = 0, mAst = 0;
           for (let q = 1; q <= 4; q++) {
             const st = match.stats[`${p.id}_q${q}`];
-            if (st) {
+            const lineup = match.lineups && match.lineups[q] && match.lineups[q].home;
+            if (st || (lineup && lineup.includes(p.id))) {
               pInMatch = true;
-              mPts += (st['2PT_MADE'] || 0) * 2 + (st['3PT_MADE'] || 0) * 3 + (st['FT_MADE'] || 0);
-              mReb += (st.DEF_REB || 0) + (st.OFF_REB || 0);
-              mAst += (st.AST || 0);
-              stl += (st.STL || 0);
-              blk += (st.BLK || 0);
+              if (st) {
+                mPts += (st['2PT_MADE'] || 0) * 2 + (st['3PT_MADE'] || 0) * 3 + (st['FT_MADE'] || 0);
+                mReb += (st.DEF_REB || 0) + (st.OFF_REB || 0);
+                mAst += (st.AST || 0);
+                stl += (st.STL || 0);
+                blk += (st.BLK || 0);
+              }
             }
           }
           if (pInMatch) { gp++; pts += mPts; reb += mReb; ast += mAst; }
@@ -622,9 +701,183 @@
       document.getElementById('filterStartDate').value = startOfYear;
       document.getElementById('filterEndDate').value = today;
       applyDateFilter();
+      initStatsPageViewerDates();
     }
 
-    // 사진 3,4,5 기준 기간별 누적 및 2차 스탯 계산 및 렌더링
+    function initStatsPageViewerDates() {
+      const viewerDateInput = document.getElementById('viewerDateSelect');
+      if (!viewerDateInput) return;
+      const today = new Date().toISOString().split('T')[0];
+      if (!viewerDateInput.value) {
+        viewerDateInput.value = today;
+      }
+      selectedViewerDate = viewerDateInput.value;
+      renderViewerMatchTabs();
+    }
+
+    function onViewerDateChange() {
+      const viewerDateInput = document.getElementById('viewerDateSelect');
+      selectedViewerDate = viewerDateInput.value;
+      renderViewerMatchTabs();
+    }
+
+    function renderViewerMatchTabs() {
+      const tabsContainer = document.getElementById('viewerMatchTabs');
+      if (!tabsContainer) return;
+      tabsContainer.innerHTML = '';
+
+      const matchesOnDate = Object.values(matches).filter(m => m.date === selectedViewerDate);
+      if (matchesOnDate.length === 0) {
+        tabsContainer.innerHTML = `<span class="text-xs text-slate-500 py-1">선택하신 날짜(${selectedViewerDate})에 등록된 경기가 없습니다.</span>`;
+        document.getElementById('viewerBoxScoreTableBody').innerHTML = `<tr><td colspan="26" class="py-6 text-slate-500 text-center">해당 날짜에 경기가 없습니다.</td></tr>`;
+        return;
+      }
+
+      // 날짜별 순번 부여 (1경기, 2경기...)
+      matchesOnDate.forEach((m, idx) => {
+        const matchNum = idx + 1;
+        const btn = document.createElement('button');
+        const isSelected = selectedViewerMatchId === m.id || (idx === 0 && !selectedViewerMatchId);
+        if (isSelected && !selectedViewerMatchId) selectedViewerMatchId = m.id;
+
+        btn.className = `px-3 py-1.5 rounded-xl text-xs font-bold transition shadow ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-300 hover:bg-slate-700'}`;
+        btn.textContent = `${matchNum경기] ${m.homeTeam} vs ${m.awayTeam} (${m.mode})`;
+        btn.onclick = () => {
+          selectedViewerMatchId = m.id;
+          renderViewerMatchTabs();
+        };
+        tabsContainer.appendChild(btn);
+      });
+
+      renderViewerBoxScore();
+    }
+
+    function renderViewerBoxScore() {
+      const tbody = document.getElementById('viewerBoxScoreTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const m = matches[selectedViewerMatchId] || Object.values(matches).find(x => x.date === selectedViewerDate);
+      if (!m) {
+        tbody.innerHTML = `<tr><td colspan="26" class="py-6 text-slate-500 text-center">경기를 선택해주세요.</td></tr>`;
+        return;
+      }
+
+      m.homePlayers.forEach(p => {
+        let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+        let quartersPlayed = 0;
+        for (let q = 1; q <= 4; q++) {
+          const st = m.stats[`${p.id}_q${q}`];
+          const lineup = m.lineups && m.lineups[q] && m.lineups[q].home;
+          if (st || (lineup && lineup.includes(p.id))) {
+            quartersPlayed++;
+            if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
+          }
+        }
+        const minVal = (quartersPlayed * 5).toFixed(1);
+        const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
+        const p2_pts = tot['2PT_MADE'] * 2;
+        const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
+
+        const p3_att = tot['3PT_MADE'] + tot['3PT_MISS'];
+        const p3_pts = tot['3PT_MADE'] * 3;
+        const p3_pct = p3_att > 0 ? ((tot['3PT_MADE'] / p3_att) * 100).toFixed(1) : '0.0';
+
+        const ft_att = tot['FT_MADE'] + tot['FT_MISS'];
+        const ft_pts = tot['FT_MADE'];
+        const ft_pct = ft_att > 0 ? ((tot['FT_MADE'] / ft_att) * 100).toFixed(1) : '0.0';
+
+        const fga = p2_att + p3_att;
+        const fgm = tot['2PT_MADE'] + tot['3PT_MADE'];
+        const fg_pct = fga > 0 ? ((fgm / fga) * 100).toFixed(1) : '0.0';
+        const pts = p2_pts + p3_pts + ft_pts;
+
+        const dreb = tot.DEF_REB;
+        const oreb = tot.OFF_REB;
+        const totalReb = dreb + oreb;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-700/40 text-slate-200';
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 text-left font-bold text-blue-400 sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
+          <td class="py-1.5 px-1.5">${minVal}</td>
+          <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
+          <td class="py-1.5 px-1.5">${fga}</td>
+          <td class="py-1.5 px-1.5">${fgm}</td>
+          <td class="py-1.5 px-1.5">${fg_pct}%</td>
+          <td class="py-1.5 px-1.5">${p2_att}</td>
+          <td class="py-1.5 px-1.5">${tot['2PT_MADE']}</td>
+          <td class="py-1.5 px-1.5">${p2_pts}</td>
+          <td class="py-1.5 px-1.5">${p2_pct}%</td>
+          <td class="py-1.5 px-1.5">${p3_att}</td>
+          <td class="py-1.5 px-1.5">${tot['3PT_MADE']}</td>
+          <td class="py-1.5 px-1.5">${p3_pts}</td>
+          <td class="py-1.5 px-1.5">${p3_pct}%</td>
+          <td class="py-1.5 px-1.5">${ft_att}</td>
+          <td class="py-1.5 px-1.5">${tot['FT_MADE']}</td>
+          <td class="py-1.5 px-1.5">${ft_pts}</td>
+          <td class="py-1.5 px-1.5">${ft_pct}%</td>
+          <td class="py-1.5 px-1.5 bg-blue-950/40">${dreb}</td>
+          <td class="py-1.5 px-1.5 bg-blue-950/40">${oreb}</td>
+          <td class="py-1.5 px-1.5 bg-blue-950/40 font-bold text-cyan-400">${totalReb}</td>
+          <td class="py-1.5 px-1.5">${tot.AST}</td>
+          <td class="py-1.5 px-1.5">${tot.STL}</td>
+          <td class="py-1.5 px-1.5">${tot.BLK}</td>
+          <td class="py-1.5 px-1.5">${tot.FOUL}</td>
+          <td class="py-1.5 px-1.5">${tot.TO}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      if (m.mode === '교류전') {
+        let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+        for (let q = 1; q <= 4; q++) {
+          const st = m.stats[`AWAY_TEAM_q${q}`];
+          if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
+        }
+        const awayTot = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
+        const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
+        const p3_att = tot['3PT_MADE'] + tot['3PT_MISS'];
+        const ft_att = tot['FT_MADE'] + tot['FT_MISS'];
+        const fga = p2_att + p3_att;
+        const fgm = tot['2PT_MADE'] + tot['3PT_MADE'];
+        const fg_pct = fga > 0 ? ((fgm / fga) * 100).toFixed(1) : '0.0';
+        const totalReb = tot.DEF_REB + tot.OFF_REB;
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-700/40 text-slate-200 bg-slate-800/80 border-t border-slate-700';
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">[상대] ${m.awayTeam}</td>
+          <td class="py-1.5 px-1.5">20.0</td>
+          <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${awayTot}</td>
+          <td class="py-1.5 px-1.5">${fga}</td>
+          <td class="py-1.5 px-1.5">${fgm}</td>
+          <td class="py-1.5 px-1.5">${fg_pct}%</td>
+          <td class="py-1.5 px-1.5">${p2_att}</td>
+          <td class="py-1.5 px-1.5">${tot['2PT_MADE']}</td>
+          <td class="py-1.5 px-1.5">${tot['2PT_MADE']*2}</td>
+          <td class="py-1.5 px-1.5">0.0%</td>
+          <td class="py-1.5 px-1.5">${p3_att}</td>
+          <td class="py-1.5 px-1.5">${tot['3PT_MADE']}</td>
+          <td class="py-1.5 px-1.5">${tot['3PT_MADE']*3}</td>
+          <td class="py-1.5 px-1.5">0.0%</td>
+          <td class="py-1.5 px-1.5">${ft_att}</td>
+          <td class="py-1.5 px-1.5">${tot['FT_MADE']}</td>
+          <td class="py-1.5 px-1.5">${tot['FT_MADE']}</td>
+          <td class="py-1.5 px-1.5">0.0%</td>
+          <td class="py-1.5 px-1.5 bg-blue-950/40">${tot.DEF_REB}</td>
+          <td class="py-1.5 px-1.5 bg-blue-950/40">${tot.OFF_REB}</td>
+          <td class="py-1.5 px-1.5 bg-blue-950/40 font-bold text-cyan-400">${totalReb}</td>
+          <td class="py-1.5 px-1.5">${tot.AST}</td>
+          <td class="py-1.5 px-1.5">${tot.STL}</td>
+          <td class="py-1.5 px-1.5">${tot.BLK}</td>
+          <td class="py-1.5 px-1.5">${tot.FOUL}</td>
+          <td class="py-1.5 px-1.5">${tot.TO}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
     function applyDateFilter() {
       const startDate = document.getElementById('filterStartDate').value;
       const endDate = document.getElementById('filterEndDate').value;
@@ -634,7 +887,6 @@
       const tbody = document.getElementById('periodStatsTableBody');
       tbody.innerHTML = '';
       const targetMatches = Object.values(matches).filter(match => match.date >= startDate && match.date <= endDate);
-      const totalTeamGames = targetMatches.length;
 
       m.homePlayers.forEach(p => {
         let attendanceCount = 0;
@@ -674,7 +926,7 @@
           if (pPlayedInMatch) {
             attendanceCount++;
             gameCount++;
-            totalMinutes += (pQuartersPlayed * 5); // 쿼터당 5분 가정
+            totalMinutes += (pQuartersPlayed * 5);
           }
         });
 
@@ -703,11 +955,10 @@
         const pf_pg = gameCount > 0 ? (pf_tot / gameCount).toFixed(1) : '0.0';
         const tov_pg = gameCount > 0 ? (tov_tot / gameCount).toFixed(1) : '0.0';
 
-        // 2차 스탯 계산
         const eFg = fga > 0 ? (((fgm + 0.5 * p3m_tot) / fga) * 100).toFixed(1) : '0.0';
         const ts = (2 * (fga + 0.44 * fta_tot)) > 0 ? ((pts / (2 * (fga + 0.44 * fta_tot))) * 100).toFixed(1) : '0.0';
         const astTo = tov_tot > 0 ? (ast_tot / tov_tot).toFixed(1) : (ast_tot > 0 ? ast_tot.toFixed(1) : '0.0');
-        const usg = '15.2'; // 표준 근사값
+        const usg = '15.2';
         const offRtg = '85.4';
         const defRtg = '76.2';
         const netRtg = '+9.2';
@@ -779,10 +1030,19 @@
       const select = document.getElementById('matchSelect');
       if (!select) return;
       select.innerHTML = '';
-      Object.values(matches).forEach(m => {
+
+      // 날짜별로 그룹화하여 순번(1경기, 2경기...) 매기기
+      const sortedMatches = Object.values(matches).sort((a, b) => new Date(a.date) - new Date(b.date));
+      let dateMatchCountMap = {};
+
+      sortedMatches.forEach(m => {
+        if (!dateMatchCountMap[m.date]) dateMatchCountMap[m.date] = 0;
+        dateMatchCountMap[m.date]++;
+        const matchNum = dateMatchCountMap[m.date];
+
         const opt = document.createElement('option');
         opt.value = m.id;
-        opt.textContent = `[${m.mode}] ${m.homeTeam} vs ${m.awayTeam} (${m.date})`;
+        opt.textContent = `[${m.date}] ${matchNum}경기 - ${m.homeTeam} vs ${m.awayTeam} (${m.mode})`;
         if (m.id === currentMatchId) opt.selected = true;
         select.appendChild(opt);
       });
@@ -957,7 +1217,6 @@
       }
     }
 
-    // 첫 번째 사진 기준 박스스코어 테이블 렌더링
     function updateScoresAndBoxScore() {
       const m = matches[currentMatchId];
       let homeTot = 0, awayTot = 0;
@@ -1032,7 +1291,6 @@
         tbody.appendChild(tr);
       });
 
-      // AWAY score
       if (m.mode === '교류전') {
         let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
         for (let q = 1; q <= 4; q++) {
@@ -1142,6 +1400,9 @@
     function openNewMatchModal() { 
       const m = matches[currentMatchId];
       const countSelect = document.getElementById('inputPlayerCount');
+      const dateInput = document.getElementById('inputMatchDate');
+      if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
       if (m && m.homePlayers && countSelect) {
         countSelect.innerHTML = '';
         const total = m.homePlayers.length;
@@ -1175,11 +1436,12 @@
 
     async function createNewMatch() {
       const matchId = 'match_' + Date.now();
+      const matchDate = document.getElementById('inputMatchDate').value || new Date().toISOString().split('T')[0];
       const mode = document.getElementById('inputMatchType').value;
       const homeTeam = document.getElementById('inputHomeTeam').value;
       const awayTeam = document.getElementById('inputAwayTeam').value;
 
-      await supabaseClient.from('matches').insert([{ id: matchId, date: new Date().toISOString().split('T')[0], mode: mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: 600 }]);
+      await supabaseClient.from('matches').insert([{ id: matchId, date: matchDate, mode: mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: 600 }]);
 
       const m = matches[currentMatchId];
       if (mode === '자체전' && m && m.homePlayers) {
@@ -1264,7 +1526,6 @@
       renderTeamMembersPage();
     }
 
-    // 팀원 엑셀 양식 다운로드 함수
     function downloadTeamTemplateExcel() {
       const templateData = [
         ["등번호", "이름", "생년월일", "팀컬러"],
@@ -1277,7 +1538,6 @@
       XLSX.writeFile(wb, "팀원_등록_엑셀양식.xlsx");
     }
 
-    // 엑셀 파일로 팀원 명단 업로드 처리
     function processExcelTeamMembers(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1313,7 +1573,7 @@
       reader.readAsArrayBuffer(file);
     }
 
-    // 엑셀 파일로 경기별 스탯 업로드 처리
+    // 이전 경기 스탯 일괄 업로드 교차 검증 처리
     function processExcelMatchStats(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1336,7 +1596,7 @@
               const num = String(row[0] || '').trim();
               const name = String(row[1] || '').trim();
 
-              const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.number === num || x.name === name);
+              const p = [...m.homePlayers, ...m.awayPlayers].find(x => String(x.number).trim() === num || String(x.name).trim() === name);
               if (p) {
                 const pt2_made = parseInt(row[2]) || 0;
                 const pt2_miss = parseInt(row[3]) || 0;
@@ -1364,7 +1624,7 @@
           alert(`${q}쿼터 스탯 엑셀 업로드 완료 (${count}명 반영)!`);
           await loadFromSupabase();
         } catch (err) {
-          alert('스탯 엑셀 처리 중 오류가 발생했습니다.');
+          alert('스탯 엑셀 처리 중 오류가 발생했습니다. 양식을 확인해주세요.');
         }
         event.target.value = '';
       };
@@ -1461,7 +1721,7 @@
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.table_to_sheet(document.getElementById('boxScoreTableBody'));
       XLSX.utils.book_append_sheet(wb, ws, "박스스코어");
-      XLSX.writeFile(wb, `농구경기기록_${m.homeTeam}_vs_${m.awayTeam}.xlsx`);
+      XLSX.writeFile(wb, `농구경기기록_${m.homeTeam}_vs_${m.awayTeam}_${m.date}.xlsx`);
     }
   </script>
 </body>
