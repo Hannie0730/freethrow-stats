@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>우리팀 농구 포털 & 기록 시스템</title>
+  <title>팀FREE THROW 농구 기록 시스템</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel import/export -->
@@ -1616,20 +1616,26 @@
           const awayCheckedIds = Array.from(document.querySelectorAll('input[name="rosterAway"]:checked')).map(cb => cb.value);
 
           const homePlayersToInsert = m.homePlayers.filter(p => homeCheckedIds.includes(p.id));
-          for (const p of homePlayersToInsert) {
-            await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          for (let i = 0; i < homePlayersToInsert.length; i++) {
+            const p = homePlayersToInsert[i];
+            const pUniqueId = 'p_' + matchId + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + i;
+            await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
           }
 
           const awayPlayersToInsert = m.homePlayers.filter(p => awayCheckedIds.includes(p.id));
-          for (const p of awayPlayersToInsert) {
-            await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'AWAY', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          for (let i = 0; i < awayPlayersToInsert.length; i++) {
+            const p = awayPlayersToInsert[i];
+            const pUniqueId = 'p_' + matchId + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + i;
+            await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
           }
         } else {
           const homeCheckedIds = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
           const homePlayersToInsert = m.homePlayers.filter(p => homeCheckedIds.includes(p.id));
 
-          for (const p of homePlayersToInsert) {
-            await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          for (let i = 0; i < homePlayersToInsert.length; i++) {
+            const p = homePlayersToInsert[i];
+            const pUniqueId = 'p_' + matchId + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + i;
+            await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
           }
         }
       }
@@ -1696,6 +1702,7 @@
       if (el) el.textContent = rows.length;
     }
 
+    /* 대용량 데이터 전송 및 고유 ID 무작위 부여 (32명 이상 무제한 업로드 대응) */
     async function saveTeamInfoChanges() {
       await supabaseClient.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
       const nums = document.querySelectorAll('.home-num');
@@ -1710,14 +1717,18 @@
         const birth = births[i].value;
         const color = colors[i].value;
         if (num && name) {
-          insertList.push({ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
+          const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i;
+          insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
         }
       }
 
       const chunkSize = 20;
       for (let i = 0; i < insertList.length; i += chunkSize) {
         const chunk = insertList.slice(i, i + chunkSize);
-        await supabaseClient.from('players').insert(chunk);
+        const { error } = await supabaseClient.from('players').insert(chunk);
+        if (error) {
+          console.error('업로드 중 에러 발생:', error);
+        }
       }
 
       await loadFromSupabase();
