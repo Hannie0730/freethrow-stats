@@ -201,10 +201,6 @@
               <button id="timerToggleBtn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow"><i class="fa-solid fa-play mr-1"></i> 시작</button>
               <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-2.5 py-1 rounded-lg"><i class="fa-solid fa-rotate-right"></i></button>
             </div>
-
-            <button onclick="openLineupModal()" class="mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow border border-indigo-400/30">
-              <i class="fa-solid fa-clipboard-user text-amber-300 mr-1"></i> 출전선수 선택 (<span id="lineupQuarterText">1Q</span>)
-            </button>
           </div>
 
           <div class="flex flex-col items-center">
@@ -237,23 +233,18 @@
       </div>
       <div class="flex justify-between items-center text-[10px] text-slate-400 mb-2">
         <span>선수 목록</span>
-        <button onclick="toggleFilter('HOME')" id="homeFilterBtn" class="bg-slate-900 text-orange-400 px-1.5 py-0.5 rounded border border-slate-700 text-[10px]">출전선수 우선</button>
       </div>
       <div id="homePlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
     </section>
 
-    <!-- RIGHT: AWAY Team Roster Panel -->
+    <!-- RIGHT: AWAY Team Panel (교류전이면 스탯 버튼, 자체전이면 선수 목록) -->
     <section class="col-span-1 lg:col-span-3 lg:order-3 bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700">
         <div class="flex items-center gap-1.5 truncate">
           <span class="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
           <h2 id="awayTeamTitle" class="font-black text-sm md:text-lg text-red-400 truncate">AWAY</h2>
         </div>
-        <button onclick="openTeamInfoModal()" class="bg-slate-700 text-red-300 text-xs px-2 py-1 rounded font-bold"><i class="fa-solid fa-plus"></i> 선수</button>
-      </div>
-      <div class="flex justify-between items-center text-[10px] text-slate-400 mb-2">
-        <span>선수 목록</span>
-        <button onclick="toggleFilter('AWAY')" id="awayFilterBtn" class="bg-slate-900 text-orange-400 px-1.5 py-0.5 rounded border border-slate-700 text-[10px]">출전선수 우선</button>
+        <button id="awayAddPlayerBtn" onclick="openTeamInfoModal()" class="bg-slate-700 text-red-300 text-xs px-2 py-1 rounded font-bold hidden"><i class="fa-solid fa-plus"></i> 선수</button>
       </div>
       <div id="awayPlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
     </section>
@@ -267,7 +258,7 @@
         <table class="w-full text-[11px] md:text-sm text-center border-collapse">
           <thead>
             <tr class="bg-slate-900 text-slate-400 font-semibold border-b border-slate-700">
-              <th class="py-2 px-2 text-left">선수</th>
+              <th class="py-2 px-2 text-left">선수 / 팀</th>
               <th class="py-2 px-1">PTS</th>
               <th class="py-2 px-1">2PM-A</th>
               <th class="py-2 px-1">3PM-A</th>
@@ -317,35 +308,6 @@
         <button onclick="handleStatClick('FOUL')" class="bg-red-700 hover:bg-red-600 text-white col-span-2 p-2.5 rounded-xl font-bold text-sm">파울 (반칙)</button>
       </div>
       <div class="text-right"><button onclick="closeModal('statModal')" class="text-xs text-slate-400 underline">닫기</button></div>
-    </div>
-  </div>
-
-  <div id="lineupModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
-      <div class="flex justify-between items-center pb-3 border-b border-slate-700">
-        <h3 class="text-base font-black text-amber-400"><span id="lineupModalTitle">1쿼터 출전선수 선택</span></h3>
-        <button onclick="closeModal('lineupModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
-      <div class="flex gap-1 my-3 bg-slate-900 p-1 rounded-xl">
-        <button onclick="setLineupModalQuarter(1)" id="lqTab1" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-orange-500 text-white">1Q</button>
-        <button onclick="setLineupModalQuarter(2)" id="lqTab2" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">2Q</button>
-        <button onclick="setLineupModalQuarter(3)" id="lqTab3" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">3Q</button>
-        <button onclick="setLineupModalQuarter(4)" id="lqTab4" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400">4Q</button>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto custom-scroll my-2 flex-1">
-        <div class="bg-slate-900 border border-blue-500/30 rounded-xl p-3">
-          <div class="font-bold text-xs text-blue-400 mb-2">HOME 라인업</div>
-          <div id="lineupHomeChecklist" class="space-y-1.5"></div>
-        </div>
-        <div class="bg-slate-900 border border-red-500/30 rounded-xl p-3">
-          <div class="font-bold text-xs text-red-400 mb-2">AWAY 라인업</div>
-          <div id="lineupAwayChecklist" class="space-y-1.5"></div>
-        </div>
-      </div>
-      <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
-        <button onclick="closeModal('lineupModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">닫기</button>
-        <button onclick="saveLineupSelection()" class="bg-orange-600 text-white text-xs px-5 py-2 rounded-lg font-bold">저장</button>
-      </div>
     </div>
   </div>
 
@@ -407,7 +369,7 @@
 
   <script>
     const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
+    const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh'; // 본인 키 확인
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let matches = {};
@@ -742,13 +704,9 @@
       document.getElementById('lineupQuarterText').textContent = m.quarter + 'Q';
       updateTimerDisplay();
       renderPlayerRoster('HOME');
-      renderPlayerRoster('AWAY');
+      renderAwayPanel();
       updateScoresAndBoxScore();
       renderTimelineLogs();
-    }
-
-    function toggleFilter(team) {
-      renderCurrentMatch();
     }
 
     function renderPlayerRoster(team) {
@@ -779,6 +737,65 @@
         `;
         container.appendChild(div);
       });
+    }
+
+    function renderAwayPanel() {
+      const m = matches[currentMatchId];
+      const addBtn = document.getElementById('awayAddPlayerBtn');
+      const container = document.getElementById('awayPlayerList');
+
+      if (m.mode === '교류전') {
+        if (addBtn) addBtn.classList.add('hidden');
+        container.className = "flex-1 grid grid-cols-2 gap-1.5 overflow-y-auto custom-scroll max-h-[380px] content-start";
+        
+        const q = m.quarter;
+        const qKey = `AWAY_TEAM_q${q}`;
+        const st = m.stats[qKey] || { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+        
+        container.innerHTML = `
+          <div class="col-span-2 text-[11px] text-amber-400 font-bold mb-1 text-center bg-slate-900 py-1 rounded">⚡ 상대팀(${m.awayTeam}) 직접 스탯 기록</div>
+          <button onclick="applyAwayStat('2PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>2점 성공 +2</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['2PT_MADE'] || 0}</span></button>
+          <button onclick="applyAwayStat('2PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3 border border-rose-700/50"><span>2점 실패</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['2PT_MISS'] || 0}</span></button>
+          <button onclick="applyAwayStat('3PT_MADE')" class="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>3점 성공 +3</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['3PT_MADE'] || 0}</span></button>
+          <button onclick="applyAwayStat('3PT_MISS')" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3 border border-rose-700/50"><span>3점 실패</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['3PT_MISS'] || 0}</span></button>
+          <button onclick="applyAwayStat('FT_MADE')" class="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>자유투 성공 +1</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['FT_MADE'] || 0}</span></button>
+          <button onclick="applyAwayStat('FT_MISS')" class="bg-slate-700 hover:bg-slate-600 text-slate-300 p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>자유투 실패</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['FT_MISS'] || 0}</span></button>
+          <button onclick="applyAwayStat('DEF_REB')" class="bg-cyan-700 hover:bg-cyan-600 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>수비 리바운드</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['DEF_REB'] || 0}</span></button>
+          <button onclick="applyAwayStat('OFF_REB')" class="bg-teal-700 hover:bg-teal-600 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>공격 리바운드</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['OFF_REB'] || 0}</span></button>
+          <button onclick="applyAwayStat('AST')" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>어시스트</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['AST'] || 0}</span></button>
+          <button onclick="applyAwayStat('STL')" class="bg-amber-600 hover:bg-amber-500 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>스틸</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['STL'] || 0}</span></button>
+          <button onclick="applyAwayStat('BLK')" class="bg-purple-600 hover:bg-purple-500 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>블락슛</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['BLK'] || 0}</span></button>
+          <button onclick="applyAwayStat('TO')" class="bg-orange-800 hover:bg-orange-700 text-white p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>턴오버</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['TO'] || 0}</span></button>
+          <button onclick="applyAwayStat('FOUL')" class="bg-red-700 hover:bg-red-600 text-white col-span-2 p-2 rounded-xl font-bold text-xs flex justify-between items-center px-3"><span>파울 (반칙)</span><span class="bg-black/30 px-1.5 py-0.5 rounded">${st['FOUL'] || 0}</span></button>
+        `;
+      } else {
+        if (addBtn) addBtn.classList.remove('hidden');
+        container.className = "flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]";
+        renderPlayerRoster('AWAY');
+      }
+    }
+
+    async function applyAwayStat(statType) {
+      const m = matches[currentMatchId];
+      const q = m.quarter;
+      const playerId = 'AWAY_TEAM';
+      const qKey = `${playerId}_q${q}`;
+      if (!m.stats[qKey]) m.stats[qKey] = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+      m.stats[qKey][statType] = (m.stats[qKey][statType] || 0) + 1;
+
+      const st = m.stats[qKey];
+      await supabaseClient.from('player_stats').upsert({
+        match_id: currentMatchId, player_id: playerId, quarter: q,
+        pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
+        pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
+        ft_made: st['FT_MADE'], ft_miss: st['FT_MISS'],
+        def_reb: st['DEF_REB'], off_reb: st['OFF_REB'],
+        ast: st['AST'], stl: st['STL'], blk: st['BLK'], to_count: st['TO'], foul: st['FOUL']
+      }, { onConflict: 'match_id,player_id,quarter' });
+
+      const msg = `${q}Q [AWAY] ${m.awayTeam} - ${statType}`;
+      await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
+      await loadFromSupabase();
     }
 
     function openStatModal(player, team) {
@@ -813,7 +830,8 @@
       }, { onConflict: 'match_id,player_id,quarter' });
 
       const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.id === playerId);
-      const msg = customMsg || `${q}Q [${team}] #${p.number} ${p.name} - ${statType}`;
+      const nameStr = p ? `#${p.number} ${p.name}` : '팀';
+      const msg = customMsg || `${q}Q [${team}] ${nameStr} - ${statType}`;
       await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
       await loadFromSupabase();
     }
@@ -836,6 +854,7 @@
       const tbody = document.getElementById('boxScoreTableBody');
       tbody.innerHTML = '';
 
+      // 1. HOME players
       m.homePlayers.forEach(p => {
         let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
         for (let q = 1; q <= 4; q++) {
@@ -849,7 +868,7 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-700/40 text-slate-200';
         tr.innerHTML = `
-          <td class="py-1.5 px-2 text-left font-bold">#${p.number} ${p.name}</td>
+          <td class="py-1.5 px-2 text-left font-bold text-blue-400">#${p.number} ${p.name}</td>
           <td class="py-1.5 font-black text-orange-400">${pts}</td>
           <td class="py-1.5">${tot['2PT_MADE']}-${tot['2PT_MADE']+tot['2PT_MISS']}</td>
           <td class="py-1.5">${tot['3PT_MADE']}-${tot['3PT_MADE']+tot['3PT_MISS']}</td>
@@ -866,6 +885,68 @@
         `;
         tbody.appendChild(tr);
       });
+
+      // 2. AWAY score & stats calculation
+      if (m.mode === '교류전') {
+        let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+        for (let q = 1; q <= 4; q++) {
+          const st = m.stats[`AWAY_TEAM_q${q}`];
+          if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
+        }
+        awayTot = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
+        const fgPct = (tot['2PT_MADE'] + tot['3PT_MISS'] + tot['3PT_MADE'] + tot['2PT_MISS']) > 0 ? (((tot['2PT_MADE'] + tot['3PT_MADE']) / (tot['2PT_MADE'] + tot['2PT_MISS'] + tot['3PT_MADE'] + tot['3PT_MISS'])) * 100).toFixed(0) + '%' : '0%';
+
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-700/40 text-slate-200 bg-slate-800/80 border-t border-slate-700';
+        tr.innerHTML = `
+          <td class="py-1.5 px-2 text-left font-bold text-red-400">[상대] ${m.awayTeam}</td>
+          <td class="py-1.5 font-black text-orange-400">${awayTot}</td>
+          <td class="py-1.5">${tot['2PT_MADE']}-${tot['2PT_MADE']+tot['2PT_MISS']}</td>
+          <td class="py-1.5">${tot['3PT_MADE']}-${tot['3PT_MADE']+tot['3PT_MISS']}</td>
+          <td class="py-1.5">${tot['FT_MADE']}-${tot['FT_MADE']+tot['FT_MISS']}</td>
+          <td class="py-1.5">${fgPct}</td>
+          <td class="py-1.5">${tot.DEF_REB}</td>
+          <td class="py-1.5">${tot.OFF_REB}</td>
+          <td class="py-1.5 font-bold text-cyan-400">${tot.DEF_REB + tot.OFF_REB}</td>
+          <td class="py-1.5 font-bold text-indigo-300">${tot.AST}</td>
+          <td class="py-1.5">${tot.STL}</td>
+          <td class="py-1.5">${tot.BLK}</td>
+          <td class="py-1.5 text-orange-300">${tot.TO}</td>
+          <td class="py-1.5 text-red-400">${tot.FOUL}</td>
+        `;
+        tbody.appendChild(tr);
+      } else {
+        m.awayPlayers.forEach(p => {
+          let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+          for (let q = 1; q <= 4; q++) {
+            const st = m.stats[`${p.id}_q${q}`];
+            if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
+          }
+          const pts = tot['2PT_MADE'] * 2 + tot['3PT_MADE'] * 3 + tot['FT_MADE'];
+          awayTot += pts;
+          const fgPct = (tot['2PT_MADE'] + tot['3PT_MISS'] + tot['3PT_MADE'] + tot['2PT_MISS']) > 0 ? (((tot['2PT_MADE'] + tot['3PT_MADE']) / (tot['2PT_MADE'] + tot['2PT_MISS'] + tot['3PT_MADE'] + tot['3PT_MISS'])) * 100).toFixed(0) + '%' : '0%';
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-700/40 text-slate-200';
+          tr.innerHTML = `
+            <td class="py-1.5 px-2 text-left font-bold text-red-400">#${p.number} ${p.name}</td>
+            <td class="py-1.5 font-black text-orange-400">${pts}</td>
+            <td class="py-1.5">${tot['2PT_MADE']}-${tot['2PT_MADE']+tot['2PT_MISS']}</td>
+            <td class="py-1.5">${tot['3PT_MADE']}-${tot['3PT_MADE']+tot['3PT_MISS']}</td>
+            <td class="py-1.5">${tot['FT_MADE']}-${tot['FT_MADE']+tot['FT_MISS']}</td>
+            <td class="py-1.5">${fgPct}</td>
+            <td class="py-1.5">${tot.DEF_REB}</td>
+            <td class="py-1.5">${tot.OFF_REB}</td>
+            <td class="py-1.5 font-bold text-cyan-400">${tot.DEF_REB + tot.OFF_REB}</td>
+            <td class="py-1.5 font-bold text-indigo-300">${tot.AST}</td>
+            <td class="py-1.5">${tot.STL}</td>
+            <td class="py-1.5">${tot.BLK}</td>
+            <td class="py-1.5 text-orange-300">${tot.TO}</td>
+            <td class="py-1.5 text-red-400">${tot.FOUL}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
 
       document.getElementById('homeScoreDisplay').textContent = homeTot;
       document.getElementById('awayScoreDisplay').textContent = awayTot;
@@ -1014,15 +1095,6 @@
       XLSX.utils.book_append_sheet(wb, ws, "박스스코어");
       XLSX.writeFile(wb, `농구경기기록_${m.homeTeam}_vs_${m.awayTeam}.xlsx`);
     }
-
-    function openLineupModal() { document.getElementById('lineupModal').classList.remove('hidden'); }
-    function setLineupModalQuarter(q) {
-      activeLineupModalQuarter = q;
-      for (let i = 1; i <= 4; i++) {
-        document.getElementById(`lqTab${i}`).className = i === q ? 'flex-1 py-1.5 text-xs font-bold rounded-lg bg-orange-500 text-white' : 'flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-400';
-      }
-    }
-    async function saveLineupSelection() { closeModal('lineupModal'); }
   </script>
 </body>
 </html>
