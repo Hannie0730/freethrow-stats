@@ -73,7 +73,6 @@
 
   <!-- ================= PAGE 2: 누적 및 2차 스탯 + 경기별 스탯 뷰어 ================= -->
   <div id="pageStats" class="flex-1 p-3 md:p-6 hidden max-w-full mx-auto w-full flex flex-col gap-5">
-    <!-- 기간별 누적 & 2차 스탯 섹션 -->
     <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-lg flex flex-col gap-3">
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div>
@@ -158,9 +157,9 @@
       <div class="flex justify-between items-center flex-wrap gap-3 pb-2 border-b border-slate-700">
         <div>
           <h2 class="text-base md:text-lg font-black text-white flex items-center gap-2">
-            <i class="fa-solid fa-calendar-days text-indigo-400"></i> 일자별 경기별 스탯 조회 (첫 번째 사진 양식)
+            <i class="fa-solid fa-calendar-days text-indigo-400"></i> 일자별 경기별 스탯 조회
           </h2>
-          <p class="text-xs text-slate-400">날짜를 선택하고 해당 일자의 경기(1경기, 2경기...)를 선택하여 세부 박스스코어를 확인하세요.</p>
+          <p class="text-xs text-slate-400">날짜를 선택하고 해당 일자의 경기를 선택하여 세부 박스스코어를 확인하세요.</p>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap text-xs">
@@ -169,12 +168,10 @@
         </div>
       </div>
 
-      <!-- 해당 날짜의 경기 목록 탭 -->
       <div id="viewerMatchTabs" class="flex gap-2 flex-wrap">
         <span class="text-xs text-slate-500 py-1">날짜를 선택하면 해당 일자의 경기들이 표시됩니다.</span>
       </div>
 
-      <!-- 선택된 경기 박스스코어 테이블 -->
       <div class="overflow-x-auto custom-scroll mt-1">
         <table class="w-full text-[11px] md:text-xs text-center border-collapse whitespace-nowrap">
           <thead>
@@ -222,7 +219,7 @@
         <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none"></select>
       </div>
       <div class="flex items-center gap-1.5 flex-wrap">
-        <button onclick="document.getElementById('excelInputMatchStats').click()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow" title="현재 쿼터 스탯 엑셀 일괄 등록">
+        <button onclick="document.getElementById('excelInputMatchStats').click()" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
           <i class="fa-solid fa-file-import mr-1"></i> 스탯 엑셀업로드
         </button>
         <button onclick="openNewMatchModal()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow">
@@ -291,7 +288,7 @@
       </div>
     </section>
 
-    <!-- LEFT: HOME Team Roster Panel -->
+    <!-- LEFT: HOME Team Panel -->
     <section class="col-span-1 lg:col-span-3 lg:order-1 bg-slate-800 border border-slate-700 rounded-xl p-2.5 md:p-4 flex flex-col shadow-lg">
       <div class="flex justify-between items-center mb-2 pb-1.5 border-b border-slate-700">
         <div class="flex items-center gap-1.5 truncate">
@@ -299,9 +296,6 @@
           <h2 id="homeTeamTitle" class="font-black text-sm md:text-lg text-blue-400 truncate">HOME</h2>
         </div>
         <button onclick="openTeamInfoModal()" class="bg-slate-700 text-blue-300 text-xs px-2 py-1 rounded font-bold"><i class="fa-solid fa-plus"></i> 선수</button>
-      </div>
-      <div class="flex justify-between items-center text-[10px] text-slate-400 mb-2">
-        <span>선수 목록</span>
       </div>
       <div id="homePlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
     </section>
@@ -318,10 +312,10 @@
       <div id="awayPlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
     </section>
 
-    <!-- BOTTOM: Box Score (첫 번째 사진 양식 완벽 반영) -->
+    <!-- BOTTOM: Box Score -->
     <section class="lg:col-span-12 lg:order-4 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg overflow-hidden">
       <div class="flex justify-between items-center mb-2">
-        <h3 class="font-extrabold text-slate-200 text-xs md:text-sm flex items-center gap-1.5"><i class="fa-solid fa-chart-simple text-orange-500"></i> 경기별 실시간 박스스코어 (사진 양식)</h3>
+        <h3 class="font-extrabold text-slate-200 text-xs md:text-sm flex items-center gap-1.5"><i class="fa-solid fa-chart-simple text-orange-500"></i> 경기별 실시간 박스스코어</h3>
       </div>
       <div class="overflow-x-auto custom-scroll">
         <table class="w-full text-[11px] md:text-xs text-center border-collapse whitespace-nowrap">
@@ -427,7 +421,7 @@
     </div>
   </div>
 
-  <!-- 팀원 편집 모달 (엑셀 양식 다운로드 및 업로드 지원) -->
+  <!-- 팀원 편집 모달 -->
   <div id="teamInfoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
@@ -435,7 +429,7 @@
         <button onclick="closeModal('teamInfoModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="flex justify-between items-center my-2 bg-slate-900 p-2.5 rounded-xl border border-slate-700 flex-wrap gap-2">
-        <span class="text-xs text-slate-300">💡 엑셀로 일괄 추가하려면 양식을 다운받아 작성 후 업로드하세요.</span>
+        <span class="text-xs text-slate-300">💡 엑셀 업로드 시 기존 선수(등번호+이름 동일)는 정보가 수정되며, 없으면 새로 추가됩니다.</span>
         <div class="flex gap-2">
           <button onclick="downloadTeamTemplateExcel()" class="text-[11px] bg-sky-700 hover:bg-sky-600 text-white px-2.5 py-1 rounded font-bold shadow"><i class="fa-solid fa-download mr-1"></i>양식 다운로드</button>
           <button onclick="document.getElementById('excelInputHome').click()" class="text-[11px] bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded font-bold shadow"><i class="fa-solid fa-file-excel mr-1"></i>엑셀 업로드</button>
@@ -444,8 +438,8 @@
       <div class="overflow-y-auto custom-scroll my-2 space-y-4 flex-1 pr-1">
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-bold text-blue-400">팀원 정보 (등번호, 이름, 생년월일, 팀컬러/상태)</span>
-            <button onclick="addRosterRow()" class="text-[11px] bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded font-bold">+ 추가</button>
+            <span class="text-xs font-bold text-blue-400">팀원 목록 (<span id="editorTotalCount">0</span>명)</span>
+            <button onclick="addRosterRow()" class="text-[11px] bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded font-bold">+ 선수 추가</button>
           </div>
           <div id="homeRosterEditor" class="space-y-1.5"></div>
         </div>
@@ -460,41 +454,61 @@
   <input type="file" id="excelInputHome" accept=".xlsx, .xls, .csv" class="hidden" onchange="processExcelTeamMembers(event)">
   <input type="file" id="excelInputMatchStats" accept=".xlsx, .xls, .csv" class="hidden" onchange="processExcelMatchStats(event)">
 
-  <!-- 새 경기 추가 모달 (날짜 지정 가능) -->
+  <!-- 새 경기 추가 모달 -->
   <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl">
-      <h3 class="text-base font-extrabold text-white mb-3">새 경기 추가 (날짜별 관리)</h3>
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-400 mb-1">경기 날짜</label>
-          <input type="date" id="inputMatchDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono">
-        </div>
-        <div>
-          <label class="block font-bold text-slate-400 mb-1">경기 유형</label>
-          <select id="inputMatchType" onchange="toggleMatchModeInputs(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
-            <option value="교류전">교류전</option>
-            <option value="자체전">자체전</option>
-          </select>
-        </div>
-
-        <div id="internalMatchSection" class="hidden bg-slate-900/90 p-3 rounded-xl border border-indigo-500/40">
-          <label class="block font-bold text-indigo-300 mb-1">오늘 참석 총 인원 선택 (팀원DB 연동)</label>
-          <select id="inputPlayerCount" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"></select>
-          <p class="text-[10px] text-slate-400 mt-1.5">선택한 인원만큼 팀원 DB에서 자동으로 불러와 Black팀과 White팀으로 배정합니다.</p>
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col max-h-[90vh]">
+      <h3 class="text-base font-extrabold text-white mb-3"><i class="fa-solid fa-calendar-plus text-orange-400 mr-1.5"></i> 새 경기 추가 및 로스터 설정</h3>
+      
+      <div class="space-y-3 text-xs overflow-y-auto custom-scroll pr-1 flex-1">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-400 mb-1">경기 날짜</label>
+            <input type="date" id="inputMatchDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-400 mb-1">경기 유형</label>
+            <select id="inputMatchType" onchange="onMatchModeChange(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
+              <option value="자체전">자체전</option>
+              <option value="교류전">교류전</option>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label class="block font-bold text-slate-400 mb-1">HOME 팀명</label>
-          <input type="text" id="inputHomeTeam" value="우리팀 (HOME)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
+        <!-- 팀 설정 구역 -->
+        <div id="teamColorSelectSection" class="bg-slate-900 p-3 rounded-xl border border-indigo-500/30 space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-blue-400 mb-1">HOME 팀 컬러</label>
+              <select id="selectHomeColor" onchange="onHomeColorChange(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-bold">
+                <option value="블랙">블랙</option>
+                <option value="블루/화이트">블루/화이트</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-red-400 mb-1">AWAY 팀 컬러</label>
+              <input type="text" id="inputAwayColorText" value="블루/화이트" readonly class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 font-bold">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <input type="text" id="inputHomeTeamName" value="Black 팀" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-bold" placeholder="HOME 팀명">
+            <input type="text" id="inputAwayTeamName" value="White 팀" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-bold" placeholder="AWAY 팀명">
+          </div>
         </div>
-        <div>
-          <label class="block font-bold text-slate-400 mb-1">AWAY 팀명</label>
-          <input type="text" id="inputAwayTeam" value="상대팀 (AWAY)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
+
+        <!-- 오늘 경기 로스터 선택 섹션 -->
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+          <div class="flex justify-between items-center mb-2">
+            <span class="font-bold text-amber-400 text-xs"><i class="fa-solid fa-user-check mr-1"></i>오늘 경기 참가 로스터 선택</span>
+            <span id="rosterSelectionCount" class="text-[11px] text-slate-400">0명 선택됨</span>
+          </div>
+          
+          <div id="rosterSelectionContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto custom-scroll pr-1"></div>
         </div>
       </div>
-      <div class="flex justify-end gap-2 mt-5">
+
+      <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-700">
         <button onclick="closeModal('newMatchModal')" class="bg-slate-700 text-slate-300 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
-        <button onclick="createNewMatch()" class="bg-orange-600 text-white text-xs px-5 py-2 rounded-lg font-bold">생성하기</button>
+        <button onclick="createNewMatch()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-5 py-2 rounded-lg font-bold shadow">경기 생성</button>
       </div>
     </div>
   </div>
@@ -623,7 +637,7 @@
     async function initDefaultMatchInSupabase() {
       const matchId = 'match_' + Date.now();
       const today = new Date().toISOString().split('T')[0];
-      await supabaseClient.from('matches').insert([{ id: matchId, date: today, mode: '교류전', home_team: '우리팀 (HOME)', away_team: '상대팀 (AWAY)', quarter: 1, timer_seconds: 600 }]);
+      await supabaseClient.from('matches').insert([{ id: matchId, date: today, mode: '자체전', home_team: 'Black 팀', away_team: 'White 팀', quarter: 1, timer_seconds: 600 }]);
       for (const p of DEFAULT_PLAYERS_HOME) {
         await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
       }
@@ -1340,6 +1354,69 @@
           <td class="py-1.5 px-1.5">${tot.TO}</td>
         `;
         tbody.appendChild(tr);
+      } else {
+        m.awayPlayers.forEach(p => {
+          let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+          let quartersPlayed = 0;
+          for (let q = 1; q <= 4; q++) {
+            const st = m.stats[`${p.id}_q${q}`];
+            const lineup = m.lineups && m.lineups[q] && m.lineups[q].away;
+            if (st || (lineup && lineup.includes(p.id))) {
+              quartersPlayed++;
+              if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
+            }
+          }
+          const minVal = (quartersPlayed * 5).toFixed(1);
+          const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
+          const p2_pts = tot['2PT_MADE'] * 2;
+          const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
+
+          const p3_att = tot['3PT_MADE'] + tot['3PT_MISS'];
+          const p3_pts = tot['3PT_MADE'] * 3;
+          const p3_pct = p3_att > 0 ? ((tot['3PT_MADE'] / p3_att) * 100).toFixed(1) : '0.0';
+
+          const ft_att = tot['FT_MADE'] + tot['FT_MISS'];
+          const ft_pts = tot['FT_MADE'];
+          const ft_pct = ft_att > 0 ? ((tot['FT_MADE'] / ft_att) * 100).toFixed(1) : '0.0';
+
+          const fga = p2_att + p3_att;
+          const fgm = tot['2PT_MADE'] + tot['3PT_MADE'];
+          const fg_pct = fga > 0 ? ((fgm / fga) * 100).toFixed(1) : '0.0';
+          const pts = p2_pts + p3_pts + ft_pts;
+          awayTot += pts;
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-700/40 text-slate-200 border-t border-slate-700/30';
+          tr.innerHTML = `
+            <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
+            <td class="py-1.5 px-1.5">${minVal}</td>
+            <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
+            <td class="py-1.5 px-1.5">${fga}</td>
+            <td class="py-1.5 px-1.5">${fgm}</td>
+            <td class="py-1.5 px-1.5">${fg_pct}%</td>
+            <td class="py-1.5 px-1.5">${p2_att}</td>
+            <td class="py-1.5 px-1.5">${tot['2PT_MADE']}</td>
+            <td class="py-1.5 px-1.5">${p2_pts}</td>
+            <td class="py-1.5 px-1.5">${p2_pct}%</td>
+            <td class="py-1.5 px-1.5">${p3_att}</td>
+            <td class="py-1.5 px-1.5">${tot['3PT_MADE']}</td>
+            <td class="py-1.5 px-1.5">${p3_pts}</td>
+            <td class="py-1.5 px-1.5">${p3_pct}%</td>
+            <td class="py-1.5 px-1.5">${ft_att}</td>
+            <td class="py-1.5 px-1.5">${tot['FT_MADE']}</td>
+            <td class="py-1.5 px-1.5">${ft_pts}</td>
+            <td class="py-1.5 px-1.5">${ft_pct}%</td>
+            <td class="py-1.5 px-1.5 bg-blue-950/40">${tot.DEF_REB}</td>
+            <td class="py-1.5 px-1.5 bg-blue-950/40">${tot.OFF_REB}</td>
+            <td class="py-1.5 px-1.5 bg-blue-950/40 font-bold text-cyan-400">${tot.DEF_REB + tot.OFF_REB}</td>
+            <td class="py-1.5 px-1.5">${tot.AST}</td>
+            <td class="py-1.5 px-1.5">${tot.STL}</td>
+            <td class="py-1.5 px-1.5">${tot.BLK}</td>
+            <td class="py-1.5 px-1.5">${tot.FOUL}</td>
+            <td class="py-1.5 px-1.5">${tot.TO}</td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
 
       document.getElementById('homeScoreDisplay').textContent = homeTot;
@@ -1400,65 +1477,165 @@
       if (display) display.textContent = `${mins}:${secs}`;
     }
 
+    /* =========================================================
+       NEW MATCH MODAL: 로스터 기반 경기 추가
+    ========================================================= */
     function openNewMatchModal() { 
-      const m = matches[currentMatchId];
-      const countSelect = document.getElementById('inputPlayerCount');
       const dateInput = document.getElementById('inputMatchDate');
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
-      if (m && m.homePlayers && countSelect) {
-        countSelect.innerHTML = '';
-        const total = m.homePlayers.length;
-        for (let i = 5; i <= total; i++) {
-          const opt = document.createElement('option');
-          opt.value = i;
-          opt.textContent = `${i}명 참석 (전체 ${total}명 중)`;
-          if (i === total) opt.selected = true;
-          countSelect.appendChild(opt);
-        }
-      }
-      toggleMatchModeInputs('교류전');
+      document.getElementById('inputMatchType').value = '자체전';
+      onMatchModeChange('자체전');
+
       const modal = document.getElementById('newMatchModal');
       if (modal) modal.classList.remove('hidden'); 
     }
 
-    function toggleMatchModeInputs(mode) {
-      const sec = document.getElementById('internalMatchSection');
-      const homeIn = document.getElementById('inputHomeTeam');
-      const awayIn = document.getElementById('inputAwayTeam');
+    function onMatchModeChange(mode) {
+      const colorSection = document.getElementById('teamColorSelectSection');
+      const homeTeamName = document.getElementById('inputHomeTeamName');
+      const awayTeamName = document.getElementById('inputAwayTeamName');
+
       if (mode === '자체전') {
-        if (sec) sec.classList.remove('hidden');
-        if (homeIn) homeIn.value = "Black 팀";
-        if (awayIn) awayIn.value = "White 팀";
+        colorSection.classList.remove('hidden');
+        homeTeamName.value = 'Black 팀';
+        awayTeamName.value = 'White 팀';
+        onHomeColorChange(document.getElementById('selectHomeColor').value);
       } else {
-        if (sec) sec.classList.add('hidden');
-        if (homeIn) homeIn.value = "우리팀 (HOME)";
-        if (awayIn) awayIn.value = "상대팀 (AWAY)";
+        colorSection.classList.add('hidden');
+        homeTeamName.value = '우리팀 (HOME)';
+        awayTeamName.value = '상대팀 (AWAY)';
+        renderNewMatchRosterSelection('교류전');
       }
+    }
+
+    function onHomeColorChange(color) {
+      const awayColorText = document.getElementById('inputAwayColorText');
+      const homeTeamName = document.getElementById('inputHomeTeamName');
+      const awayTeamName = document.getElementById('inputAwayTeamName');
+
+      if (color === '블랙') {
+        awayColorText.value = '블루/화이트';
+        homeTeamName.value = 'Black 팀';
+        awayTeamName.value = 'White 팀';
+      } else {
+        awayColorText.value = '블랙';
+        homeTeamName.value = 'White 팀';
+        awayTeamName.value = 'Black 팀';
+      }
+      renderNewMatchRosterSelection('자체전');
+    }
+
+    function renderNewMatchRosterSelection(mode) {
+      const container = document.getElementById('rosterSelectionContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const m = matches[currentMatchId];
+      if (!m || !m.homePlayers) return;
+
+      const homeColor = document.getElementById('selectHomeColor').value;
+      const awayColor = homeColor === '블랙' ? '블루/화이트' : '블랙';
+
+      if (mode === '자체전') {
+        const homeList = m.homePlayers.filter(p => p.color === homeColor);
+        const awayList = m.homePlayers.filter(p => p.color === awayColor);
+
+        container.innerHTML = `
+          <div class="bg-slate-800 p-2.5 rounded-xl border border-blue-500/30">
+            <div class="font-bold text-blue-400 text-xs mb-1.5 flex justify-between">
+              <span>HOME (${homeColor}) 로스터</span>
+              <span class="text-[10px] text-slate-400">${homeList.length}명 가능</span>
+            </div>
+            <div class="space-y-1">
+              ${homeList.map(p => `
+                <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
+                  <input type="checkbox" name="rosterHome" value="${p.id}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name}</span>
+                </label>
+              `).join('')}
+              ${homeList.length === 0 ? '<div class="text-[11px] text-slate-500 py-2">등록된 선수가 없습니다.</div>' : ''}
+            </div>
+          </div>
+
+          <div class="bg-slate-800 p-2.5 rounded-xl border border-red-500/30">
+            <div class="font-bold text-red-400 text-xs mb-1.5 flex justify-between">
+              <span>AWAY (${awayColor}) 로스터</span>
+              <span class="text-[10px] text-slate-400">${awayList.length}명 가능</span>
+            </div>
+            <div class="space-y-1">
+              ${awayList.map(p => `
+                <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
+                  <input type="checkbox" name="rosterAway" value="${p.id}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name}</span>
+                </label>
+              `).join('')}
+              ${awayList.length === 0 ? '<div class="text-[11px] text-slate-500 py-2">등록된 선수가 없습니다.</div>' : ''}
+            </div>
+          </div>
+        `;
+      } else {
+        // 교류전 모드
+        container.innerHTML = `
+          <div class="col-span-2 bg-slate-800 p-2.5 rounded-xl border border-indigo-500/30">
+            <div class="font-bold text-indigo-300 text-xs mb-1.5 flex justify-between">
+              <span>우리팀 참가 로스터 (팀컬러 구분없이 전체선수)</span>
+              <span class="text-[10px] text-slate-400">${m.homePlayers.length}명 가능</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1 max-h-[160px] overflow-y-auto custom-scroll pr-1">
+              ${m.homePlayers.map(p => `
+                <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
+                  <input type="checkbox" name="rosterHome" value="${p.id}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+      updateRosterSelectionCount();
+    }
+
+    function updateRosterSelectionCount() {
+      const homeChecked = document.querySelectorAll('input[name="rosterHome"]:checked').length;
+      const awayChecked = document.querySelectorAll('input[name="rosterAway"]:checked').length;
+      const total = homeChecked + awayChecked;
+      const el = document.getElementById('rosterSelectionCount');
+      if (el) el.textContent = `총 ${total}명 선택됨`;
     }
 
     async function createNewMatch() {
       const matchId = 'match_' + Date.now();
       const matchDate = document.getElementById('inputMatchDate').value || new Date().toISOString().split('T')[0];
       const mode = document.getElementById('inputMatchType').value;
-      const homeTeam = document.getElementById('inputHomeTeam').value;
-      const awayTeam = document.getElementById('inputAwayTeam').value;
+      const homeTeam = document.getElementById('inputHomeTeamName').value || 'HOME';
+      const awayTeam = document.getElementById('inputAwayTeamName').value || 'AWAY';
 
       await supabaseClient.from('matches').insert([{ id: matchId, date: matchDate, mode: mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: 600 }]);
 
       const m = matches[currentMatchId];
-      if (mode === '자체전' && m && m.homePlayers) {
-        const count = parseInt(document.getElementById('inputPlayerCount').value) || m.homePlayers.length;
-        const selectedPlayers = m.homePlayers.slice(0, count);
+      if (m && m.homePlayers) {
+        if (mode === '자체전') {
+          const homeCheckedIds = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
+          const awayCheckedIds = Array.from(document.querySelectorAll('input[name="rosterAway"]:checked')).map(cb => cb.value);
 
-        for (let i = 0; i < selectedPlayers.length; i++) {
-          const p = selectedPlayers[i];
-          const teamType = (p.color === '블루/화이트') ? 'AWAY' : 'HOME';
-          await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: teamType, number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
-        }
-      } else {
-        for (const p of DEFAULT_PLAYERS_HOME) {
-          await supabaseClient.from('players').insert([{ id: 'h_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          const homePlayersToInsert = m.homePlayers.filter(p => homeCheckedIds.includes(p.id));
+          for (const p of homePlayersToInsert) {
+            await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          }
+
+          const awayPlayersToInsert = m.homePlayers.filter(p => awayCheckedIds.includes(p.id));
+          for (const p of awayPlayersToInsert) {
+            await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'AWAY', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          }
+        } else {
+          // 교류전
+          const homeCheckedIds = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
+          const homePlayersToInsert = m.homePlayers.filter(p => homeCheckedIds.includes(p.id));
+
+          for (const p of homePlayersToInsert) {
+            await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+          }
         }
       }
 
@@ -1485,6 +1662,7 @@
       if (m && m.homePlayers) {
         m.homePlayers.forEach(p => addRosterEditorRow(p.number, p.name, p.birth, p.color));
       }
+      updateEditorTotalCount();
       const modal = document.getElementById('teamInfoModal');
       if (modal) modal.classList.remove('hidden');
     }
@@ -1493,7 +1671,7 @@
       const container = document.getElementById('homeRosterEditor');
       if (!container) return;
       const row = document.createElement('div');
-      row.className = 'flex items-center gap-2';
+      row.className = 'flex items-center gap-2 roster-row';
       row.innerHTML = `
         <input type="text" value="${num}" placeholder="등번호" class="home-num w-16 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-center font-bold text-white">
         <input type="text" value="${name}" placeholder="선수 이름" class="home-name flex-1 bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs font-bold text-white">
@@ -1503,12 +1681,20 @@
           <option value="블루/화이트" ${color === '블루/화이트' ? 'selected' : ''}>블루/화이트</option>
           <option value="부상/휴면" ${color === '부상/휴면' ? 'selected' : ''}>부상/휴면</option>
         </select>
-        <button onclick="this.parentElement.remove()" class="text-rose-400 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
+        <button onclick="this.parentElement.remove(); updateEditorTotalCount();" class="text-rose-400 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
       `;
       container.appendChild(row);
+      updateEditorTotalCount();
     }
     function addRosterRow() { addRosterEditorRow(); }
 
+    function updateEditorTotalCount() {
+      const rows = document.querySelectorAll('.roster-row');
+      const el = document.getElementById('editorTotalCount');
+      if (el) el.textContent = rows.length;
+    }
+
+    /* 대용량 데이터 전송 시 32명 등 수량 제한을 회피하기 위한 배치 청크 처리 */
     async function saveTeamInfoChanges() {
       await supabaseClient.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
       const nums = document.querySelectorAll('.home-num');
@@ -1516,15 +1702,23 @@
       const births = document.querySelectorAll('.home-birth');
       const colors = document.querySelectorAll('.home-color');
 
+      let insertList = [];
       for (let i = 0; i < nums.length; i++) {
         const num = nums[i].value.trim();
         const name = names[i].value.trim();
         const birth = births[i].value;
         const color = colors[i].value;
         if (num && name) {
-          await supabaseClient.from('players').insert([{ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color }]);
+          insertList.push({ id: 'h_' + Date.now() + '_' + i, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
         }
       }
+
+      const chunkSize = 20;
+      for (let i = 0; i < insertList.length; i += chunkSize) {
+        const chunk = insertList.slice(i, i + chunkSize);
+        await supabaseClient.from('players').insert(chunk);
+      }
+
       await loadFromSupabase();
       closeModal('teamInfoModal');
       renderTeamMembersPage();
@@ -1543,6 +1737,7 @@
       XLSX.writeFile(wb, "팀원_등록_엑셀양식.xlsx");
     }
 
+    /* 엑셀 업로드 시 기존 선수(등번호+이름 동일) 수정 및 신규 추가 처리 */
     function processExcelTeamMembers(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1555,7 +1750,11 @@
           const worksheet = workbook.Sheets[firstSheetName];
           const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-          let count = 0;
+          let updatedCount = 0;
+          let addedCount = 0;
+
+          const existingRows = Array.from(document.querySelectorAll('.roster-row'));
+
           for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (row && row.length >= 2) {
@@ -1563,13 +1762,30 @@
               const name = String(row[1] || '').trim();
               const birth = String(row[2] || '').trim();
               const color = String(row[3] || '블랙').trim();
+
               if (num && name) {
-                addRosterEditorRow(num, name, birth, color);
-                count++;
+                let foundRow = null;
+                for (const r of existingRows) {
+                  const rNum = r.querySelector('.home-num').value.trim();
+                  const rName = r.querySelector('.home-name').value.trim();
+                  if (rNum === num && rName === name) {
+                    foundRow = r;
+                    break;
+                  }
+                }
+
+                if (foundRow) {
+                  if (birth) foundRow.querySelector('.home-birth').value = birth;
+                  if (color) foundRow.querySelector('.home-color').value = color;
+                  updatedCount++;
+                } else {
+                  addRosterEditorRow(num, name, birth, color);
+                  addedCount++;
+                }
               }
             }
           }
-          alert(`엑셀에서 팀원 ${count}명을 불러왔습니다! 저장 버튼을 누르세요.`);
+          alert(`엑셀 처리 완료! (기존 선수 정보 수정: ${updatedCount}명, 신규 추가: ${addedCount}명)\n[저장 완료] 버튼을 꼭 눌러주세요.`);
         } catch (err) {
           alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
         }
