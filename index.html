@@ -369,7 +369,7 @@
 
   <script>
     const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh'; // 본인 키 확인
+    const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let matches = {};
@@ -377,7 +377,6 @@
     let timerInterval = null;
     let isTimerRunning = false;
     let activePlayer = null;
-    let activeLineupModalQuarter = 1;
 
     const DEFAULT_PLAYERS_HOME = [
       { id: 'h1', number: '7', name: '이승준', birth: '1995-03-12' },
@@ -499,6 +498,7 @@
     function renderTeamMembersPage() {
       const m = matches[currentMatchId];
       const grid = document.getElementById('teamMembersGrid');
+      if (!grid) return;
       grid.innerHTML = '';
       if (!m || !m.homePlayers) return;
 
@@ -635,6 +635,7 @@
 
     function renderMatchDetailSelect() {
       const select = document.getElementById('statsMatchSelect');
+      if (!select) return;
       select.innerHTML = '';
       Object.values(matches).forEach(m => {
         const opt = document.createElement('option');
@@ -649,6 +650,7 @@
       const m = matches[matchId];
       if (!m) return;
       const tbody = document.getElementById('matchDetailTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       m.homePlayers.forEach(p => {
@@ -681,6 +683,7 @@
 
     function renderMatchSelectOptions() {
       const select = document.getElementById('matchSelect');
+      if (!select) return;
       select.innerHTML = '';
       Object.values(matches).forEach(m => {
         const opt = document.createElement('option');
@@ -691,17 +694,24 @@
       });
     }
 
+    // 안전장치(방어 코드)가 적용된 핵심 렌더링 함수
     function renderCurrentMatch() {
       const m = matches[currentMatchId];
       if (!m) return;
-      document.getElementById('homeTeamTitle').textContent = m.homeTeam;
-      document.getElementById('awayTeamTitle').textContent = m.awayTeam;
-      document.getElementById('homeScoreLabel').textContent = m.homeTeam;
-      document.getElementById('awayScoreLabel').textContent = m.awayTeam;
-      document.getElementById('matchDateText').textContent = m.date;
-      document.getElementById('matchTypeBadge').textContent = m.mode;
-      document.getElementById('quarterDisplay').textContent = m.quarter + 'Q';
-      document.getElementById('lineupQuarterText').textContent = m.quarter + 'Q';
+
+      const setElemText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+      };
+
+      setElemText('homeTeamTitle', m.homeTeam);
+      setElemText('awayTeamTitle', m.awayTeam);
+      setElemText('homeScoreLabel', m.homeTeam);
+      setElemText('awayScoreLabel', m.awayTeam);
+      setElemText('matchDateText', m.date);
+      setElemText('matchTypeBadge', m.mode || '교류전');
+      setElemText('quarterDisplay', (m.quarter || 1) + 'Q');
+
       updateTimerDisplay();
       renderPlayerRoster('HOME');
       renderAwayPanel();
@@ -713,6 +723,7 @@
       const m = matches[currentMatchId];
       const isHome = team === 'HOME';
       const container = document.getElementById(isHome ? 'homePlayerList' : 'awayPlayerList');
+      if (!container) return;
       const players = isHome ? m.homePlayers : m.awayPlayers;
       container.innerHTML = '';
 
@@ -743,6 +754,7 @@
       const m = matches[currentMatchId];
       const addBtn = document.getElementById('awayAddPlayerBtn');
       const container = document.getElementById('awayPlayerList');
+      if (!container) return;
 
       if (m.mode === '교류전') {
         if (addBtn) addBtn.classList.add('hidden');
@@ -852,6 +864,7 @@
       const m = matches[currentMatchId];
       let homeTot = 0, awayTot = 0;
       const tbody = document.getElementById('boxScoreTableBody');
+      if (!tbody) return;
       tbody.innerHTML = '';
 
       // 1. HOME players
@@ -948,14 +961,18 @@
         });
       }
 
-      document.getElementById('homeScoreDisplay').textContent = homeTot;
-      document.getElementById('awayScoreDisplay').textContent = awayTot;
+      const homeScoreEl = document.getElementById('homeScoreDisplay');
+      const awayScoreEl = document.getElementById('awayScoreDisplay');
+      if (homeScoreEl) homeScoreEl.textContent = homeTot;
+      if (awayScoreEl) awayScoreEl.textContent = awayTot;
     }
 
     function renderTimelineLogs() {
       const m = matches[currentMatchId];
       const container = document.getElementById('timelineLog');
-      document.getElementById('logCount').textContent = `총 ${m.logs.length}개`;
+      const countEl = document.getElementById('logCount');
+      if (!container || !countEl) return;
+      countEl.textContent = `총 ${m.logs.length}개`;
       container.innerHTML = '';
       m.logs.forEach(log => {
         const item = document.createElement('div');
@@ -976,10 +993,12 @@
       if (isTimerRunning) {
         clearInterval(timerInterval);
         isTimerRunning = false;
-        document.getElementById('timerToggleBtn').innerHTML = '<i class="fa-solid fa-play mr-1"></i> 시작';
+        const btn = document.getElementById('timerToggleBtn');
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i> 시작';
       } else {
         isTimerRunning = true;
-        document.getElementById('timerToggleBtn').innerHTML = '<i class="fa-solid fa-pause mr-1"></i> 일시정지';
+        const btn = document.getElementById('timerToggleBtn');
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> 일시정지';
         timerInterval = setInterval(() => {
           const m = matches[currentMatchId];
           if (m.timerSeconds > 0) { m.timerSeconds--; updateTimerDisplay(); }
@@ -998,10 +1017,15 @@
       const m = matches[currentMatchId];
       const mins = Math.floor(m.timerSeconds / 60).toString().padStart(2, '0');
       const secs = (m.timerSeconds % 60).toString().padStart(2, '0');
-      document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
+      const display = document.getElementById('timerDisplay');
+      if (display) display.textContent = `${mins}:${secs}`;
     }
 
-    function openNewMatchModal() { document.getElementById('newMatchModal').classList.remove('hidden'); }
+    function openNewMatchModal() { 
+      const modal = document.getElementById('newMatchModal');
+      if (modal) modal.classList.remove('hidden'); 
+    }
+
     async function createNewMatch() {
       const matchId = 'match_' + Date.now();
       const mode = document.getElementById('inputMatchType').value;
@@ -1030,15 +1054,18 @@
     function openTeamInfoModal() {
       const m = matches[currentMatchId];
       const editor = document.getElementById('homeRosterEditor');
+      if (!editor) return;
       editor.innerHTML = '';
       if (m && m.homePlayers) {
         m.homePlayers.forEach(p => addRosterEditorRow(p.number, p.name, p.birth));
       }
-      document.getElementById('teamInfoModal').classList.remove('hidden');
+      const modal = document.getElementById('teamInfoModal');
+      if (modal) modal.classList.remove('hidden');
     }
 
     function addRosterEditorRow(num = '', name = '', birth = '') {
       const container = document.getElementById('homeRosterEditor');
+      if (!container) return;
       const row = document.createElement('div');
       row.className = 'flex items-center gap-2';
       row.innerHTML = `
@@ -1069,7 +1096,11 @@
       renderTeamMembersPage();
     }
 
-    function triggerOcrUpload() { document.getElementById('ocrInputHome').click(); }
+    function triggerOcrUpload() { 
+      const input = document.getElementById('ocrInputHome');
+      if (input) input.click(); 
+    }
+
     async function processOcrImage(event) {
       const file = event.target.files[0];
       if (!file) return;
