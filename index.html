@@ -63,7 +63,7 @@
       </div>
       <div class="flex gap-2">
         <button onclick="openTeamInfoModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-bold shadow">
-          <i class="fa-solid fa-user-pen mr-1"></i> 팀원 일괄 편집 / 추가
+          <i class="fa-solid fa-user-pen mr-1"></i> 팀원 일괄 편집 / 추가 (운영진 전용)
         </button>
       </div>
     </div>
@@ -421,11 +421,11 @@
     </div>
   </div>
 
-  <!-- 팀원 편집 모달 -->
+  <!-- 팀원 편집 모달 (운영진 비밀번호 보호) -->
   <div id="teamInfoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
-        <h3 class="text-base font-black text-indigo-400"><i class="fa-solid fa-users-gear mr-1"></i> 팀원 명단 및 팀컬러/상태 편집</h3>
+        <h3 class="text-base font-black text-indigo-400"><i class="fa-solid fa-users-gear mr-1"></i> 팀원 명단 및 팀컬러/상태 편집 (운영진 전용)</h3>
         <button onclick="closeModal('teamInfoModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div class="flex justify-between items-center my-2 bg-slate-900 p-2.5 rounded-xl border border-slate-700 flex-wrap gap-2">
@@ -1477,9 +1477,6 @@
       if (display) display.textContent = `${mins}:${secs}`;
     }
 
-    /* =========================================================
-       NEW MATCH MODAL: 로스터 기반 경기 추가
-    ========================================================= */
     function openNewMatchModal() { 
       const dateInput = document.getElementById('inputMatchDate');
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
@@ -1575,7 +1572,6 @@
           </div>
         `;
       } else {
-        // 교류전 모드
         container.innerHTML = `
           <div class="col-span-2 bg-slate-800 p-2.5 rounded-xl border border-indigo-500/30">
             <div class="font-bold text-indigo-300 text-xs mb-1.5 flex justify-between">
@@ -1629,7 +1625,6 @@
             await supabaseClient.from('players').insert([{ id: 'p_' + matchId + '_' + p.id, match_id: matchId, team_type: 'AWAY', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
           }
         } else {
-          // 교류전
           const homeCheckedIds = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
           const homePlayersToInsert = m.homePlayers.filter(p => homeCheckedIds.includes(p.id));
 
@@ -1654,7 +1649,14 @@
       }
     }
 
+    /* 운영진 비밀번호 검증 후 팀원 편집 모달 열기 (비밀번호: 7143) */
     function openTeamInfoModal() {
+      const pw = prompt("운영진 비밀번호를 입력하세요:");
+      if (pw !== "7143") {
+        if (pw !== null) alert("비밀번호가 일치하지 않습니다. 팀원 정보 수정은 운영진만 가능합니다.");
+        return;
+      }
+
       const m = matches[currentMatchId];
       const editor = document.getElementById('homeRosterEditor');
       if (!editor) return;
@@ -1694,7 +1696,6 @@
       if (el) el.textContent = rows.length;
     }
 
-    /* 대용량 데이터 전송 시 32명 등 수량 제한을 회피하기 위한 배치 청크 처리 */
     async function saveTeamInfoChanges() {
       await supabaseClient.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
       const nums = document.querySelectorAll('.home-num');
@@ -1737,7 +1738,6 @@
       XLSX.writeFile(wb, "팀원_등록_엑셀양식.xlsx");
     }
 
-    /* 엑셀 업로드 시 기존 선수(등번호+이름 동일) 수정 및 신규 추가 처리 */
     function processExcelTeamMembers(event) {
       const file = event.target.files[0];
       if (!file) return;
