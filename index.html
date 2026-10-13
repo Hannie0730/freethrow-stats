@@ -518,7 +518,8 @@
   <script>
     const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 수정됨: window.supabase 대신 전역 supabase 객체 사용
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let matches = {};
     let currentMatchId = null;
@@ -651,7 +652,6 @@
       supabaseClient.channel('public-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, async () => { await loadFromSupabase(); }).subscribe();
     }
 
-    // 💡 모든 경기에서 등록된 선수들을 취합하여 마스터 팀원 풀 제공
     function getAllUniquePlayers() {
       const playerMap = new Map();
       Object.values(matches).forEach(m => {
@@ -688,7 +688,6 @@
           let pInMatch = false;
           let mPts = 0, mReb = 0, mAst = 0;
           for (let q = 1; q <= 4; q++) {
-            // 해당 경기의 홈/어웨이 선수 목록에서 찾기
             const matchPlayers = [...(match.homePlayers || []), ...(match.awayPlayers || [])];
             const matchedP = matchPlayers.find(x => x.number === p.number && x.name === p.name);
             const targetId = matchedP ? matchedP.id : p.id;
@@ -851,7 +850,7 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-700/40 text-slate-200';
         tr.innerHTML = `
-          <td class="py-1.5 px-2 text-left font-bold text-blue-400 sticky left-0 bg-slate-900 z-10">#${p.number}${p.name}</td>
+          <td class="py-1.5 px-2 text-left font-bold text-blue-400 sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
           <td class="py-1.5 px-1.5">${minVal}</td>
           <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
           <td class="py-1.5 px-1.5">${fga}</td>
@@ -930,7 +929,6 @@
       }
     }
 
-    // 💡 페이지 2: 기간별 누적 엑셀 내보내기
     function exportPeriodStatsExcel() {
       const table = document.querySelector('#pageStats table');
       if (!table) { alert('내보낼 데이터가 없습니다.'); return; }
@@ -942,7 +940,6 @@
       XLSX.writeFile(wb, `기간별_누적스탯_${start}_${end}.xlsx`);
     }
 
-    // 💡 페이지 2: 일자별 박스스코어 엑셀 내보내기
     function exportViewerBoxScoreExcel() {
       const table = document.getElementById('viewerBoxScoreTableBody').closest('table');
       if (!table) { alert('내보낼 데이터가 없습니다.'); return; }
@@ -1052,7 +1049,7 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-700/40 text-slate-200';
         tr.innerHTML = `
-          <td class="py-2 px-2 text-left font-bold sticky left-0 bg-slate-900 z-10">#${p.number}${p.name}</td>
+          <td class="py-2 px-2 text-left font-bold sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
           <td class="py-2 px-1.5">${attendanceCount}</td>
           <td class="py-2 px-1.5">${gameCount}</td>
           <td class="py-2 px-1.5">${totalMinutes}</td>
@@ -1173,7 +1170,8 @@
             <span class="w-6 h-6 rounded-lg bg-blue-600/30 text-blue-300 flex items-center justify-center font-bold text-xs">${p.number}</span>
             <div class="truncate">
               <div class="font-bold text-xs text-slate-100 flex items-center gap-1.5 truncate">
-                <span>${p.name}</span>${isPlaying ? '<span class="bg-amber-400 text-slate-950 font-black text-[9px] px-1 rounded">ON</span>' : ''}
+                <span>${p.name}</span>
+                ${isPlaying ? '<span class="bg-amber-400 text-slate-950 font-black text-[9px] px-1 rounded">ON</span>' : ''}
               </div>
               <div class="text-[9px] text-slate-400">PTS: <span class="text-orange-400 font-bold">${pts}</span></div>
             </div>
@@ -1238,7 +1236,7 @@
         ast: st['AST'], stl: st['STL'], blk: st['BLK'], to_count: st['TO'], foul: st['FOUL']
       }, { onConflict: 'match_id,player_id,quarter' });
 
-      const msg = `${q}Q [AWAY] ${m.awayTeam} -${statType}`;
+      const msg = `${q}Q [AWAY] ${m.awayTeam} - ${statType}`;
       await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
       await loadFromSupabase();
     }
@@ -1246,7 +1244,7 @@
     function openStatModal(player, team) {
       activePlayer = { ...player, team };
       document.getElementById('modalTeamBadge').textContent = team;
-      document.getElementById('modalPlayerName').textContent = `#${player.number}${player.name}`;
+      document.getElementById('modalPlayerName').textContent = `#${player.number} ${player.name}`;
       document.getElementById('statModal').classList.remove('hidden');
     }
 
@@ -1278,8 +1276,8 @@
       }, { onConflict: 'match_id,player_id,quarter' });
 
       const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.id === playerId);
-      const nameStr = p ? `#${p.number}${p.name}` : '팀';
-      const msg = customMsg || `${q}Q [${team}] ${nameStr} -${statType}`;
+      const nameStr = p ? `#${p.number} ${p.name}` : '팀';
+      const msg = customMsg || `${q}Q [${team}] ${nameStr} - ${statType}`;
       await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
       await loadFromSupabase();
     }
@@ -1340,7 +1338,7 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-700/40 text-slate-200';
         tr.innerHTML = `
-          <td class="py-1.5 px-2 text-left font-bold text-blue-400 sticky left-0 bg-slate-900 z-10">#${p.number}${p.name}</td>
+          <td class="py-1.5 px-2 text-left font-bold text-blue-400 sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
           <td class="py-1.5 px-1.5">${minVal}</td>
           <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
           <td class="py-1.5 px-1.5">${fga}</td>
@@ -1450,7 +1448,7 @@
           const tr = document.createElement('tr');
           tr.className = 'hover:bg-slate-700/40 text-slate-200 border-t border-slate-700/30';
           tr.innerHTML = `
-            <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">#${p.number}${p.name}</td>
+            <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
             <td class="py-1.5 px-1.5">${minVal}</td>
             <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
             <td class="py-1.5 px-1.5">${fga}</td>
@@ -1585,7 +1583,6 @@
       renderNewMatchRosterSelection('자체전');
     }
 
-    // 💡 전체 마스터 선수 풀에서 로스터 선택 UI 구성
     function renderNewMatchRosterSelection(mode) {
       const container = document.getElementById('rosterSelectionContainer');
       if (!container) return;
@@ -1608,8 +1605,8 @@
             <div class="space-y-1">
               ${homeList.map(p => `
                 <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
-                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name}</span>
+                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name}</span>
                 </label>
               `).join('')}
               ${homeList.length === 0 ? '<div class="text-[11px] text-slate-500 py-2">등록된 선수가 없습니다.</div>' : ''}
@@ -1624,8 +1621,8 @@
             <div class="space-y-1">
               ${awayList.map(p => `
                 <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
-                  <input type="checkbox" name="rosterAway" value="${p.number}|${p.name}|${p.birth}|${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name}</span>
+                  <input type="checkbox" name="rosterAway" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name}</span>
                 </label>
               `).join('')}
               ${awayList.length === 0 ? '<div class="text-[11px] text-slate-500 py-2">등록된 선수가 없습니다.</div>' : ''}
@@ -1642,8 +1639,8 @@
             <div class="grid grid-cols-2 gap-1 max-h-[160px] overflow-y-auto custom-scroll pr-1">
               ${allPlayers.map(p => `
                 <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
-                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
+                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
                 </label>
               `).join('')}
             </div>
@@ -1709,7 +1706,6 @@
       }
     }
 
-    /* 운영진 비밀번호 검증 후 팀원 편집 모달 열기 (비밀번호: 7143) */
     function openTeamInfoModal() {
       const pw = prompt("운영진 비밀번호를 입력하세요:");
       if (pw !== "7143") {
@@ -1777,10 +1773,7 @@
       const chunkSize = 20;
       for (let i = 0; i < insertList.length; i += chunkSize) {
         const chunk = insertList.slice(i, i + chunkSize);
-        const { error } = await supabaseClient.from('players').insert(chunk);
-        if (error) {
-          console.error('업로드 중 에러 발생:', error);
-        }
+        await supabaseClient.from('players').insert(chunk);
       }
 
       await loadFromSupabase();
@@ -1816,7 +1809,6 @@
 
           let updatedCount = 0;
           let addedCount = 0;
-
           const existingRows = Array.from(document.querySelectorAll('.roster-row'));
 
           for (let i = 1; i < rows.length; i++) {
@@ -1946,7 +1938,7 @@
         const checked = qLineup.home.includes(p.id) ? 'checked' : '';
         const div = document.createElement('label');
         div.className = 'flex items-center gap-2 bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-slate-700/60 text-xs text-white';
-        div.innerHTML = `<input type="checkbox" name="homeLineup" value="${p.id}" ${checked} onchange="limitLineupCheck(this, 'homeLineup', 'homeLineupCount')" class="rounded border-slate-600"> <span>#${p.number}${p.name}</span>`;
+        div.innerHTML = `<input type="checkbox" name="homeLineup" value="${p.id}" ${checked} onchange="limitLineupCheck(this, 'homeLineup', 'homeLineupCount')" class="rounded border-slate-600"> <span>#${p.number} ${p.name}</span>`;
         homeBox.appendChild(div);
       });
 
@@ -1958,4 +1950,55 @@
           const checked = qLineup.away.includes(p.id) ? 'checked' : '';
           const div = document.createElement('label');
           div.className = 'flex items-center gap-2 bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-slate-700/60 text-xs text-white';
-          div.innerHTML = `<input type="checkbox" name="awayLine
+          div.innerHTML = `<input type="checkbox" name="awayLineup" value="${p.id}" ${checked} onchange="limitLineupCheck(this, 'awayLineup', 'awayLineupCount')" class="rounded border-slate-600"> <span>#${p.number} ${p.name}</span>`;
+          awayBox.appendChild(div);
+        });
+      }
+
+      updateLineupCountText('homeLineup', 'homeLineupCount');
+      updateLineupCountText('awayLineup', 'awayLineupCount');
+    }
+
+    function limitLineupCheck(chk, name, countId) {
+      const checkedBoxes = document.querySelectorAll(`input[name="${name}"]:checked`);
+      if (checkedBoxes.length > 5) {
+        alert('쿼터당 출전 선수는 최대 5명까지만 선택 가능합니다.');
+        chk.checked = false;
+      }
+      updateLineupCountText(name, countId);
+    }
+
+    function updateLineupCountText(name, countId) {
+      const checked = document.querySelectorAll(`input[name="${name}"]:checked`).length;
+      const el = document.getElementById(countId);
+      if (el) el.textContent = `${checked}/5 선택`;
+    }
+
+    async function saveLineupSelection() {
+      const q = activeLineupModalQuarter;
+      await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q);
+
+      const homeChecked = document.querySelectorAll('input[name="homeLineup"]:checked');
+      for (const chk of homeChecked) {
+        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: chk.value }]);
+      }
+
+      const awayChecked = document.querySelectorAll('input[name="awayLineup"]:checked');
+      for (const chk of chkAway = awayChecked) {
+        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id: chk.value }]);
+      }
+
+      closeModal('lineupModal');
+      await loadFromSupabase();
+    }
+
+    function exportToExcel() {
+      const m = matches[currentMatchId];
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(document.getElementById('boxScoreTableBody'));
+      XLSX.utils.book_append_sheet(wb, ws, "박스스코어");
+      XLSX.writeFile(wb, `농구경기기록_${m.homeTeam}_vs_${m.awayTeam}_${m.date}.xlsx`);
+    }
+  </script>
+</body>
+</html>
