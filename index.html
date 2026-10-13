@@ -302,10 +302,14 @@
           <span class="w-3 h-3 rounded-full bg-blue-500 shrink-0"></span>
           <h2 id="homeTeamTitle" class="font-black text-sm md:text-lg text-blue-400 truncate">HOME</h2>
         </div>
-        <!-- 해당 경기 로스터 직접 수정 모달 실행 -->
-        <button onclick="openCurrentMatchRosterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded font-bold shadow flex items-center gap-1">
-          <i class="fa-solid fa-user-pen"></i> 로스터 수정
-        </button>
+        <div class="flex items-center gap-1">
+          <button onclick="openSubModal()" class="bg-orange-600 hover:bg-orange-500 text-white text-[11px] px-2 py-1 rounded font-bold shadow flex items-center gap-1" title="선수 교체">
+            <i class="fa-solid fa-right-left"></i> 교체
+          </button>
+          <button onclick="openCurrentMatchRosterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] px-2 py-1 rounded font-bold shadow flex items-center gap-1">
+            <i class="fa-solid fa-user-pen"></i> 로스터
+          </button>
+        </div>
       </div>
       <div id="homePlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
     </section>
@@ -403,6 +407,37 @@
     </div>
   </div>
 
+  <!-- 선수 교체 모달 -->
+  <div id="subModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-4 shadow-2xl flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+        <h3 class="text-base font-black text-amber-400"><i class="fa-solid fa-right-left mr-1"></i> 선수 교체 (<span id="subModalQuarterText">1Q</span>)</h3>
+        <button onclick="closeModal('subModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3 my-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">교체 아웃 (현재 코트에 있는 선수)</label>
+          <select id="subOutPlayerSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"></select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">교체 인 (벤치에 있는 선수)</label>
+          <select id="subInPlayerSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold"></select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">교체 시점 (남은 시간)</label>
+          <div class="flex items-center gap-2">
+            <input type="text" id="subTimeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-mono font-bold" placeholder="예: 08:30 또는 510">
+            <button onclick="setCurrentTimerToSubInput()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap">현재 타이머 가져오기</button>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+        <button onclick="closeModal('subModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
+        <button onclick="executeSubstitution()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-5 py-2 rounded-lg font-bold shadow">교체 실행</button>
+      </div>
+    </div>
+  </div>
+
   <div id="statModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full p-4 shadow-2xl">
       <div class="flex justify-between items-center pb-2.5 border-b border-slate-700">
@@ -469,21 +504,26 @@
   <!-- 새 경기 추가 모달 -->
   <div id="newMatchModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col max-h-[90vh]">
-      <h3 class="text-base font-extrabold text-white mb-3"><i class="fa-solid fa-calendar-plus text-orange-400 mr-1.5"></i> 새 경기 추가 및 로스터 설정</h3>
+      <h3 class="text-base font-extrabold text-white mb-3"><i class="fa-solid fa-calendar-plus text-orange-400 mr-1.5"></i> 새 경기 추가 및 쿼터 시간 설정</h3>
       
       <div class="space-y-3 text-xs overflow-y-auto custom-scroll pr-1 flex-1">
-        <div class="grid grid-cols-2 gap-2">
-          <div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-2">
             <label class="block font-bold text-slate-400 mb-1">경기 날짜</label>
             <input type="date" id="inputMatchDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono">
           </div>
           <div>
-            <label class="block font-bold text-slate-400 mb-1">경기 유형</label>
-            <select id="inputMatchType" onchange="onMatchModeChange(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
-              <option value="자체전">자체전</option>
-              <option value="교류전">교류전</option>
-            </select>
+            <label class="block font-bold text-slate-400 mb-1">쿼터 시간(분)</label>
+            <input type="number" id="inputQuarterDuration" value="10" min="1" max="60" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold font-mono text-center">
           </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-400 mb-1">경기 유형</label>
+          <select id="inputMatchType" onchange="onMatchModeChange(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white font-bold">
+            <option value="자체전">자체전</option>
+            <option value="교류전">교류전</option>
+          </select>
         </div>
 
         <div id="teamColorSelectSection" class="bg-slate-900 p-3 rounded-xl border border-indigo-500/30 space-y-2">
@@ -510,8 +550,8 @@
           <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
             <span class="font-bold text-amber-400 text-xs"><i class="fa-solid fa-user-check mr-1"></i>오늘 경기 참가 로스터 선택</span>
             <div class="flex gap-1.5 items-center">
-              <button onclick="promptAddGuest('HOME')" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 게스트 추가</button>
-              <button onclick="promptAddMercenary()" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 용병 추가</button>
+              <button onclick="promptAddGuest('HOME')" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 게스트</button>
+              <button onclick="promptAddMercenary()" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 용병</button>
               <span id="rosterSelectionCount" class="text-[11px] text-slate-400 ml-1">0명 선택됨</span>
             </div>
           </div>
@@ -635,8 +675,24 @@
         const stats = await fetchStats(m.id);
         const logs = await fetchLogs(m.id);
         const lineups = await fetchLineups(m.id);
+        const substitutions = parseSubstitutionsFromLogs(logs);
 
-        matches[m.id] = { id: m.id, date: m.date, mode: m.mode || '교류전', homeTeam: m.home_team, awayTeam: m.away_team, quarter: m.quarter, timerSeconds: m.timer_seconds, homePlayers, awayPlayers, lineups, stats, logs };
+        matches[m.id] = { 
+          id: m.id, 
+          date: m.date, 
+          mode: m.mode || '교류전', 
+          homeTeam: m.home_team, 
+          awayTeam: m.away_team, 
+          quarter: m.quarter, 
+          timerSeconds: m.timer_seconds, 
+          quarterDuration: m.quarter_duration || 10,
+          homePlayers, 
+          awayPlayers, 
+          lineups, 
+          stats, 
+          logs,
+          substitutions
+        };
       }
 
       if (!currentMatchId || !matches[currentMatchId]) {
@@ -691,10 +747,64 @@
       return lineups;
     }
 
+    function parseSubstitutionsFromLogs(logs) {
+      let subs = { 1: [], 2: [], 3: [], 4: [] };
+      logs.forEach(l => {
+        if (l.statType === 'SUB') {
+          try {
+            const data = JSON.parse(l.text);
+            if (data && data.outId && data.inId && data.timeSec !== undefined) {
+              if (!subs[l.quarter]) subs[l.quarter] = [];
+              subs[l.quarter].push(data);
+            }
+          } catch(e) {}
+        }
+      });
+      return subs;
+    }
+
+    // 정밀 출전 시간 계산 (초 단위 시뮬레이션)
+    function calculatePlayerMinutes(matchId, playerId) {
+      const m = matches[matchId];
+      if (!m) return '0.0';
+      const qDuration = (m.quarterDuration || 10) * 60;
+      let totalPlayedSeconds = 0;
+
+      for (let q = 1; q <= 4; q++) {
+        const isHomePlayer = m.homePlayers.some(p => p.id === playerId);
+        const lineup = m.lineups && m.lineups[q] ? (isHomePlayer ? m.lineups[q].home : m.lineups[q].away) : [];
+        const qSubs = (m.substitutions && m.substitutions[q]) || [];
+
+        let currentActive = lineup.includes(playerId);
+        let prevT = qDuration;
+
+        const events = qSubs.map(sub => ({
+          t: sub.timeSec,
+          isOut: sub.outId === playerId,
+          isIn: sub.inId === playerId
+        })).sort((a, b) => b.t - a.t); // 시간 큰 것(쿼터 시작)부터 작은 것(끝)으로
+
+        events.forEach(ev => {
+          if (ev.t < prevT && currentActive) {
+            totalPlayedSeconds += (prevT - ev.t);
+          }
+          if (ev.isIn) currentActive = true;
+          if (ev.isOut) currentActive = false;
+          prevT = ev.t;
+        });
+
+        if (currentActive && prevT > 0) {
+          totalPlayedSeconds += (prevT - 0);
+        }
+      }
+
+      return (totalPlayedSeconds / 60).toFixed(1);
+    }
+
     async function initDefaultMatchInSupabase() {
       const matchId = 'match_' + Date.now();
       const today = new Date().toISOString().split('T')[0];
-      await supabaseClient.from('matches').insert([{ id: matchId, date: today, mode: '자체전', home_team: 'Black 팀', away_team: 'White 팀', quarter: 1, timer_seconds: 600 }]);
+      await supabaseClient.from('matches').insert([{ id: matchId, date: today, mode: '자체전', home_team: 'Black 팀', away_team: 'White 팀', quarter: 1, timer_seconds: 600, quarter_duration: 10 }]);
       for (const p of DEFAULT_PLAYERS_HOME) {
         await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
       }
@@ -706,7 +816,6 @@
       supabaseClient.channel('public-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, async () => { await loadFromSupabase(); }).subscribe();
     }
 
-    // 유니크 선수 추출: 게스트(게스트)만 2차 스탯/팀원 목록에서 제외, 용병(용병)은 포함!
     function getAllUniquePlayers() {
       const playerMap = new Map();
       Object.values(matches).forEach(m => {
@@ -734,7 +843,6 @@
     }
 
     function renderTeamMembersPage() {
-      const m = matches[currentMatchId];
       const grid = document.getElementById('teamMembersGrid');
       if (!grid) return;
       grid.innerHTML = '';
@@ -742,15 +850,15 @@
       if (allPlayers.length === 0) return;
 
       allPlayers.forEach(p => {
-        let gp = 0, pts = 0, reb = 0, ast = 0, stl = 0, blk = 0;
+        let gp = 0, pts = 0, reb = 0, ast = 0, stl = 0, blk = 0, totalMin = 0;
         Object.values(matches).forEach(match => {
+          const matchPlayers = [...(match.homePlayers || []), ...(match.awayPlayers || [])];
+          const matchedP = matchPlayers.find(x => x.number === p.number && x.name === p.name);
+          const targetId = matchedP ? matchedP.id : p.id;
+
           let pInMatch = false;
           let mPts = 0, mReb = 0, mAst = 0;
           for (let q = 1; q <= 4; q++) {
-            const matchPlayers = [...(match.homePlayers || []), ...(match.awayPlayers || [])];
-            const matchedP = matchPlayers.find(x => x.number === p.number && x.name === p.name);
-            const targetId = matchedP ? matchedP.id : p.id;
-
             const st = match.stats[`${targetId}_q${q}`];
             const lineupHome = match.lineups && match.lineups[q] && match.lineups[q].home;
             const lineupAway = match.lineups && match.lineups[q] && match.lineups[q].away;
@@ -767,7 +875,13 @@
               }
             }
           }
-          if (pInMatch) { gp++; pts += mPts; reb += mReb; ast += mAst; }
+          if (pInMatch) {
+            gp++;
+            pts += mPts;
+            reb += mReb;
+            ast += mAst;
+            totalMin += parseFloat(calculatePlayerMinutes(match.id, targetId));
+          }
         });
 
         let colorBadgeClass = 'bg-slate-900 text-slate-200 border-slate-700';
@@ -789,7 +903,7 @@
                     ${p.name}
                     <span class="text-[10px] px-2 py-0.5 rounded-full border ${colorBadgeClass}">${p.color || '블랙'}</span>
                   </h3>
-                  <p class="text-[11px] text-slate-400">생년월일: ${p.birth || '미등록'}</p>
+                  <p class="text-[11px] text-slate-400">생년월일: ${p.birth || '미등록'} | 총 출전: ${totalMin.toFixed(1)}분</p>
                 </div>
               </div>
               <span class="bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full">출전 ${gp}경기</span>
@@ -891,16 +1005,11 @@
 
       m.homePlayers.forEach(p => {
         let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
-        let quartersPlayed = 0;
         for (let q = 1; q <= 4; q++) {
           const st = m.stats[`${p.id}_q${q}`];
-          const lineup = m.lineups && m.lineups[q] && m.lineups[q].home;
-          if (st || (lineup && lineup.includes(p.id))) {
-            quartersPlayed++;
-            if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
-          }
+          if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
         }
-        const minVal = (quartersPlayed * 5).toFixed(1);
+        const minVal = calculatePlayerMinutes(m.id, p.id);
         const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
         const p2_pts = tot['2PT_MADE'] * 2;
         const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
@@ -974,7 +1083,7 @@
         tr.className = 'hover:bg-slate-700/40 text-slate-200 bg-slate-800/80 border-t border-slate-700';
         tr.innerHTML = `
           <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">[상대] ${m.awayTeam}</td>
-          <td class="py-1.5 px-1.5">20.0</td>
+          <td class="py-1.5 px-1.5">${(m.quarterDuration || 10)}.0</td>
           <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${awayTot}</td>
           <td class="py-1.5 px-1.5">${fga}</td>
           <td class="py-1.5 px-1.5">${fgm}</td>
@@ -1004,16 +1113,11 @@
       } else {
         m.awayPlayers.forEach(p => {
           let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
-          let quartersPlayed = 0;
           for (let q = 1; q <= 4; q++) {
             const st = m.stats[`${p.id}_q${q}`];
-            const lineup = m.lineups && m.lineups[q] && m.lineups[q].away;
-            if (st || (lineup && lineup.includes(p.id))) {
-              quartersPlayed++;
-              if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
-            }
+            if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
           }
-          const minVal = (quartersPlayed * 5).toFixed(1);
+          const minVal = calculatePlayerMinutes(m.id, p.id);
           const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
           const p2_pts = tot['2PT_MADE'] * 2;
           const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
@@ -1090,9 +1194,6 @@
     function applyDateFilter() {
       const startDate = document.getElementById('filterStartDate').value;
       const endDate = document.getElementById('filterEndDate').value;
-      const m = matches[currentMatchId];
-      if (!m) return;
-
       const tbody = document.getElementById('periodStatsTableBody');
       tbody.innerHTML = '';
       const targetMatches = Object.values(matches).filter(match => match.date >= startDate && match.date <= endDate);
@@ -1111,7 +1212,6 @@
           const targetId = matchedP ? matchedP.id : p.id;
 
           let pPlayedInMatch = false;
-          let pQuartersPlayed = 0;
           for (let q = 1; q <= 4; q++) {
             const st = match.stats[`${targetId}_q${q}`];
             const lineupHome = match.lineups && match.lineups[q] && match.lineups[q].home;
@@ -1120,7 +1220,6 @@
 
             if (st || isInOut) {
               pPlayedInMatch = true;
-              pQuartersPlayed++;
               if (st) {
                 p2m_tot += (st['2PT_MADE'] || 0);
                 p2s_tot += (st['2PT_MISS'] || 0);
@@ -1141,7 +1240,7 @@
           if (pPlayedInMatch) {
             attendanceCount++;
             gameCount++;
-            totalMinutes += (pQuartersPlayed * 5);
+            totalMinutes += parseFloat(calculatePlayerMinutes(match.id, targetId));
           }
         });
 
@@ -1189,7 +1288,7 @@
           <td class="py-2 px-2 text-left font-bold sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
           <td class="py-2 px-1.5">${attendanceCount}</td>
           <td class="py-2 px-1.5">${gameCount}</td>
-          <td class="py-2 px-1.5">${totalMinutes}</td>
+          <td class="py-2 px-1.5">${totalMinutes.toFixed(1)}</td>
           <td class="py-2 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
           <td class="py-2 px-1.5">${fga}</td>
           <td class="py-2 px-1.5">${fgm}</td>
@@ -1424,8 +1523,10 @@
       const tLog = m.logs.find(l => l.id === logId);
       if (!tLog) return;
       if (confirm('이 기록을 삭제하시겠습니까?')) {
-        const qKey = `${tLog.playerId}_q${tLog.quarter}`;
-        if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) m.stats[qKey][tLog.statType]--;
+        if (tLog.statType !== 'SUB') {
+          const qKey = `${tLog.playerId}_q${tLog.quarter}`;
+          if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) m.stats[qKey][tLog.statType]--;
+        }
         await supabaseClient.from('logs').delete().eq('id', logId);
         await loadFromSupabase();
       }
@@ -1440,16 +1541,11 @@
 
       m.homePlayers.forEach(p => {
         let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
-        let quartersPlayed = 0;
         for (let q = 1; q <= 4; q++) {
           const st = m.stats[`${p.id}_q${q}`];
-          const lineup = m.lineups && m.lineups[q] && m.lineups[q].home;
-          if (st || (lineup && lineup.includes(p.id))) {
-            quartersPlayed++;
-            if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
-          }
+          if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
         }
-        const minVal = (quartersPlayed * 5).toFixed(1);
+        const minVal = calculatePlayerMinutes(m.id, p.id);
         const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
         const p2_pts = tot['2PT_MADE'] * 2;
         const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
@@ -1524,7 +1620,7 @@
         tr.className = 'hover:bg-slate-700/40 text-slate-200 bg-slate-800/80 border-t border-slate-700';
         tr.innerHTML = `
           <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">[상대] ${m.awayTeam}</td>
-          <td class="py-1.5 px-1.5">20.0</td>
+          <td class="py-1.5 px-1.5">${(m.quarterDuration || 10)}.0</td>
           <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${awayTot}</td>
           <td class="py-1.5 px-1.5">${fga}</td>
           <td class="py-1.5 px-1.5">${fgm}</td>
@@ -1554,16 +1650,11 @@
       } else {
         m.awayPlayers.forEach(p => {
           let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
-          let quartersPlayed = 0;
           for (let q = 1; q <= 4; q++) {
             const st = m.stats[`${p.id}_q${q}`];
-            const lineup = m.lineups && m.lineups[q] && m.lineups[q].away;
-            if (st || (lineup && lineup.includes(p.id))) {
-              quartersPlayed++;
-              if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
-            }
+            if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
           }
-          const minVal = (quartersPlayed * 5).toFixed(1);
+          const minVal = calculatePlayerMinutes(m.id, p.id);
           const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
           const p2_pts = tot['2PT_MADE'] * 2;
           const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
@@ -1628,9 +1719,20 @@
       countEl.textContent = `총 ${m.logs.length}개`;
       container.innerHTML = '';
       m.logs.forEach(log => {
+        let displayTxt = log.text;
+        if (log.statType === 'SUB') {
+          try {
+            const data = JSON.parse(log.text);
+            const outP = m.homePlayers.find(p => p.id === data.outId) || m.awayPlayers.find(p => p.id === data.outId);
+            const inP = m.homePlayers.find(p => p.id === data.inId) || m.awayPlayers.find(p => p.id === data.inId);
+            const mMin = Math.floor(data.timeSec / 60).toString().padStart(2, '0');
+            const mSec = (data.timeSec % 60).toString().padStart(2, '0');
+            displayTxt = `${log.quarter}Q [교체] OUT: #${outP ? outP.number : ''} ${outP ? outP.name : ''} -> IN: #${inP ? inP.number : ''} ${inP ? inP.name : ''} (${mMin}:${mSec})`;
+          } catch(e) {}
+        }
         const item = document.createElement('div');
         item.className = 'text-[11px] p-1.5 bg-slate-900 border border-slate-700 rounded-lg flex justify-between items-center text-slate-300';
-        item.innerHTML = `<span class="truncate pr-1">${log.text}</span><button onclick="deleteLog('${log.id}')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-xmark"></i></button>`;
+        item.innerHTML = `<span class="truncate pr-1">${displayTxt}</span><button onclick="deleteLog('${log.id}')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-xmark"></i></button>`;
         container.appendChild(item);
       });
     }
@@ -1638,7 +1740,9 @@
     async function changeQuarter(delta) {
       const m = matches[currentMatchId];
       m.quarter = Math.max(1, Math.min(4, m.quarter + delta));
-      await supabaseClient.from('matches').update({ quarter: m.quarter }).eq('id', currentMatchId);
+      m.timerSeconds = (m.quarterDuration || 10) * 60;
+      if (isTimerRunning) toggleTimer();
+      await supabaseClient.from('matches').update({ quarter: m.quarter, timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
       await loadFromSupabase();
     }
 
@@ -1654,15 +1758,20 @@
         if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> 일시정지';
         timerInterval = setInterval(() => {
           const m = matches[currentMatchId];
-          if (m.timerSeconds > 0) { m.timerSeconds--; updateTimerDisplay(); }
-          else { toggleTimer(); }
+          if (m.timerSeconds > 0) { 
+            m.timerSeconds--; 
+            updateTimerDisplay(); 
+          } else { 
+            toggleTimer(); 
+          }
         }, 1000);
       }
     }
 
     function resetTimer() {
       if (isTimerRunning) toggleTimer();
-      matches[currentMatchId].timerSeconds = 600;
+      const m = matches[currentMatchId];
+      m.timerSeconds = (m.quarterDuration || 10) * 60;
       updateTimerDisplay();
     }
 
@@ -1692,6 +1801,113 @@
       updateTimerDisplay();
     }
 
+    // 선수 교체 모달 열기
+    function openSubModal() {
+      const m = matches[currentMatchId];
+      if (!m) return;
+      const q = m.quarter;
+      document.getElementById('subModalQuarterText').textContent = q + 'Q';
+
+      const currentLineupIds = (m.lineups && m.lineups[q] && m.lineups[q].home) || [];
+      const outSelect = document.getElementById('subOutPlayerSelect');
+      const inSelect = document.getElementById('subInPlayerSelect');
+      outSelect.innerHTML = '';
+      inSelect.innerHTML = '';
+
+      // 현재 ON 상태인 선수들 (아웃 후보)
+      m.homePlayers.forEach(p => {
+        if (currentLineupIds.includes(p.id)) {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `#${p.number} ${p.name}`;
+          outSelect.appendChild(opt);
+        } else {
+          // 벤치에 있는 선수들 (인 후보)
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `#${p.number} ${p.name}`;
+          inSelect.appendChild(opt);
+        }
+      });
+
+      if (outSelect.options.length === 0) {
+        alert('현재 코트에 출전 중인 선수가 없습니다. 라인업을 먼저 설정해주세요.');
+        return;
+      }
+
+      const mins = Math.floor(m.timerSeconds / 60).toString().padStart(2, '0');
+      const secs = (m.timerSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('subTimeInput').value = `${mins}:${secs}`;
+
+      document.getElementById('subModal').classList.remove('hidden');
+    }
+
+    function setCurrentTimerToSubInput() {
+      const m = matches[currentMatchId];
+      const mins = Math.floor(m.timerSeconds / 60).toString().padStart(2, '0');
+      const secs = (m.timerSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('subTimeInput').value = `${mins}:${secs}`;
+    }
+
+    async function executeSubstitution() {
+      const m = matches[currentMatchId];
+      const q = m.quarter;
+      const outId = document.getElementById('subOutPlayerSelect').value;
+      const inId = document.getElementById('subInPlayerSelect').value;
+      const timeInputStr = document.getElementById('subTimeInput').value.trim();
+
+      if (!outId || !inId) {
+        alert('교체 아웃할 선수와 인할 선수를 모두 선택해주세요.');
+        return;
+      }
+      if (outId === inId) {
+        alert('동일한 선수로 교체할 수 없습니다.');
+        return;
+      }
+
+      let timeSec = m.timerSeconds;
+      if (timeInputStr.includes(':')) {
+        const [mins, secs] = timeInputStr.split(':').map(v => parseInt(v) || 0);
+        timeSec = mins * 60 + secs;
+      } else if (!isNaN(parseInt(timeInputStr))) {
+        timeSec = parseInt(timeInputStr);
+      }
+
+      // 라인업 배열 업데이트
+      if (!m.lineups) m.lineups = {};
+      if (!m.lineups[q]) m.lineups[q] = { home: [], away: [] };
+      let homeLineup = m.lineups[q].home;
+
+      const idx = homeLineup.indexOf(outId);
+      if (idx !== -1) {
+        homeLineup[idx] = inId;
+      } else {
+        homeLineup.push(inId);
+      }
+
+      // Supabase lineups 테이블 갱신
+      await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q).eq('team_type', 'HOME');
+      for (const pid of homeLineup) {
+        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: pid }]);
+      }
+
+      // 교체 기록을 logs에 JSON 형태로 저장
+      const subObj = { outId, inId, timeSec };
+      const subJsonStr = JSON.stringify(subObj);
+      await supabaseClient.from('logs').insert([{
+        id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        match_id: currentMatchId,
+        quarter: q,
+        player_id: inId,
+        stat_type: 'SUB',
+        log_time: new Date().toTimeString().split(' ')[0],
+        text: subJsonStr
+      }]);
+
+      closeModal('subModal');
+      await loadFromSupabase();
+    }
+
     function openNewMatchModal() { 
       tempGuests = []; 
       const dateInput = document.getElementById('inputMatchDate');
@@ -1699,6 +1915,9 @@
 
       const searchInput = document.getElementById('rosterSearchInput');
       if (searchInput) searchInput.value = '';
+
+      const durInput = document.getElementById('inputQuarterDuration');
+      if (durInput) durInput.value = '10';
 
       document.getElementById('inputMatchType').value = '자체전';
       onMatchModeChange('자체전');
@@ -1974,9 +2193,9 @@
             `).join('')}
 
             ${curMatchTempGuests.filter(g => g.targetTeam === 'HOME').map(g => `
-              <label class="cur-roster-item flex items-center gap-2 bg-indigo-950/60 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${g.number}${g.name}">
-                <input type="checkbox" name="curRosterHome" value="${g.number}\vert{}${g.name}|${g.birth}\vert{}${g.color}" checked class="rounded border-slate-600">
-                <span>#${g.number}${g.name} <span class="text-[9px] text-amber-400">(추가)</span></span>
+              <label class="cur-roster-item flex items-center gap-2 bg-indigo-950/60 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${g.number} ${g.name}">
+                <input type="checkbox" name="curRosterHome" value="${g.number}|${g.name}|${g.birth}|${g.color}" checked class="rounded border-slate-600">
+                <span>#${g.number} ${g.name} <span class="text-[9px] text-amber-400">(추가)</span></span>
               </label>
             `).join('')}
 
@@ -1984,7 +2203,7 @@
               <span class="text-[10px] text-slate-400 font-bold block mb-1">💡 팀원 명단에서 추가하기</span>
               ${allPlayers.filter(p => !homePlayerKeys.has(`${p.number}_${p.name}`)).map(p => `
                 <label class="cur-roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-slate-300" data-search="#${p.number}${p.name}">
-                  <input type="checkbox" name="curRosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" class="rounded border-slate-600">
+                  <input type="checkbox" name="curRosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" class="rounded border-slate-600">
                   <span>#${p.number}${p.name} <span class="text-[9px] text-slate-500">(${p.color})</span></span>
                 </label>
               `).join('')}
@@ -2057,11 +2276,22 @@
     async function createNewMatch() {
       const matchId = 'match_' + Date.now();
       const matchDate = document.getElementById('inputMatchDate').value || new Date().toISOString().split('T')[0];
+      const quarterDuration = parseInt(document.getElementById('inputQuarterDuration').value) || 10;
+      const timerSeconds = quarterDuration * 60;
       const mode = document.getElementById('inputMatchType').value;
       const homeTeam = document.getElementById('inputHomeTeamName').value || 'HOME';
       const awayTeam = document.getElementById('inputAwayTeamName').value || 'AWAY';
 
-      await supabaseClient.from('matches').insert([{ id: matchId, date: matchDate, mode: mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: 600 }]);
+      await supabaseClient.from('matches').insert([{ 
+        id: matchId, 
+        date: matchDate, 
+        mode: mode, 
+        home_team: homeTeam, 
+        away_team: awayTeam, 
+        quarter: 1, 
+        timer_seconds: timerSeconds,
+        quarter_duration: quarterDuration 
+      }]);
 
       if (mode === '자체전') {
         const homeChecked = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
