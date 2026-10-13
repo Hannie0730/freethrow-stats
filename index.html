@@ -268,7 +268,8 @@
 
             <div class="flex gap-1.5 mt-1">
               <button id="timerToggleBtn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg shadow"><i class="fa-solid fa-play mr-1"></i> 시작</button>
-              <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-2.5 py-1 rounded-lg"><i class="fa-solid fa-rotate-right"></i></button>
+              <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs px-2.5 py-1 rounded-lg" title="타이머 초기화"><i class="fa-solid fa-rotate-right"></i></button>
+              <button onclick="resetMatchStatsAndScores()" class="bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow" title="점수 및 스탯 전체 초기화"><i class="fa-solid fa-arrows-rotate mr-1"></i> 스탯 초기화</button>
             </div>
 
             <button onclick="openLineupModal()" class="mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-xl shadow border border-indigo-400/30">
@@ -1557,8 +1558,8 @@
       const p = activePlayer;
       await applyStatAndSave(p.id, p.team, statType);
 
-      // 1. 득점 성공 시 어시스트 연계 팝업
-      if (['2PT_MADE', '3PT_MADE', 'FT_MADE'].includes(statType)) {
+      // 1. 2점/3점 득점 성공 시 어시스트 연계 팝업 (자유투 FT_MADE 제외)
+      if (['2PT_MADE', '3PT_MADE'].includes(statType)) {
         triggerAssistChain(p);
       }
       // 2. 슛 실패 시 리바운드 연계 팝업
@@ -1578,7 +1579,6 @@
       const isHome = scorer.team === 'HOME';
       const teamPlayers = isHome ? m.homePlayers : m.awayPlayers;
 
-      // 교류전의 AWAY 득점은 연계 제외
       if (!isHome && m.mode === '교류전') return;
 
       const teammates = teamPlayers.filter(p => p.id !== scorer.id);
@@ -1742,6 +1742,27 @@
         }
         await supabaseClient.from('logs').delete().eq('id', logId);
         await loadFromSupabase();
+      }
+    }
+
+    async function resetMatchStatsAndScores() {
+      if (!currentMatchId) return;
+      const m = matches[currentMatchId];
+      if (!m) return;
+
+      if (confirm(`현재 경기(${m.homeTeam} vs ${m.awayTeam})의 모든 점수, 기록 스탯, 타임라인 로그를 완전히 초기화하시겠습니까?\n(선수 명단/로스터는 유지됩니다.)`)) {
+        // Supabase DB 데이터 삭제
+        await supabaseClient.from('player_stats').delete().eq('match_id', currentMatchId);
+        await supabaseClient.from('logs').delete().eq('match_id', currentMatchId);
+        await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId);
+
+        // 쿼터 및 타이머 초기화
+        const initialSeconds = (m.quarterDuration || 10) * 60;
+        await supabaseClient.from('matches').update({ quarter: 1, timer_seconds: initialSeconds }).eq('id', currentMatchId);
+
+        if (isTimerRunning) toggleTimer();
+        await loadFromSupabase();
+        alert('현재 경기의 점수 및 스탯 기록이 완전히 초기화되었습니다.');
       }
     }
 
