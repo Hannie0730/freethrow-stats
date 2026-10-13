@@ -1666,12 +1666,22 @@
       updateTimerDisplay();
     }
 
-    function updateTimerDisplay() {
+    function editTimerManual() {
       const m = matches[currentMatchId];
-      const mins = Math.floor(m.timerSeconds / 60).toString().padStart(2, '0');
-      const secs = (m.timerSeconds % 60).toString().padStart(2, '0');
-      const display = document.getElementById('timerDisplay');
-      if (display) display.textContent = `${mins}:${secs}`;
+      if (!m) return;
+      const currentMins = Math.floor(m.timerSeconds / 60);
+      const currentSecs = m.timerSeconds % 60;
+      const input = prompt("변경할 남은 시간을 입력하세요 (예: 10:00 또는 600):", `${currentMins}:${currentSecs.toString().padStart(2, '0')}`);
+      if (input === null) return;
+      
+      if (input.includes(':')) {
+        const [mins, secs] = input.split(':').map(v => parseInt(v) || 0);
+        m.timerSeconds = mins * 60 + secs;
+      } else {
+        const totalSecs = parseInt(input);
+        if (!isNaN(totalSecs)) m.timerSeconds = totalSecs;
+      }
+      updateTimerDisplay();
     }
 
     function openNewMatchModal() { 
