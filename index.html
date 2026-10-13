@@ -80,9 +80,8 @@
             <h2 class="text-base md:text-lg font-black text-white flex items-center gap-2">
               <i class="fa-solid fa-chart-pie text-orange-400"></i> 기간별 총 누적 및 2차 스탯
             </h2>
-            <p class="text-xs text-slate-400">날짜 구간을 선택하여 팀원들의 정밀 통계 지표를 확인하세요.</p>
+            <p class="text-xs text-slate-400">날짜 구간을 선택하여 팀원 및 용병의 정밀 통계 지표를 확인하세요. (게스트 제외)</p>
           </div>
-          <!-- 접기 / 펼치기 버튼 -->
           <button onclick="togglePeriodStatsTable()" id="btnTogglePeriodStats" class="bg-slate-700 hover:bg-slate-600 text-amber-400 text-xs px-2.5 py-1 rounded-lg font-bold transition">
             <i class="fa-solid fa-chevron-up mr-1" id="iconTogglePeriodStats"></i><span id="textTogglePeriodStats">접기</span>
           </button>
@@ -98,7 +97,6 @@
         </div>
       </div>
 
-      <!-- 접히는 테이블 영역 -->
       <div id="periodStatsTableWrapper" class="overflow-x-auto custom-scroll transition-all duration-300">
         <table class="w-full text-[11px] md:text-xs text-center border-collapse whitespace-nowrap">
           <thead>
@@ -167,7 +165,7 @@
           <h2 class="text-base md:text-lg font-black text-white flex items-center gap-2">
             <i class="fa-solid fa-calendar-days text-indigo-400"></i> 일자별 경기별 스탯 조회
           </h2>
-          <p class="text-xs text-slate-400">날짜를 선택하고 해당 일자의 경기를 선택하여 세부 박스스코어를 확인하세요.</p>
+          <p class="text-xs text-slate-400">날짜를 선택하고 해당 일자의 경기를 선택하여 게스트 및 용병이 포함된 세부 박스스코어를 확인하세요.</p>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap text-xs">
@@ -304,9 +302,9 @@
           <span class="w-3 h-3 rounded-full bg-blue-500 shrink-0"></span>
           <h2 id="homeTeamTitle" class="font-black text-sm md:text-lg text-blue-400 truncate">HOME</h2>
         </div>
-        <!-- 수정됨: "+ 선수" 버튼 삭제 -> "선수/로스터 수정" 버튼으로 변경 -->
-        <button onclick="openTeamInfoModal()" class="bg-slate-700 hover:bg-slate-600 text-blue-300 text-xs px-2.5 py-1 rounded font-bold shadow flex items-center gap-1">
-          <i class="fa-solid fa-user-pen"></i> 선수/로스터 수정
+        <!-- 해당 경기 로스터 직접 수정 모달 실행 -->
+        <button onclick="openCurrentMatchRosterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded font-bold shadow flex items-center gap-1">
+          <i class="fa-solid fa-user-pen"></i> 로스터 수정
         </button>
       </div>
       <div id="homePlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
@@ -319,9 +317,8 @@
           <span class="w-3 h-3 rounded-full bg-red-500 shrink-0"></span>
           <h2 id="awayTeamTitle" class="font-black text-sm md:text-lg text-red-400 truncate">AWAY</h2>
         </div>
-        <!-- 수정됨: "+ 선수" 버튼 삭제 -> "선수/로스터 수정" 버튼으로 변경 -->
-        <button id="awayAddPlayerBtn" onclick="openTeamInfoModal()" class="bg-slate-700 hover:bg-slate-600 text-red-300 text-xs px-2.5 py-1 rounded font-bold shadow flex items-center gap-1 hidden">
-          <i class="fa-solid fa-user-pen"></i> 선수/로스터 수정
+        <button id="awayAddPlayerBtn" onclick="openCurrentMatchRosterModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded font-bold shadow flex items-center gap-1 hidden">
+          <i class="fa-solid fa-user-pen"></i> 로스터 수정
         </button>
       </div>
       <div id="awayPlayerList" class="flex-1 space-y-1.5 overflow-y-auto custom-scroll max-h-[380px]"></div>
@@ -436,7 +433,7 @@
     </div>
   </div>
 
-  <!-- 팀원 편집 모달 (운영진 비밀번호 보호) -->
+  <!-- 운영진 전체 팀원 정보 수정 모달 -->
   <div id="teamInfoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
     <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-4 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex justify-between items-center pb-3 border-b border-slate-700">
@@ -489,7 +486,6 @@
           </div>
         </div>
 
-        <!-- 팀 설정 구역 -->
         <div id="teamColorSelectSection" class="bg-slate-900 p-3 rounded-xl border border-indigo-500/30 space-y-2">
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -510,22 +506,19 @@
           </div>
         </div>
 
-        <!-- 오늘 경기 로스터 선택 섹션 -->
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
           <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
             <span class="font-bold text-amber-400 text-xs"><i class="fa-solid fa-user-check mr-1"></i>오늘 경기 참가 로스터 선택</span>
             <div class="flex gap-1.5 items-center">
-              <!-- 게스트 및 용병 추가 버튼 -->
               <button onclick="promptAddGuest('HOME')" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 게스트 추가</button>
               <button onclick="promptAddMercenary()" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 용병 추가</button>
               <span id="rosterSelectionCount" class="text-[11px] text-slate-400 ml-1">0명 선택됨</span>
             </div>
           </div>
 
-          <!-- 선수 검색창 -->
           <div class="relative mb-2.5">
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-            <input type="text" id="rosterSearchInput" onkeyup="filterRosterByName()" placeholder="선수 이름 또는 등번호 검색..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+            <input type="text" id="rosterSearchInput" onkeyup="filterRosterByName('rosterSearchInput', '.roster-item')" placeholder="선수 이름 또는 등번호 검색..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
           </div>
           
           <div id="rosterSelectionContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto custom-scroll pr-1"></div>
@@ -535,6 +528,42 @@
       <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-700">
         <button onclick="closeModal('newMatchModal')" class="bg-slate-700 text-slate-300 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
         <button onclick="createNewMatch()" class="bg-orange-600 hover:bg-orange-500 text-white text-xs px-5 py-2 rounded-lg font-bold shadow">경기 생성</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 현재 경기 로스터 전용 수정 모달 -->
+  <div id="currentMatchRosterModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col max-h-[90vh]">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-extrabold text-indigo-400 flex items-center gap-2">
+          <i class="fa-solid fa-user-pen"></i> <span id="currentMatchRosterModalTitle">현재 경기 출전 로스터 수정</span>
+        </h3>
+        <button onclick="closeModal('currentMatchRosterModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs overflow-y-auto custom-scroll pr-1 flex-1">
+        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
+          <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
+            <span class="font-bold text-amber-400 text-xs">출전 선수 선택 / 제외 / 추가</span>
+            <div class="flex gap-1.5 items-center">
+              <button onclick="promptAddGuestCurrentMatch('HOME')" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 게스트</button>
+              <button onclick="promptAddMercenaryCurrentMatch()" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 용병</button>
+            </div>
+          </div>
+
+          <div class="relative mb-2.5">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            <input type="text" id="curMatchRosterSearchInput" onkeyup="filterRosterByName('curMatchRosterSearchInput', '.cur-roster-item')" placeholder="선수 이름 또는 등번호 검색..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+          </div>
+
+          <div id="curMatchRosterContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[260px] overflow-y-auto custom-scroll pr-1"></div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-700">
+        <button onclick="closeModal('currentMatchRosterModal')" class="bg-slate-700 text-slate-300 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
+        <button onclick="saveCurrentMatchRosterChanges()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-5 py-2 rounded-lg font-bold shadow">수정사항 저장</button>
       </div>
     </div>
   </div>
@@ -552,7 +581,8 @@
     let activeLineupModalQuarter = 1;
     let selectedViewerDate = null;
     let selectedViewerMatchId = null;
-    let tempGuests = []; // 일회성 게스트/용병 임시 보관함
+    let tempGuests = [];
+    let curMatchTempGuests = [];
 
     const DEFAULT_PLAYERS_HOME = [
       { id: 'h1', number: '7', name: '이승준', birth: '1995-03-12', color: '블랙' },
@@ -676,19 +706,24 @@
       supabaseClient.channel('public-db-changes').on('postgres_changes', { event: '*', schema: 'public' }, async () => { await loadFromSupabase(); }).subscribe();
     }
 
+    // 유니크 선수 추출: 게스트(게스트)만 2차 스탯/팀원 목록에서 제외, 용병(용병)은 포함!
     function getAllUniquePlayers() {
       const playerMap = new Map();
       Object.values(matches).forEach(m => {
         if (m.homePlayers) {
           m.homePlayers.forEach(p => {
-            const key = `${p.number}_${p.name}`;
-            if (!playerMap.has(key)) playerMap.set(key, { ...p });
+            if (!p.name.includes('(게스트)')) {
+              const key = `${p.number}_${p.name}`;
+              if (!playerMap.has(key)) playerMap.set(key, { ...p });
+            }
           });
         }
         if (m.awayPlayers) {
           m.awayPlayers.forEach(p => {
-            const key = `${p.number}_${p.name}`;
-            if (!playerMap.has(key)) playerMap.set(key, { ...p });
+            if (!p.name.includes('(게스트)')) {
+              const key = `${p.number}_${p.name}`;
+              if (!playerMap.has(key)) playerMap.set(key, { ...p });
+            }
           });
         }
       });
@@ -780,7 +815,6 @@
       initStatsPageViewerDates();
     }
 
-    // 2페이지 총 누적/2차 스탯 접기/펼치기 토글 함수
     function togglePeriodStatsTable() {
       const wrapper = document.getElementById('periodStatsTableWrapper');
       const icon = document.getElementById('iconTogglePeriodStats');
@@ -967,6 +1001,68 @@
           <td class="py-1.5 px-1.5">${tot.TO}</td>
         `;
         tbody.appendChild(tr);
+      } else {
+        m.awayPlayers.forEach(p => {
+          let tot = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+          let quartersPlayed = 0;
+          for (let q = 1; q <= 4; q++) {
+            const st = m.stats[`${p.id}_q${q}`];
+            const lineup = m.lineups && m.lineups[q] && m.lineups[q].away;
+            if (st || (lineup && lineup.includes(p.id))) {
+              quartersPlayed++;
+              if (st) Object.keys(st).forEach(k => tot[k] += st[k]);
+            }
+          }
+          const minVal = (quartersPlayed * 5).toFixed(1);
+          const p2_att = tot['2PT_MADE'] + tot['2PT_MISS'];
+          const p2_pts = tot['2PT_MADE'] * 2;
+          const p2_pct = p2_att > 0 ? ((tot['2PT_MADE'] / p2_att) * 100).toFixed(1) : '0.0';
+
+          const p3_att = tot['3PT_MADE'] + tot['3PT_MISS'];
+          const p3_pts = tot['3PT_MADE'] * 3;
+          const p3_pct = p3_att > 0 ? ((tot['3PT_MADE'] / p3_att) * 100).toFixed(1) : '0.0';
+
+          const ft_att = tot['FT_MADE'] + tot['FT_MISS'];
+          const ft_pts = tot['FT_MADE'];
+          const ft_pct = ft_att > 0 ? ((tot['FT_MADE'] / ft_att) * 100).toFixed(1) : '0.0';
+
+          const fga = p2_att + p3_att;
+          const fgm = tot['2PT_MADE'] + tot['3PT_MADE'];
+          const fg_pct = fga > 0 ? ((fgm / fga) * 100).toFixed(1) : '0.0';
+          const pts = p2_pts + p3_pts + ft_pts;
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-700/40 text-slate-200 border-t border-slate-700/30';
+          tr.innerHTML = `
+            <td class="py-1.5 px-2 text-left font-bold text-red-400 sticky left-0 bg-slate-900 z-10">#${p.number} ${p.name}</td>
+            <td class="py-1.5 px-1.5">${minVal}</td>
+            <td class="py-1.5 px-1.5 font-black text-orange-400 bg-slate-800/80">${pts}</td>
+            <td class="py-1.5 px-1.5">${fga}</td>
+            <td class="py-1.5 px-1.5">${fgm}</td>
+            <td class="py-1.5 px-1.5">${fg_pct}%</td>
+            <td class="py-1.5 px-1.5">${p2_att}</td>
+            <td class="py-1.5 px-1.5">${tot['2PT_MADE']}</td>
+            <td class="py-1.5 px-1.5">${p2_pts}</td>
+            <td class="py-1.5 px-1.5">${p2_pct}%</td>
+            <td class="py-1.5 px-1.5">${p3_att}</td>
+            <td class="py-1.5 px-1.5">${tot['3PT_MADE']}</td>
+            <td class="py-1.5 px-1.5">${p3_pts}</td>
+            <td class="py-1.5 px-1.5">${p3_pct}%</td>
+            <td class="py-1.5 px-1.5">${ft_att}</td>
+            <td class="py-1.5 px-1.5">${tot['FT_MADE']}</td>
+            <td class="py-1.5 px-1.5">${ft_pts}</td>
+            <td class="py-1.5 px-1.5">${ft_pct}%</td>
+            <td class="py-1.5 px-1.5 bg-blue-950/40">${tot.DEF_REB}</td>
+            <td class="py-1.5 px-1.5 bg-blue-950/40">${tot.OFF_REB}</td>
+            <td class="py-1.5 px-1.5 bg-blue-950/40 font-bold text-cyan-400">${tot.DEF_REB + tot.OFF_REB}</td>
+            <td class="py-1.5 px-1.5">${tot.AST}</td>
+            <td class="py-1.5 px-1.5">${tot.STL}</td>
+            <td class="py-1.5 px-1.5">${tot.BLK}</td>
+            <td class="py-1.5 px-1.5">${tot.FOUL}</td>
+            <td class="py-1.5 px-1.5">${tot.TO}</td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
     }
 
@@ -1579,7 +1675,7 @@
     }
 
     function openNewMatchModal() { 
-      tempGuests = []; // 게스트 임시목록 초기화
+      tempGuests = []; 
       const dateInput = document.getElementById('inputMatchDate');
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
@@ -1628,7 +1724,6 @@
       renderNewMatchRosterSelection('자체전');
     }
 
-    // 게스트 추가 프롬프트
     function promptAddGuest(targetTeam = 'HOME') {
       const num = prompt("게스트 등번호를 입력하세요 (예: 0, 99):");
       if (num === null) return;
@@ -1651,7 +1746,6 @@
       renderNewMatchRosterSelection(mode);
     }
 
-    // 용병 추가 프롬프트 (타 색상 팀원이나 외부 용병 포함)
     function promptAddMercenary() {
       const num = prompt("용병 등번호를 입력하세요:");
       if (num === null) return;
@@ -1688,13 +1782,11 @@
         let homeList = allPlayers.filter(p => p.color === homeColor);
         let awayList = allPlayers.filter(p => p.color === awayColor);
 
-        // 임시 게스트/용병 목록 합치기
         tempGuests.forEach(g => {
           if (g.targetTeam === 'HOME') homeList.push(g);
           else awayList.push(g);
         });
 
-        // 상대 컬러 팀원도 용병으로 교차 선택할 수 있도록 추가 옵션 지원
         const otherHomeOptions = allPlayers.filter(p => p.color !== homeColor);
         const otherAwayOptions = allPlayers.filter(p => p.color !== awayColor);
 
@@ -1706,19 +1798,18 @@
             </div>
             <div class="space-y-1">
               ${homeList.map(p => `
-                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number}${p.name}">
-                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}\vert{}${p.birth}|${p.color}" ${p.isGuest ? 'checked' : ''} onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name}${p.isGuest ? '<span class="text-[9px] text-amber-400">(게스트)</span>' : ''}</span>
+                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
+                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" ${p.isGuest ? 'checked' : ''} onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number} ${p.name} ${p.isGuest ? '<span class="text-[9px] text-amber-400">(게스트)</span>' : ''}</span>
                 </label>
               `).join('')}
               
-              <!-- 용병 교차 선택 구역 -->
               <div class="pt-2 border-t border-slate-700/50 mt-1">
                 <span class="text-[10px] text-purple-400 font-bold block mb-1">⚡ 용병 선택 (${awayColor} 팀원 지원)</span>
                 ${otherHomeOptions.map(p => `
-                  <label class="roster-item flex items-center gap-2 bg-purple-950/40 p-1.5 rounded cursor-pointer hover:bg-purple-900/50 text-xs text-purple-200 mb-1 border border-purple-500/30" data-search="#${p.number}${p.name}">
-                    <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name} (용병)|${p.birth}\vert{}${homeColor}" onchange="updateRosterSelectionCount()" class="rounded border-purple-600">
-                    <span>#${p.number}${p.name} <span class="text-[9px] text-purple-300">(${p.color})</span></span>
+                  <label class="roster-item flex items-center gap-2 bg-purple-950/40 p-1.5 rounded cursor-pointer hover:bg-purple-900/50 text-xs text-purple-200 mb-1 border border-purple-500/30" data-search="#${p.number} ${p.name}">
+                    <input type="checkbox" name="rosterHome" value="${p.number}|${p.name} (용병)|${p.birth}|${homeColor}" onchange="updateRosterSelectionCount()" class="rounded border-purple-600">
+                    <span>#${p.number} ${p.name} <span class="text-[9px] text-purple-300">(${p.color})</span></span>
                   </label>
                 `).join('')}
               </div>
@@ -1732,19 +1823,18 @@
             </div>
             <div class="space-y-1">
               ${awayList.map(p => `
-                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number}${p.name}">
-                  <input type="checkbox" name="rosterAway" value="${p.number}|${p.name}\vert{}${p.birth}|${p.color}" ${p.isGuest ? 'checked' : ''} onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name}${p.isGuest ? '<span class="text-[9px] text-amber-400">(게스트)</span>' : ''}</span>
+                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
+                  <input type="checkbox" name="rosterAway" value="${p.number}|${p.name}|${p.birth}|${p.color}" ${p.isGuest ? 'checked' : ''} onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number} ${p.name} ${p.isGuest ? '<span class="text-[9px] text-amber-400">(게스트)</span>' : ''}</span>
                 </label>
               `).join('')}
 
-              <!-- 용병 교차 선택 구역 -->
               <div class="pt-2 border-t border-slate-700/50 mt-1">
                 <span class="text-[10px] text-purple-400 font-bold block mb-1">⚡ 용병 선택 (${homeColor} 팀원 지원)</span>
                 ${otherAwayOptions.map(p => `
-                  <label class="roster-item flex items-center gap-2 bg-purple-950/40 p-1.5 rounded cursor-pointer hover:bg-purple-900/50 text-xs text-purple-200 mb-1 border border-purple-500/30" data-search="#${p.number}${p.name}">
-                    <input type="checkbox" name="rosterAway" value="${p.number}\vert{}${p.name} (용병)|${p.birth}\vert{}${awayColor}" onchange="updateRosterSelectionCount()" class="rounded border-purple-600">
-                    <span>#${p.number}${p.name} <span class="text-[9px] text-purple-300">(${p.color})</span></span>
+                  <label class="roster-item flex items-center gap-2 bg-purple-950/40 p-1.5 rounded cursor-pointer hover:bg-purple-900/50 text-xs text-purple-200 mb-1 border border-purple-500/30" data-search="#${p.number} ${p.name}">
+                    <input type="checkbox" name="rosterAway" value="${p.number}|${p.name} (용병)|${p.birth}|${awayColor}" onchange="updateRosterSelectionCount()" class="rounded border-purple-600">
+                    <span>#${p.number} ${p.name} <span class="text-[9px] text-purple-300">(${p.color})</span></span>
                   </label>
                 `).join('')}
               </div>
@@ -1760,9 +1850,9 @@
             </div>
             <div class="grid grid-cols-2 gap-1 max-h-[160px] overflow-y-auto custom-scroll pr-1">
               ${allPlayers.map(p => `
-                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number}${p.name}">
-                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number}${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
+                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
+                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                  <span>#${p.number} ${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
                 </label>
               `).join('')}
             </div>
@@ -1772,9 +1862,9 @@
       updateRosterSelectionCount();
     }
 
-    function filterRosterByName() {
-      const keyword = document.getElementById('rosterSearchInput').value.trim().toLowerCase();
-      const items = document.querySelectorAll('.roster-item');
+    function filterRosterByName(inputId, itemSelector) {
+      const keyword = document.getElementById(inputId).value.trim().toLowerCase();
+      const items = document.querySelectorAll(itemSelector);
 
       items.forEach(item => {
         const searchText = item.getAttribute('data-search') ? item.getAttribute('data-search').toLowerCase() : '';
@@ -1792,6 +1882,158 @@
       const total = homeChecked + awayChecked;
       const el = document.getElementById('rosterSelectionCount');
       if (el) el.textContent = `총 ${total}명 선택됨`;
+    }
+
+    function openCurrentMatchRosterModal() {
+      curMatchTempGuests = [];
+      const m = matches[currentMatchId];
+      if (!m) return;
+
+      document.getElementById('currentMatchRosterModalTitle').textContent = `[${m.homeTeam} vs ${m.awayTeam}] 로스터 직접 수정`;
+      document.getElementById('curMatchRosterSearchInput').value = '';
+
+      renderCurrentMatchRosterEditor();
+      const modal = document.getElementById('currentMatchRosterModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function promptAddGuestCurrentMatch(targetTeam = 'HOME') {
+      const num = prompt("게스트 등번호를 입력하세요:");
+      if (num === null) return;
+      const name = prompt("게스트 이름을 입력하세요:");
+      if (!name) return;
+
+      curMatchTempGuests.push({
+        number: num.trim() || '0',
+        name: name.trim() + ' (게스트)',
+        birth: '',
+        color: '블랙',
+        targetTeam: targetTeam
+      });
+      renderCurrentMatchRosterEditor();
+    }
+
+    function promptAddMercenaryCurrentMatch() {
+      const num = prompt("용병 등번호를 입력하세요:");
+      if (num === null) return;
+      const name = prompt("용병 이름을 입력하세요:");
+      if (!name) return;
+      const teamChoice = confirm("HOME 팀에 배치하시겠습니까?\n'확인' = HOME / '취소' = AWAY") ? 'HOME' : 'AWAY';
+
+      curMatchTempGuests.push({
+        number: num.trim() || '0',
+        name: name.trim() + ' (용병)',
+        birth: '',
+        color: '블랙',
+        targetTeam: teamChoice
+      });
+      renderCurrentMatchRosterEditor();
+    }
+
+    function renderCurrentMatchRosterEditor() {
+      const container = document.getElementById('curMatchRosterContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const m = matches[currentMatchId];
+      const allPlayers = getAllUniquePlayers();
+
+      const homePlayerKeys = new Set(m.homePlayers.map(p => `${p.number}_${p.name}`));
+      const awayPlayerKeys = new Set(m.awayPlayers.map(p => `${p.number}_${p.name}`));
+
+      container.innerHTML = `
+        <div class="bg-slate-800 p-2.5 rounded-xl border border-blue-500/30">
+          <div class="font-bold text-blue-400 text-xs mb-1.5 flex justify-between items-center">
+            <span>HOME (${m.homeTeam}) 로스터</span>
+            <button onclick="promptAddGuestCurrentMatch('HOME')" class="text-[9px] bg-blue-600/40 text-blue-200 border border-blue-400/40 px-1.5 py-0.5 rounded">+ 게스트</button>
+          </div>
+          <div class="space-y-1">
+            ${m.homePlayers.map(p => `
+              <label class="cur-roster-item flex items-center gap-2 bg-blue-950/50 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
+                <input type="checkbox" name="curRosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" checked class="rounded border-slate-600">
+                <span>#${p.number} ${p.name} <span class="text-[9px] text-amber-400">(현재참가)</span></span>
+              </label>
+            `).join('')}
+
+            ${curMatchTempGuests.filter(g => g.targetTeam === 'HOME').map(g => `
+              <label class="cur-roster-item flex items-center gap-2 bg-indigo-950/60 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${g.number} ${g.name}">
+                <input type="checkbox" name="curRosterHome" value="${g.number}|${g.name}|${g.birth}|${g.color}" checked class="rounded border-slate-600">
+                <span>#${g.number} ${g.name} <span class="text-[9px] text-amber-400">(추가)</span></span>
+              </label>
+            `).join('')}
+
+            <div class="pt-2 border-t border-slate-700/50 mt-1">
+              <span class="text-[10px] text-slate-400 font-bold block mb-1">💡 팀원 명단에서 추가하기</span>
+              ${allPlayers.filter(p => !homePlayerKeys.has(`${p.number}_${p.name}`)).map(p => `
+                <label class="cur-roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-slate-300" data-search="#${p.number}${p.name}">
+                  <input type="checkbox" name="curRosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" class="rounded border-slate-600">
+                  <span>#${p.number}${p.name} <span class="text-[9px] text-slate-500">(${p.color})</span></span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-slate-800 p-2.5 rounded-xl border border-red-500/30">
+          <div class="font-bold text-red-400 text-xs mb-1.5 flex justify-between items-center">
+            <span>AWAY (${m.awayTeam}) 로스터</span>
+            <button onclick="promptAddGuestCurrentMatch('AWAY')" class="text-[9px] bg-red-600/40 text-red-200 border border-red-400/40 px-1.5 py-0.5 rounded">+ 게스트</button>
+          </div>
+          <div class="space-y-1">
+            ${m.mode === '교류전' ? '<div class="text-[11px] text-slate-500 py-3">교류전 모드는 상대팀 스탯을 직접 입력합니다.</div>' : `
+              ${m.awayPlayers.map(p => `
+                <label class="cur-roster-item flex items-center gap-2 bg-red-950/50 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
+                  <input type="checkbox" name="curRosterAway" value="${p.number}|${p.name}|${p.birth}|${p.color}" checked class="rounded border-slate-600">
+                  <span>#${p.number} ${p.name} <span class="text-[9px] text-amber-400">(현재참가)</span></span>
+                </label>
+              `).join('')}
+
+              ${curMatchTempGuests.filter(g => g.targetTeam === 'AWAY').map(g => `
+                <label class="cur-roster-item flex items-center gap-2 bg-purple-950/60 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${g.number} ${g.name}">
+                  <input type="checkbox" name="curRosterAway" value="${g.number}|${g.name}|${g.birth}|${g.color}" checked class="rounded border-slate-600">
+                  <span>#${g.number} ${g.name} <span class="text-[9px] text-amber-400">(추가)</span></span>
+                </label>
+              `).join('')}
+
+              <div class="pt-2 border-t border-slate-700/50 mt-1">
+                <span class="text-[10px] text-slate-400 font-bold block mb-1">💡 팀원 명단에서 추가하기</span>
+                ${allPlayers.filter(p => !awayPlayerKeys.has(`${p.number}_${p.name}`)).map(p => `
+                  <label class="cur-roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-slate-300" data-search="#${p.number} ${p.name}">
+                    <input type="checkbox" name="curRosterAway" value="${p.number}|${p.name}|${p.birth}|${p.color}" class="rounded border-slate-600">
+                    <span>#${p.number} ${p.name} <span class="text-[9px] text-slate-500">(${p.color})</span></span>
+                  </label>
+                `).join('')}
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    async function saveCurrentMatchRosterChanges() {
+      const matchId = currentMatchId;
+      const m = matches[matchId];
+
+      await supabaseClient.from('players').delete().eq('match_id', matchId);
+
+      const homeChecked = Array.from(document.querySelectorAll('input[name="curRosterHome"]:checked')).map(cb => cb.value);
+      for (let i = 0; i < homeChecked.length; i++) {
+        const [num, name, birth, color] = homeChecked[i].split('|');
+        const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
+        await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color }]);
+      }
+
+      if (m.mode === '자체전') {
+        const awayChecked = Array.from(document.querySelectorAll('input[name="curRosterAway"]:checked')).map(cb => cb.value);
+        for (let i = 0; i < awayChecked.length; i++) {
+          const [num, name, birth, color] = awayChecked[i].split('|');
+          const pUniqueId = 'p_' + matchId + '_a_' + i + '_' + Math.random().toString(36).substr(2, 5);
+          await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color }]);
+        }
+      }
+
+      closeModal('currentMatchRosterModal');
+      await loadFromSupabase();
     }
 
     async function createNewMatch() {
