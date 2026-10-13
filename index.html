@@ -499,9 +499,15 @@
 
         <!-- 오늘 경기 로스터 선택 섹션 -->
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
-          <div class="flex justify-between items-center mb-2">
+          <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
             <span class="font-bold text-amber-400 text-xs"><i class="fa-solid fa-user-check mr-1"></i>오늘 경기 참가 로스터 선택</span>
             <span id="rosterSelectionCount" class="text-[11px] text-slate-400">0명 선택됨</span>
+          </div>
+
+          <!-- 선수 검색창 추가 -->
+          <div class="relative mb-2.5">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+            <input type="text" id="rosterSearchInput" onkeyup="filterRosterByName()" placeholder="선수 이름 또는 등번호 검색..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
           </div>
           
           <div id="rosterSelectionContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto custom-scroll pr-1"></div>
@@ -518,7 +524,6 @@
   <script>
     const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
-    // 수정됨: window.supabase 대신 전역 supabase 객체 사용
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let matches = {};
@@ -1541,6 +1546,9 @@
       const dateInput = document.getElementById('inputMatchDate');
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
+      const searchInput = document.getElementById('rosterSearchInput');
+      if (searchInput) searchInput.value = '';
+
       document.getElementById('inputMatchType').value = '자체전';
       onMatchModeChange('자체전');
 
@@ -1604,8 +1612,8 @@
             </div>
             <div class="space-y-1">
               ${homeList.map(p => `
-                <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
-                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number}${p.name}">
+                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
                   <span>#${p.number}${p.name}</span>
                 </label>
               `).join('')}
@@ -1620,8 +1628,8 @@
             </div>
             <div class="space-y-1">
               ${awayList.map(p => `
-                <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
-                  <input type="checkbox" name="rosterAway" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number}${p.name}">
+                  <input type="checkbox" name="rosterAway" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
                   <span>#${p.number}${p.name}</span>
                 </label>
               `).join('')}
@@ -1638,8 +1646,8 @@
             </div>
             <div class="grid grid-cols-2 gap-1 max-h-[160px] overflow-y-auto custom-scroll pr-1">
               ${allPlayers.map(p => `
-                <label class="flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white">
-                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" checked onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
+                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number}${p.name}">
+                  <input type="checkbox" name="rosterHome" value="${p.number}\vert{}${p.name}|${p.birth}\vert{}${p.color}" onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
                   <span>#${p.number}${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
                 </label>
               `).join('')}
@@ -1648,6 +1656,21 @@
         `;
       }
       updateRosterSelectionCount();
+    }
+
+    // 선수 이름/등번호 검색 필터 함수
+    function filterRosterByName() {
+      const keyword = document.getElementById('rosterSearchInput').value.trim().toLowerCase();
+      const items = document.querySelectorAll('.roster-item');
+
+      items.forEach(item => {
+        const searchText = item.getAttribute('data-search') ? item.getAttribute('data-search').toLowerCase() : '';
+        if (searchText.includes(keyword)) {
+          item.classList.remove('hidden');
+        } else {
+          item.classList.add('hidden');
+        }
+      });
     }
 
     function updateRosterSelectionCount() {
@@ -1984,7 +2007,7 @@
       }
 
       const awayChecked = document.querySelectorAll('input[name="awayLineup"]:checked');
-      for (const chk of chkAway = awayChecked) {
+      for (const chk of awayChecked) {
         await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id: chk.value }]);
       }
 
