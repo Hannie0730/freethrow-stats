@@ -1666,6 +1666,14 @@
       updateTimerDisplay();
     }
 
+    function updateTimerDisplay() {
+      const m = matches[currentMatchId];
+      const mins = Math.floor(m.timerSeconds / 60).toString().padStart(2, '0');
+      const secs = (m.timerSeconds % 60).toString().padStart(2, '0');
+      const display = document.getElementById('timerDisplay');
+      if (display) display.textContent = `${mins}:${secs}`;
+    }
+
     function editTimerManual() {
       const m = matches[currentMatchId];
       if (!m) return;
@@ -1966,9 +1974,9 @@
             `).join('')}
 
             ${curMatchTempGuests.filter(g => g.targetTeam === 'HOME').map(g => `
-              <label class="cur-roster-item flex items-center gap-2 bg-indigo-950/60 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${g.number} ${g.name}">
-                <input type="checkbox" name="curRosterHome" value="${g.number}|${g.name}|${g.birth}|${g.color}" checked class="rounded border-slate-600">
-                <span>#${g.number} ${g.name} <span class="text-[9px] text-amber-400">(추가)</span></span>
+              <label class="cur-roster-item flex items-center gap-2 bg-indigo-950/60 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${g.number}${g.name}">
+                <input type="checkbox" name="curRosterHome" value="${g.number}\vert{}${g.name}|${g.birth}\vert{}${g.color}" checked class="rounded border-slate-600">
+                <span>#${g.number}${g.name} <span class="text-[9px] text-amber-400">(추가)</span></span>
               </label>
             `).join('')}
 
