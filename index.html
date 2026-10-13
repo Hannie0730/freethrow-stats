@@ -685,7 +685,7 @@
           awayTeam: m.away_team, 
           quarter: m.quarter, 
           timerSeconds: m.timer_seconds, 
-          quarterDuration: m.quarter_duration || 10,
+          quarterDuration: m.quarter_duration || Math.round((m.timer_seconds || 600) / 60) || 10,
           homePlayers, 
           awayPlayers, 
           lineups, 
@@ -782,7 +782,7 @@
           t: sub.timeSec,
           isOut: sub.outId === playerId,
           isIn: sub.inId === playerId
-        })).sort((a, b) => b.t - a.t); // 시간 큰 것(쿼터 시작)부터 작은 것(끝)으로
+        })).sort((a, b) => b.t - a.t);
 
         events.forEach(ev => {
           if (ev.t < prevT && currentActive) {
@@ -804,9 +804,13 @@
     async function initDefaultMatchInSupabase() {
       const matchId = 'match_' + Date.now();
       const today = new Date().toISOString().split('T')[0];
-      await supabaseClient.from('matches').insert([{ id: matchId, date: today, mode: '자체전', home_team: 'Black 팀', away_team: 'White 팀', quarter: 1, timer_seconds: 600, quarter_duration: 10 }]);
+      
+      const matchPayload = { id: matchId, date: today, mode: '자체전', home_team: 'Black 팀', away_team: 'White 팀', quarter: 1, timer_seconds: 600 };
+      await supabaseClient.from('matches').insert([matchPayload]);
+      
       for (const p of DEFAULT_PLAYERS_HOME) {
-        await supabaseClient.from('players').insert([{ id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth, team_color: p.color }]);
+        const playerPayload = { id: p.id, match_id: matchId, team_type: 'HOME', number: p.number, name: p.name, birth_date: p.birth };
+        await supabaseClient.from('players').insert([playerPayload]);
       }
       currentMatchId = matchId;
       await loadFromSupabase();
@@ -1814,7 +1818,6 @@
       outSelect.innerHTML = '';
       inSelect.innerHTML = '';
 
-      // 현재 ON 상태인 선수들 (아웃 후보)
       m.homePlayers.forEach(p => {
         if (currentLineupIds.includes(p.id)) {
           const opt = document.createElement('option');
@@ -1822,7 +1825,6 @@
           opt.textContent = `#${p.number} ${p.name}`;
           outSelect.appendChild(opt);
         } else {
-          // 벤치에 있는 선수들 (인 후보)
           const opt = document.createElement('option');
           opt.value = p.id;
           opt.textContent = `#${p.number} ${p.name}`;
@@ -1873,7 +1875,6 @@
         timeSec = parseInt(timeInputStr);
       }
 
-      // 라인업 배열 업데이트
       if (!m.lineups) m.lineups = {};
       if (!m.lineups[q]) m.lineups[q] = { home: [], away: [] };
       let homeLineup = m.lineups[q].home;
@@ -1885,13 +1886,11 @@
         homeLineup.push(inId);
       }
 
-      // Supabase lineups 테이블 갱신
       await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q).eq('team_type', 'HOME');
       for (const pid of homeLineup) {
         await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: pid }]);
       }
 
-      // 교체 기록을 logs에 JSON 형태로 저장
       const subObj = { outId, inId, timeSec };
       const subJsonStr = JSON.stringify(subObj);
       await supabaseClient.from('logs').insert([{
@@ -2202,9 +2201,9 @@
             <div class="pt-2 border-t border-slate-700/50 mt-1">
               <span class="text-[10px] text-slate-400 font-bold block mb-1">💡 팀원 명단에서 추가하기</span>
               ${allPlayers.filter(p => !homePlayerKeys.has(`${p.number}_${p.name}`)).map(p => `
-                <label class="cur-roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-slate-300" data-search="#${p.number}${p.name}">
+                <label class="cur-roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-slate-300" data-search="#${p.number} ${p.name}">
                   <input type="checkbox" name="curRosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" class="rounded border-slate-600">
-                  <span>#${p.number}${p.name} <span class="text-[9px] text-slate-500">(${p.color})</span></span>
+                  <span>#${p.number} ${p.name} <span class="text-[9px] text-slate-500">(${p.color})</span></span>
                 </label>
               `).join('')}
             </div>
@@ -2257,7 +2256,9 @@
       for (let i = 0; i < homeChecked.length; i++) {
         const [num, name, birth, color] = homeChecked[i].split('|');
         const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
-        await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color }]);
+        
+        const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null };
+        await supabaseClient.from('players').insert([playerPayload]);
       }
 
       if (m.mode === '자체전') {
@@ -2265,7 +2266,9 @@
         for (let i = 0; i < awayChecked.length; i++) {
           const [num, name, birth, color] = awayChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_a_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color }]);
+          
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null };
+          await supabaseClient.from('players').insert([playerPayload]);
         }
       }
 
@@ -2282,16 +2285,23 @@
       const homeTeam = document.getElementById('inputHomeTeamName').value || 'HOME';
       const awayTeam = document.getElementById('inputAwayTeamName').value || 'AWAY';
 
-      await supabaseClient.from('matches').insert([{ 
+      // 400 Bad Request 방지를 위해 DB 기본 컬럼들 위주로 구성
+      const matchPayload = { 
         id: matchId, 
         date: matchDate, 
         mode: mode, 
         home_team: homeTeam, 
         away_team: awayTeam, 
         quarter: 1, 
-        timer_seconds: timerSeconds,
-        quarter_duration: quarterDuration 
-      }]);
+        timer_seconds: timerSeconds
+      };
+
+      const { error: matchErr } = await supabaseClient.from('matches').insert([matchPayload]);
+      if (matchErr) {
+        console.error('Match insert error:', matchErr);
+        alert('경기 생성에 실패했습니다: ' + matchErr.message);
+        return;
+      }
 
       if (mode === '자체전') {
         const homeChecked = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
@@ -2300,26 +2310,32 @@
         for (let i = 0; i < homeChecked.length; i++) {
           const [num, name, birth, color] = homeChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color }]);
+          
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null };
+          await supabaseClient.from('players').insert([playerPayload]);
         }
 
         for (let i = 0; i < awayChecked.length; i++) {
           const [num, name, birth, color] = awayChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_a_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color }]);
+          
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null };
+          await supabaseClient.from('players').insert([playerPayload]);
         }
       } else {
         const homeChecked = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
         for (let i = 0; i < homeChecked.length; i++) {
           const [num, name, birth, color] = homeChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          await supabaseClient.from('players').insert([{ id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color }]);
+          
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null };
+          await supabaseClient.from('players').insert([playerPayload]);
         }
       }
 
       currentMatchId = matchId;
-      await loadFromSupabase();
       closeModal('newMatchModal');
+      await loadFromSupabase();
     }
 
     function switchMatch(id) { currentMatchId = id; renderCurrentMatch(); }
@@ -2391,8 +2407,8 @@
         const birth = births[i].value;
         const color = colors[i].value;
         if (num !== '' && name !== '') {
-          const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '_' + i;
-          insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
+          const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i;
+          insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null });
         }
       }
 
