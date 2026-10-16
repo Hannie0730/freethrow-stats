@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>팀 FREETHROW 농구 포털 & 기록 시스템</title>
+  <title>우리팀 농구 포털 & 기록 시스템</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel import/export -->
@@ -1737,7 +1737,6 @@
           if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) {
             m.stats[qKey][tLog.statType]--;
 
-            // Supabase player_stats 테이블에 변경된 차감 스탯 반영 (Upsert)
             const st = m.stats[qKey];
             await supabaseClient.from('player_stats').upsert({
               match_id: currentMatchId, player_id: tLog.playerId, quarter: tLog.quarter,
@@ -2497,27 +2496,42 @@
     async function saveCurrentMatchRosterChanges() {
       const matchId = currentMatchId;
       const m = matches[matchId];
-
-      await supabaseClient.from('players').delete().eq('match_id', matchId);
+      const existingHomePlayers = m.homePlayers || [];
+      const existingAwayPlayers = m.awayPlayers || [];
 
       const homeChecked = Array.from(document.querySelectorAll('input[name="curRosterHome"]:checked')).map(cb => cb.value);
+      const awayChecked = Array.from(document.querySelectorAll('input[name="curRosterAway"]:checked')).map(cb => cb.value);
+
+      let keepPlayerIds = new Set();
+      let upsertList = [];
+
       for (let i = 0; i < homeChecked.length; i++) {
         const [num, name, birth, color] = homeChecked[i].split('|');
-        const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
-        
-        const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null };
-        await supabaseClient.from('players').insert([playerPayload]);
+        const existing = [...existingHomePlayers, ...existingAwayPlayers].find(p => p.number === num && p.name === name);
+        const pId = existing ? existing.id : ('p_' + matchId + '_h_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4));
+        keepPlayerIds.add(pId);
+        upsertList.push({ id: pId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null });
       }
 
       if (m.mode === '자체전') {
-        const awayChecked = Array.from(document.querySelectorAll('input[name="curRosterAway"]:checked')).map(cb => cb.value);
         for (let i = 0; i < awayChecked.length; i++) {
           const [num, name, birth, color] = awayChecked[i].split('|');
-          const pUniqueId = 'p_' + matchId + '_a_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null };
-          await supabaseClient.from('players').insert([playerPayload]);
+          const existing = [...existingHomePlayers, ...existingAwayPlayers].find(p => p.number === num && p.name === name);
+          const pId = existing ? existing.id : ('p_' + matchId + '_a_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4));
+          keepPlayerIds.add(pId);
+          upsertList.push({ id: pId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null });
         }
+      }
+
+      const allExisting = [...existingHomePlayers, ...existingAwayPlayers];
+      const removeIds = allExisting.filter(p => !keepPlayerIds.has(p.id)).map(p => p.id);
+
+      if (removeIds.length > 0) {
+        await supabaseClient.from('players').delete().in('id', removeIds);
+      }
+
+      if (upsertList.length > 0) {
+        await supabaseClient.from('players').upsert(upsertList, { onConflict: 'id' });
       }
 
       closeModal('currentMatchRosterModal');
@@ -2641,28 +2655,39 @@
     }
 
     async function saveTeamInfoChanges() {
-      await supabaseClient.from('players').delete().eq('match_id', currentMatchId).eq('team_type', 'HOME');
+      const allExistingPlayers = getAllUniquePlayers();
       const nums = document.querySelectorAll('.home-num');
       const names = document.querySelectorAll('.home-name');
       const births = document.querySelectorAll('.home-birth');
       const colors = document.querySelectorAll('.home-color');
 
-      let insertList = [];
+      let updateOrInsertList = [];
+      let currentKeepIds = [];
+
       for (let i = 0; i < nums.length; i++) {
         const num = nums[i].value.trim();
         const name = names[i].value.trim();
         const birth = births[i].value;
         const color = colors[i].value;
         if (num !== '' && name !== '') {
-          const uniqueId = 'h_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i;
-          insertList.push({ id: uniqueId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null });
+          const existing = allExistingPlayers.find(p => p.number === num && p.name === name);
+          const targetId = existing && existing.id ? existing.id : ('h_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 5));
+          
+          currentKeepIds.push(targetId);
+          updateOrInsertList.push({ id: targetId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null });
         }
       }
 
-      const chunkSize = 20;
-      for (let i = 0; i < insertList.length; i += chunkSize) {
-        const chunk = insertList.slice(i, i + chunkSize);
-        await supabaseClient.from('players').insert(chunk);
+      const m = matches[currentMatchId];
+      const currentMatchHomePlayers = m ? m.homePlayers : [];
+      const removeIds = currentMatchHomePlayers.filter(p => !currentKeepIds.includes(p.id)).map(p => p.id);
+
+      if (removeIds.length > 0) {
+        await supabaseClient.from('players').delete().in('id', removeIds);
+      }
+
+      if (updateOrInsertList.length > 0) {
+        await supabaseClient.from('players').upsert(updateOrInsertList, { onConflict: 'id' });
       }
 
       await loadFromSupabase();
