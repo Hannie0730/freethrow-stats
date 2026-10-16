@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>우리팀 농구 포털 & 기록 시스템</title>
+  <title>팀 FREETHROW 농구 포털 & 기록 시스템</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- SheetJS for Excel import/export -->
@@ -1734,7 +1734,20 @@
       if (confirm('이 기록을 삭제하시겠습니까?')) {
         if (tLog.statType !== 'SUB') {
           const qKey = `${tLog.playerId}_q${tLog.quarter}`;
-          if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) m.stats[qKey][tLog.statType]--;
+          if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) {
+            m.stats[qKey][tLog.statType]--;
+
+            // Supabase player_stats 테이블에 변경된 차감 스탯 반영 (Upsert)
+            const st = m.stats[qKey];
+            await supabaseClient.from('player_stats').upsert({
+              match_id: currentMatchId, player_id: tLog.playerId, quarter: tLog.quarter,
+              pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
+              pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
+              ft_made: st['FT_MADE'], ft_miss: st['FT_MISS'],
+              def_reb: st['DEF_REB'], off_reb: st['OFF_REB'],
+              ast: st['AST'], stl: st['STL'], blk: st['BLK'], to_count: st['TO'], foul: st['FOUL']
+            }, { onConflict: 'match_id,player_id,quarter' });
+          }
         }
         await supabaseClient.from('logs').delete().eq('id', logId);
         await loadFromSupabase();
