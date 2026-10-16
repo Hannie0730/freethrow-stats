@@ -2510,7 +2510,7 @@
         const existing = [...existingHomePlayers, ...existingAwayPlayers].find(p => p.number === num && p.name === name);
         const pId = existing ? existing.id : ('p_' + matchId + '_h_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4));
         keepPlayerIds.add(pId);
-        upsertList.push({ id: pId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null });
+        upsertList.push({ id: pId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
       }
 
       if (m.mode === '자체전') {
@@ -2519,7 +2519,7 @@
           const existing = [...existingHomePlayers, ...existingAwayPlayers].find(p => p.number === num && p.name === name);
           const pId = existing ? existing.id : ('p_' + matchId + '_a_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4));
           keepPlayerIds.add(pId);
-          upsertList.push({ id: pId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null });
+          upsertList.push({ id: pId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color });
         }
       }
 
@@ -2557,7 +2557,7 @@
         timer_seconds: timerSeconds
       };
 
-      const { error: matchErr } = await supabaseClient.from('matches').insert([matchPayload]);
+      const { error: matchErr } = await supabaseClient.matches ? null : await supabaseClient.from('matches').insert([matchPayload]);
       if (matchErr) {
         console.error('Match insert error:', matchErr);
         alert('경기 생성에 실패했습니다: ' + matchErr.message);
@@ -2572,7 +2572,7 @@
           const [num, name, birth, color] = homeChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
           
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null };
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color };
           await supabaseClient.from('players').insert([playerPayload]);
         }
 
@@ -2580,7 +2580,7 @@
           const [num, name, birth, color] = awayChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_a_' + i + '_' + Math.random().toString(36).substr(2, 5);
           
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null };
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color };
           await supabaseClient.from('players').insert([playerPayload]);
         }
       } else {
@@ -2589,7 +2589,7 @@
           const [num, name, birth, color] = homeChecked[i].split('|');
           const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
           
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null };
+          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color };
           await supabaseClient.from('players').insert([playerPayload]);
         }
       }
@@ -2655,7 +2655,9 @@
     }
 
     async function saveTeamInfoChanges() {
-      const allExistingPlayers = getAllUniquePlayers();
+      const m = matches[currentMatchId];
+      if (!m) return;
+
       const nums = document.querySelectorAll('.home-num');
       const names = document.querySelectorAll('.home-name');
       const births = document.querySelectorAll('.home-birth');
@@ -2663,25 +2665,34 @@
 
       let updateOrInsertList = [];
       let currentKeepIds = [];
+      const existingPlayers = m.homePlayers || [];
 
       for (let i = 0; i < nums.length; i++) {
         const num = nums[i].value.trim();
         const name = names[i].value.trim();
         const birth = births[i].value;
         const color = colors[i].value;
+
         if (num !== '' && name !== '') {
-          const existing = allExistingPlayers.find(p => p.number === num && p.name === name);
-          const targetId = existing && existing.id ? existing.id : ('h_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 5));
+          // 기존에 이미 등록된 선수가 있다면 기존 ID 유지 (스탯 연동 유지)
+          const existing = existingPlayers.find(p => p.number === num && p.name === name);
+          const targetId = existing ? existing.id : ('h_' + currentMatchId + '_' + Date.now() + '_' + i);
           
           currentKeepIds.push(targetId);
-          updateOrInsertList.push({ id: targetId, match_id: currentMatchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null });
+          updateOrInsertList.push({ 
+            id: targetId, 
+            match_id: currentMatchId, 
+            team_type: 'HOME', 
+            number: num, 
+            name: name, 
+            birth_date: birth || null,
+            team_color: color 
+          });
         }
       }
 
-      const m = matches[currentMatchId];
-      const currentMatchHomePlayers = m ? m.homePlayers : [];
-      const removeIds = currentMatchHomePlayers.filter(p => !currentKeepIds.includes(p.id)).map(p => p.id);
-
+      // 현재 경기에서 제외된 선수만 삭제 (이미 스탯이 있는 선수의 ID는 유실되지 않도록 보존)
+      const removeIds = existingPlayers.filter(p => !currentKeepIds.includes(p.id)).map(p => p.id);
       if (removeIds.length > 0) {
         await supabaseClient.from('players').delete().in('id', removeIds);
       }
