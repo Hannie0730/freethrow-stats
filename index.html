@@ -539,9 +539,10 @@
         <button onclick="closeModal('adminModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
       </div>
       <div id="adminLoginPanel" class="space-y-3">
-        <p class="text-xs text-slate-300">운영진 비밀번호를 입력하면 팀원 정보와 지난 경기 관리 메뉴가 열립니다.</p>
-        <input id="adminPasswordInput" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 비밀번호" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
-        <p id="adminLoginError" class="hidden text-xs text-rose-300">비밀번호가 일치하지 않습니다.</p>
+        <p class="text-xs text-slate-300">Supabase 운영진 계정으로 로그인하면 팀원 정보와 지난 경기 관리 메뉴가 열립니다.</p>
+        <input id="adminEmailInput" type="email" autocomplete="username" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 이메일" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
+        <input id="adminPasswordInput" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 계정 비밀번호" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
+        <p id="adminLoginError" class="hidden text-xs text-rose-300">로그인 실패: 이메일/비밀번호 또는 운영진 권한을 확인하세요.</p>
         <div class="flex justify-end gap-2">
           <button onclick="closeModal('adminModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
           <button onclick="verifyAdminPassword()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-5 py-2 rounded-lg font-bold">로그인</button>
@@ -766,6 +767,14 @@
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
+      // Restore a Supabase session only when its user is explicitly listed as an admin.
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.user) {
+        const { data: adminRow, error: adminCheckError } = await supabaseClient
+          .from('admin_users').select('user_id').eq('user_id', session.user.id).maybeSingle();
+        adminAuthenticated = !!adminRow && !adminCheckError;
+        if (!adminAuthenticated) await supabaseClient.auth.signOut();
+      }
       await loadFromSupabase();
       setupRealtimeSubscription();
       switchPage('recorder');
@@ -2832,8 +2841,10 @@
       if (modal) modal.classList.remove('hidden');
       if (adminAuthenticated) populateAdminMatchSelect();
       if (!adminAuthenticated) {
-        const input = document.getElementById('adminPasswordInput');
-        if (input) { input.value = ''; setTimeout(() => input.focus(), 0); }
+        const email = document.getElementById('adminEmailInput');
+        const password = document.getElementById('adminPasswordInput');
+        if (password) password.value = '';
+        if (email) setTimeout(() => email.focus(), 0);
       }
     }
 
@@ -2852,21 +2863,41 @@
       if (matches[currentMatchId]) select.value = currentMatchId;
     }
 
-    function verifyAdminPassword() {
-      const input = document.getElementById('adminPasswordInput');
-      if (!input || input.value !== '7143') {
-        const error = document.getElementById('adminLoginError');
-        if (error) error.classList.remove('hidden');
-        if (input) { input.value = ''; input.focus(); }
+    async function verifyAdminPassword() {
+      const emailInput = document.getElementById('adminEmailInput');
+      const passwordInput = document.getElementById('adminPasswordInput');
+      const error = document.getElementById('adminLoginError');
+      const email = (emailInput?.value || '').trim();
+      const password = passwordInput?.value || '';
+      if (!email || !password) {
+        if (error) { error.textContent = '운영진 이메일과 비밀번호를 입력하세요.'; error.classList.remove('hidden'); }
+        return;
+      }
+      if (error) { error.textContent = '로그인 확인 중...'; error.classList.remove('hidden'); }
+      const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (signInError || !data?.user) {
+        adminAuthenticated = false;
+        if (error) { error.textContent = '로그인 실패: 이메일 또는 비밀번호를 확인하세요.'; error.classList.remove('hidden'); }
+        if (passwordInput) { passwordInput.value = ''; passwordInput.focus(); }
+        return;
+      }
+      const { data: adminRow, error: adminCheckError } = await supabaseClient
+        .from('admin_users').select('user_id').eq('user_id', data.user.id).maybeSingle();
+      if (adminCheckError || !adminRow) {
+        await supabaseClient.auth.signOut();
+        adminAuthenticated = false;
+        if (error) { error.textContent = '로그인은 되었지만 운영진 권한이 등록되지 않았습니다. Supabase admin_users 설정을 확인하세요.'; error.classList.remove('hidden'); }
         return;
       }
       adminAuthenticated = true;
       document.getElementById('adminLoginPanel').classList.add('hidden');
       document.getElementById('adminMenuPanel').classList.remove('hidden');
-      document.getElementById('adminLoginError').classList.add('hidden');
+      if (error) error.classList.add('hidden');
+      populateAdminMatchSelect();
     }
 
-    function adminLogout() {
+    async function adminLogout() {
+      await supabaseClient.auth.signOut();
       adminAuthenticated = false;
       closeModal('adminModal');
     }
