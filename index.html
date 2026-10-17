@@ -2262,6 +2262,7 @@
       if (!confirm(`현재 경기(${m.homeTeam} vs ${m.awayTeam})의 모든 점수, 기록 스탯, 타임라인 로그를 완전히 초기화하시겠습니까?\\n(선수 명단/로스터는 유지됩니다.)`)) return;
 
       const matchId = currentMatchId;
+      if (isTimerRunning) stopTimer({ persist: false });
       const results = await Promise.all([
         supabaseClient.from('player_stats').delete().eq('match_id', matchId),
         supabaseClient.from('logs').delete().eq('match_id', matchId),
@@ -2282,7 +2283,6 @@
         await loadFromSupabase();
         return;
       }
-      if (isTimerRunning) stopTimer({ persist: false });
       await loadFromSupabase();
       alert('현재 경기의 점수 및 스탯 기록이 완전히 초기화되었습니다.');
     }
