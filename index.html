@@ -21,6 +21,111 @@
     .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
+
+    /* iPad / touch-tablet usability improvements: keep desktop styling unchanged */
+    @media (pointer: coarse) and (min-width: 700px) and (max-width: 1366px) {
+      button {
+        min-height: 44px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        touch-action: manipulation;
+      }
+      button.text-xs,
+      button.text-\\[10px\\],
+      button.text-\\[11px\\] {
+        font-size: 14px !important;
+        line-height: 1.25 !important;
+      }
+      input:not([type="checkbox"]):not([type="radio"]),
+      select,
+      textarea {
+        min-height: 44px;
+        font-size: 16px !important;
+      }
+      #pageRecorder > div:first-child {
+        gap: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+      #pageRecorder > div:first-child button {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      #homePlayerList,
+      #awayPlayerList {
+        max-height: 560px;
+      }
+      #pageRecorder section button {
+        font-size: 14px;
+      }
+      #pageRecorder section .text-\\[10px\\],
+      #pageRecorder section .text-\\[11px\\] {
+        font-size: 12px !important;
+      }
+      #timerToggleBtn,
+      #pageRecorder section button[onclick*="openSubModal"],
+      #pageRecorder section button[onclick*="openCurrentMatchRosterModal"],
+      #pageRecorder section button[onclick*="openLineupModal"] {
+        min-height: 46px;
+      }
+    }
+
+    /* iPad portrait: avoid squeezing scoreboard and both teams into three narrow columns */
+    @media (pointer: coarse) and (min-width: 700px) and (max-width: 900px) and (orientation: portrait) {
+      #pageRecorder {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 12px !important;
+        padding: 12px !important;
+      }
+      #pageRecorder > div:first-child,
+      #pageRecorder > section {
+        grid-column: 1 / -1 !important;
+        width: 100%;
+        min-width: 0;
+      }
+      #pageRecorder > section:nth-of-type(1) { order: 1 !important; }
+      #pageRecorder > section:nth-of-type(2) { order: 2 !important; }
+      #pageRecorder > section:nth-of-type(3) { order: 3 !important; }
+      #pageRecorder > section {
+        padding: 14px !important;
+      }
+      #homePlayerList,
+      #awayPlayerList {
+        max-height: 420px;
+      }
+      #pageRecorder > section:nth-of-type(1) > div:first-child {
+        padding: 16px !important;
+      }
+      #homeScoreDisplay,
+      #awayScoreDisplay {
+        font-size: 3.75rem !important;
+      }
+      #timerDisplay {
+        font-size: 2.25rem !important;
+      }
+    }
+
+    /* iPad landscape: preserve the three-panel scoreboard layout with more usable controls */
+    @media (pointer: coarse) and (min-width: 901px) and (max-width: 1366px) and (orientation: landscape) {
+      #pageRecorder {
+        gap: 12px !important;
+        padding: 10px !important;
+      }
+      #pageRecorder > section {
+        min-width: 0;
+        padding: 12px !important;
+      }
+      #homePlayerList,
+      #awayPlayerList {
+        max-height: 62vh;
+      }
+      #homeScoreDisplay,
+      #awayScoreDisplay {
+        font-size: 3.5rem !important;
+      }
+    }
+
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden">
