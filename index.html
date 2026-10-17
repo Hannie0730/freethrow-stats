@@ -548,7 +548,10 @@
         </div>
       </div>
       <div id="adminMenuPanel" class="hidden space-y-2">
-        <p class="text-xs text-emerald-300 mb-3"><i class="fa-solid fa-circle-check mr-1"></i>운영진 인증됨 · 현재 선택된 경기를 관리합니다.</p>
+        <p class="text-xs text-emerald-300 mb-1"><i class="fa-solid fa-circle-check mr-1"></i>운영진 인증됨 · 아래에서 수정할 경기를 선택하세요.</p>
+        <label class="block text-xs text-slate-300">관리할 경기
+          <select id="adminMatchSelect" onchange="switchMatch(this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"></select>
+        </label>
         <button onclick="openTeamInfoModal()" class="w-full text-left bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 text-sm font-bold"><i class="fa-solid fa-users-gear text-indigo-400 mr-2"></i>팀원 정보 관리</button>
         <button onclick="openAdminMatchEdit()" class="w-full text-left bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 text-sm font-bold"><i class="fa-solid fa-calendar-pen text-amber-400 mr-2"></i>선택한 경기 정보 수정</button>
         <button onclick="openCurrentMatchRosterModal()" class="w-full text-left bg-slate-900 hover:bg-slate-700 border border-slate-700 rounded-xl p-3 text-sm font-bold"><i class="fa-solid fa-people-arrows text-blue-400 mr-2"></i>선택한 경기 선수 명단 수정</button>
@@ -2827,10 +2830,26 @@
       if (loginPanel) loginPanel.classList.toggle('hidden', adminAuthenticated);
       if (menuPanel) menuPanel.classList.toggle('hidden', !adminAuthenticated);
       if (modal) modal.classList.remove('hidden');
+      if (adminAuthenticated) populateAdminMatchSelect();
       if (!adminAuthenticated) {
         const input = document.getElementById('adminPasswordInput');
         if (input) { input.value = ''; setTimeout(() => input.focus(), 0); }
       }
+    }
+
+    function populateAdminMatchSelect() {
+      const select = document.getElementById('adminMatchSelect');
+      if (!select) return;
+      const matchList = Object.values(matches).sort((a, b) =>
+        String(b.date || '').localeCompare(String(a.date || '')) || String(b.id).localeCompare(String(a.id))
+      );
+      select.innerHTML = matchList.map(m =>
+        '<option value="' + String(m.id).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') + '">' +
+        String(m.date || '날짜 없음') + ' · ' +
+        String(m.homeTeam || 'HOME') + ' vs ' + String(m.awayTeam || 'AWAY') +
+        '</option>'
+      ).join('');
+      if (matches[currentMatchId]) select.value = currentMatchId;
     }
 
     function verifyAdminPassword() {
