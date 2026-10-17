@@ -543,9 +543,12 @@
         <input id="adminUsernameInput" type="text" autocomplete="username" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 아이디" value="" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
         <input id="adminPasswordInput" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 계정 비밀번호" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
         <p id="adminLoginError" class="hidden text-xs text-rose-300">로그인 실패: 아이디/비밀번호 또는 운영진 권한을 확인하세요.</p>
-        <div class="flex justify-end gap-2">
-          <button onclick="closeModal('adminModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
-          <button onclick="verifyAdminPassword()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-5 py-2 rounded-lg font-bold">로그인</button>
+        <div class="flex items-center justify-between gap-2">
+          <button onclick="sendAdminPasswordRecovery()" class="text-xs text-amber-300 hover:text-amber-200 underline">비밀번호 재설정 이메일 보내기</button>
+          <div class="flex justify-end gap-2">
+            <button onclick="closeModal('adminModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
+            <button onclick="verifyAdminPassword()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-5 py-2 rounded-lg font-bold">로그인</button>
+          </div>
         </div>
       </div>
       <div id="adminMenuPanel" class="hidden space-y-2">
@@ -562,6 +565,23 @@
           <button onclick="closeModal('adminModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">닫기</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- 비밀번호 재설정 모달 -->
+  <div id="passwordRecoveryModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-3">
+    <div class="bg-slate-800 border border-amber-500/50 rounded-2xl max-w-md w-full p-5 shadow-2xl">
+      <h3 class="text-base font-black text-amber-400 mb-2"><i class="fa-solid fa-key mr-2"></i>운영진 비밀번호 재설정</h3>
+      <p class="text-xs text-slate-300 mb-4">새 비밀번호를 입력하세요. 변경 후에는 새 비밀번호로 운영진 로그인할 수 있습니다.</p>
+      <form onsubmit="submitAdminPasswordRecovery(event)" class="space-y-3">
+        <input id="recoveryNewPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="새 비밀번호 (8자 이상)" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
+        <input id="recoveryConfirmPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="새 비밀번호 확인" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
+        <p id="passwordRecoveryMessage" class="hidden text-xs"></p>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closePasswordRecoveryModal()" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
+          <button id="saveRecoveryPasswordButton" type="submit" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-5 py-2 rounded-lg font-bold">새 비밀번호 저장</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -733,8 +753,14 @@
   <script>
     const SUPABASE_URL = 'https://azenchrlzthvikflrezd.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_FklG_EsJsQi8rIsk27Dz8Q_o3oUmhCh';
+    const INITIAL_AUTH_TYPE = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('type')
+      || new URLSearchParams(window.location.search).get('type');
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let adminAuthenticated = false;
+
+    supabaseClient.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') openPasswordRecoveryModal();
+    });
 
     let matches = {};
     // 팀원 기본정보는 경기별 players와 분리된 team_members 테이블에서 관리합니다.
@@ -773,8 +799,9 @@
         const { data: adminRow, error: adminCheckError } = await supabaseClient
           .from('admin_users').select('user_id').eq('user_id', session.user.id).maybeSingle();
         adminAuthenticated = !!adminRow && !adminCheckError;
-        if (!adminAuthenticated) await supabaseClient.auth.signOut();
+        if (!adminAuthenticated && INITIAL_AUTH_TYPE !== 'recovery') await supabaseClient.auth.signOut();
       }
+      if (INITIAL_AUTH_TYPE === 'recovery') openPasswordRecoveryModal();
       await loadFromSupabase();
       setupRealtimeSubscription();
       switchPage('recorder');
@@ -2861,6 +2888,73 @@
         '</option>'
       ).join('');
       if (matches[currentMatchId]) select.value = currentMatchId;
+    }
+
+    function openPasswordRecoveryModal() {
+      const modal = document.getElementById('passwordRecoveryModal');
+      if (modal) modal.classList.remove('hidden');
+      const message = document.getElementById('passwordRecoveryMessage');
+      if (message) { message.textContent = ''; message.className = 'hidden text-xs'; }
+    }
+
+    function closePasswordRecoveryModal() {
+      const modal = document.getElementById('passwordRecoveryModal');
+      if (modal) modal.classList.add('hidden');
+      const url = new URL(window.location.href);
+      url.hash = '';
+      url.searchParams.delete('type');
+      window.history.replaceState({}, document.title, url.pathname + url.search);
+    }
+
+    async function sendAdminPasswordRecovery() {
+      const username = (document.getElementById('adminUsernameInput')?.value || '').trim();
+      const error = document.getElementById('adminLoginError');
+      if (!username) {
+        if (error) { error.textContent = '먼저 운영진 아이디(admin)를 입력하세요.'; error.className = 'text-xs text-rose-300'; }
+        document.getElementById('adminUsernameInput')?.focus();
+        return;
+      }
+      if (error) { error.textContent = '재설정 이메일을 보내는 중...'; error.className = 'text-xs text-amber-300'; }
+      const { data: email, error: lookupError } = await supabaseClient.rpc('admin_login_email', { p_username: username });
+      if (lookupError || !email) {
+        if (error) { error.textContent = '운영진 아이디를 확인할 수 없습니다.'; error.className = 'text-xs text-rose-300'; }
+        return;
+      }
+      const redirectTo = window.location.origin + window.location.pathname;
+      const { error: recoveryError } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+      if (recoveryError) {
+        if (error) { error.textContent = '이메일 전송 실패: ' + recoveryError.message; error.className = 'text-xs text-rose-300'; }
+        return;
+      }
+      if (error) { error.textContent = '비밀번호 재설정 이메일을 보냈습니다. 받은편지함에서 링크를 확인하세요.'; error.className = 'text-xs text-emerald-300'; }
+    }
+
+    async function submitAdminPasswordRecovery(event) {
+      event.preventDefault();
+      const password = document.getElementById('recoveryNewPassword')?.value || '';
+      const confirmation = document.getElementById('recoveryConfirmPassword')?.value || '';
+      const message = document.getElementById('passwordRecoveryMessage');
+      const button = document.getElementById('saveRecoveryPasswordButton');
+      const showMessage = (text, success = false) => {
+        if (!message) return;
+        message.textContent = text;
+        message.className = 'text-xs ' + (success ? 'text-emerald-300' : 'text-rose-300');
+      };
+      if (password.length < 8) { showMessage('비밀번호는 8자 이상 입력하세요.'); return; }
+      if (password !== confirmation) { showMessage('두 비밀번호가 일치하지 않습니다.'); return; }
+      if (button) { button.disabled = true; button.textContent = '저장 중...'; }
+      const { error } = await supabaseClient.auth.updateUser({ password });
+      if (button) { button.disabled = false; button.textContent = '새 비밀번호 저장'; }
+      if (error) { showMessage('비밀번호 변경 실패: ' + error.message); return; }
+      showMessage('비밀번호가 변경되었습니다. 이제 새 비밀번호로 로그인할 수 있습니다.', true);
+      document.getElementById('recoveryNewPassword').value = '';
+      document.getElementById('recoveryConfirmPassword').value = '';
+      setTimeout(async () => {
+        await supabaseClient.auth.signOut();
+        adminAuthenticated = false;
+        closePasswordRecoveryModal();
+        openAdminLogin();
+      }, 1800);
     }
 
     async function verifyAdminPassword() {
