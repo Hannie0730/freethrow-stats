@@ -540,9 +540,9 @@
       </div>
       <div id="adminLoginPanel" class="space-y-3">
         <p class="text-xs text-slate-300">Supabase 운영진 계정으로 로그인하면 팀원 정보와 지난 경기 관리 메뉴가 열립니다.</p>
-        <input id="adminEmailInput" type="email" autocomplete="username" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 이메일" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
+        <input id="adminUsernameInput" type="text" autocomplete="username" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 아이디" value="" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
         <input id="adminPasswordInput" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter') verifyAdminPassword()" placeholder="운영진 계정 비밀번호" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white">
-        <p id="adminLoginError" class="hidden text-xs text-rose-300">로그인 실패: 이메일/비밀번호 또는 운영진 권한을 확인하세요.</p>
+        <p id="adminLoginError" class="hidden text-xs text-rose-300">로그인 실패: 아이디/비밀번호 또는 운영진 권한을 확인하세요.</p>
         <div class="flex justify-end gap-2">
           <button onclick="closeModal('adminModal')" class="bg-slate-700 text-slate-200 text-xs px-4 py-2 rounded-lg font-bold">취소</button>
           <button onclick="verifyAdminPassword()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs px-5 py-2 rounded-lg font-bold">로그인</button>
@@ -2841,10 +2841,10 @@
       if (modal) modal.classList.remove('hidden');
       if (adminAuthenticated) populateAdminMatchSelect();
       if (!adminAuthenticated) {
-        const email = document.getElementById('adminEmailInput');
+        const username = document.getElementById('adminUsernameInput');
         const password = document.getElementById('adminPasswordInput');
         if (password) password.value = '';
-        if (email) setTimeout(() => email.focus(), 0);
+        if (username) setTimeout(() => username.focus(), 0);
       }
     }
 
@@ -2864,17 +2864,24 @@
     }
 
     async function verifyAdminPassword() {
-      const emailInput = document.getElementById('adminEmailInput');
+      const usernameInput = document.getElementById('adminUsernameInput');
       const passwordInput = document.getElementById('adminPasswordInput');
       const error = document.getElementById('adminLoginError');
-      const email = (emailInput?.value || '').trim();
+      const username = (usernameInput?.value || '').trim();
       const password = passwordInput?.value || '';
-      if (!email || !password) {
-        if (error) { error.textContent = '운영진 이메일과 비밀번호를 입력하세요.'; error.classList.remove('hidden'); }
+      if (!username || !password) {
+        if (error) { error.textContent = '운영진 아이디와 비밀번호를 입력하세요.'; error.classList.remove('hidden'); }
         return;
       }
       if (error) { error.textContent = '로그인 확인 중...'; error.classList.remove('hidden'); }
-      const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+      // Supabase Auth requires an email. Resolve the username through a narrowly scoped database RPC,
+      // then continue with the existing password and admin_users checks.
+      const { data: loginEmail, error: usernameError } = await supabaseClient.rpc('admin_login_email', { p_username: username });
+      if (usernameError || !loginEmail) {
+        if (error) { error.textContent = '아이디를 확인할 수 없습니다. Supabase 운영진 아이디 설정을 확인하세요.'; error.classList.remove('hidden'); }
+        return;
+      }
+      const { data, error: signInError } = await supabaseClient.auth.signInWithPassword({ email: loginEmail, password });
       if (signInError || !data?.user) {
         adminAuthenticated = false;
         if (error) { error.textContent = '로그인 실패: 이메일 또는 비밀번호를 확인하세요.'; error.classList.remove('hidden'); }
