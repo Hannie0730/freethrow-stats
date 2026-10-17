@@ -223,6 +223,8 @@
   <div id="pageRecorder" class="flex-1 p-2 md:px-3 md:py-2 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 w-full max-w-none mx-auto">
     <div class="md:col-span-12 flex justify-between items-center bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 flex-wrap gap-2">
       <div class="flex items-center gap-2 flex-wrap">
+        <label for="matchDateFilter" class="text-xs text-slate-300 font-bold whitespace-nowrap"><i class="fa-regular fa-calendar mr-1"></i>날짜</label>
+        <input id="matchDateFilter" type="date" aria-label="경기 날짜 선택" onchange="filterMatchesByDate(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-2 py-1.5 font-bold focus:outline-none">
         <select id="matchSelect" onchange="switchMatch(this.value)" class="bg-slate-700 border border-slate-600 text-white text-xs md:text-sm rounded-lg px-3 py-1.5 font-bold focus:outline-none"></select>
       </div>
       <div class="flex items-center gap-1.5 flex-wrap">
@@ -789,7 +791,11 @@
       if (!currentMatchId || !matches[currentMatchId]) {
         currentMatchId = Object.keys(matches)[0];
       }
+      const matchDateFilter = document.getElementById('matchDateFilter');
+      if (matchDateFilter && matches[currentMatchId]) matchDateFilter.value = matches[currentMatchId].date || '';
       renderMatchSelectOptions();
+      const matchSelect = document.getElementById('matchSelect');
+      if (matchSelect && matches[currentMatchId]) matchSelect.value = currentMatchId;
       renderCurrentMatch();
 
       if (!document.getElementById('pageStats').classList.contains('hidden')) {
@@ -1435,8 +1441,21 @@
       if (!select) return;
       select.innerHTML = '';
 
-      const sortedMatches = Object.values(matches).sort((a, b) => new Date(a.date) - new Date(b.date));
+      const dateFilter = document.getElementById('matchDateFilter');
+      const activeDate = dateFilter ? dateFilter.value : '';
+      const allMatches = Object.values(matches);
+      const sortedMatches = allMatches
+        .filter(m => !activeDate || m.date === activeDate)
+        .sort((a, b) => new Date(a.date) - new Date(b.date) || String(a.id).localeCompare(String(b.id)));
       let dateMatchCountMap = {};
+
+      if (!sortedMatches.length) {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = activeDate ? `${activeDate} 경기 없음` : '등록된 경기가 없습니다';
+        select.appendChild(opt);
+        return;
+      }
 
       sortedMatches.forEach(m => {
         if (!dateMatchCountMap[m.date]) dateMatchCountMap[m.date] = 0;
@@ -2672,8 +2691,28 @@
       await loadFromSupabase();
     }
 
+    async function filterMatchesByDate(date) {
+      const select = document.getElementById('matchSelect');
+      const matchesForDate = Object.values(matches)
+        .filter(m => !date || m.date === date)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.id).localeCompare(String(b.id)));
+      renderMatchSelectOptions();
+      if (!matchesForDate.length) {
+        // 날짜에 경기가 없어도 현재 경기 데이터는 유지하고, 선택 목록만 빈 상태로 표시합니다.
+        return;
+      }
+      const nextMatch = matchesForDate.find(m => m.id === currentMatchId) || matchesForDate[0];
+      if (select) select.value = nextMatch.id;
+      await switchMatch(nextMatch.id);
+    }
+
     async function switchMatch(id) {
       if (!id || !matches[id]) return;
+      const dateFilter = document.getElementById('matchDateFilter');
+      if (dateFilter && dateFilter.value !== matches[id].date) dateFilter.value = matches[id].date || '';
+      renderMatchSelectOptions();
+      const select = document.getElementById('matchSelect');
+      if (select) select.value = id;
       if (id === currentMatchId) return;
       stopTimer({ persist: true });
       currentMatchId = id;
