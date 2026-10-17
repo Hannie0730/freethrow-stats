@@ -2259,7 +2259,7 @@
       if (!currentMatchId) return;
       const m = matches[currentMatchId];
       if (!m) return;
-      if (!confirm(`현재 경기(${m.homeTeam} vs ${m.awayTeam})의 모든 점수, 기록 스탯, 타임라인 로그를 완전히 초기화하시겠습니까?\\n(선수 명단/로스터는 유지됩니다.)`)) return;
+      if (!confirm(`현재 경기(${m.homeTeam} vs ${m.awayTeam})의 모든 점수, 기록 스탯, 타임라인 로그를 완전히 초기화하시겠습니까?\n(선수 명단/로스터는 유지됩니다.)`)) return;
 
       const matchId = currentMatchId;
       if (isTimerRunning) stopTimer({ persist: false });
@@ -2271,7 +2271,7 @@
       const failed = results.find(result => result.error);
       if (failed) {
         console.error('경기 초기화 일부 실패:', failed.error);
-        alert('경기 초기화 중 일부 작업이 실패했습니다. 데이터가 일부만 초기화됐을 수 있으니 화면을 새로 불러와 확인해주세요.\\n오류: ' + failed.error.message);
+        alert('경기 초기화 중 일부 작업이 실패했습니다. 데이터가 일부만 초기화됐을 수 있으니 화면을 새로 불러와 확인해주세요.\n오류: ' + failed.error.message);
         await loadFromSupabase();
         return;
       }
