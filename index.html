@@ -24,7 +24,7 @@
 
     /* iPad / touch-tablet usability: enlarge the controls that are actually used,
        while keeping the match toolbar compact and leaving desktop styles untouched. */
-    @media (pointer: coarse) and (min-width: 700px) and (max-width: 1366px) {
+    @media (min-width: 700px) and (max-width: 1366px) {
       /* Keep the match selector / add-match toolbar from becoming too tall */
       #pageRecorder > div:first-child {
         gap: 8px;
@@ -43,8 +43,8 @@
       /* Make the actual player cards bigger (these are clickable DIVs, not buttons) */
       #homePlayerList > div,
       #awayPlayerList > div {
-        min-height: 72px;
-        padding: 14px !important;
+        min-height: 64px;
+        padding: 12px !important;
       }
       #homePlayerList > div > div:first-child,
       #awayPlayerList > div > div:first-child {
@@ -52,14 +52,14 @@
       }
       #homePlayerList > div > div:first-child > span:first-child,
       #awayPlayerList > div > div:first-child > span:first-child {
-        width: 42px !important;
-        height: 42px !important;
-        font-size: 17px !important;
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 16px !important;
         flex-shrink: 0;
       }
       #homePlayerList > div > div:first-child > div > div:first-child,
       #awayPlayerList > div > div:first-child > div > div:first-child {
-        font-size: 17px !important;
+        font-size: 16px !important;
         line-height: 1.3 !important;
       }
       #homePlayerList > div > div:first-child > div > div:last-child,
@@ -69,14 +69,14 @@
 
       /* Stat-entry modal: large, easy-to-hit two-column controls */
       #statModal > div {
-        width: min(620px, 94vw);
-        max-width: 620px;
-        padding: 20px !important;
+        width: min(600px, 94vw);
+        max-width: 600px;
+        padding: 16px !important;
       }
       #statModal .grid button {
-        min-height: 58px;
-        padding: 14px 10px !important;
-        font-size: 17px !important;
+        min-height: 50px;
+        padding: 10px 8px !important;
+        font-size: 16px !important;
         line-height: 1.25 !important;
       }
       #statModal h3 {
@@ -88,7 +88,7 @@
         width: min(760px, 96vw);
         max-width: 760px;
         padding: 16px !important;
-        max-height: 94vh;
+        max-height: 92vh;
       }
       #newMatchModal h3 {
         font-size: 19px !important;
@@ -145,7 +145,7 @@
     }
 
     /* iPad portrait: stack the panels and give the player lists full width */
-    @media (pointer: coarse) and (min-width: 700px) and (max-width: 1100px) and (orientation: portrait) {
+    @media (min-width: 700px) and (max-width: 1100px) and (orientation: portrait) {
       #pageRecorder {
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) !important;
@@ -185,7 +185,7 @@
     }
 
     /* iPad landscape: keep the three-panel recorder layout */
-    @media (pointer: coarse) and (min-width: 901px) and (max-width: 1366px) and (orientation: landscape) {
+    @media (min-width: 901px) and (max-width: 1366px) and (orientation: landscape) {
       #pageRecorder {
         gap: 12px !important;
         padding: 10px !important;
