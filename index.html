@@ -1939,27 +1939,51 @@
       }
     }
 
+    const pendingStatWrites = new Set();
+    const STAT_DEFAULTS = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
+    const STAT_DB_COLUMNS = { '2PT_MADE': 'pt2_made', '2PT_MISS': 'pt2_miss', '3PT_MADE': 'pt3_made', '3PT_MISS': 'pt3_miss', 'FT_MADE': 'ft_made', 'FT_MISS': 'ft_miss', 'DEF_REB': 'def_reb', 'OFF_REB': 'off_reb', 'AST': 'ast', 'STL': 'stl', 'BLK': 'blk', 'TO': 'to_count', 'FOUL': 'foul' };
+
+    function buildStatsDbRow(matchId, playerId, quarter, stats) {
+      const row = { match_id: matchId, player_id: playerId, quarter };
+      Object.entries(STAT_DB_COLUMNS).forEach(([key, column]) => { row[column] = Number(stats[key] || 0); });
+      return row;
+    }
+
     async function applyAwayStat(statType) {
       const m = matches[currentMatchId];
-      const q = m.quarter;
+      if (!m || m.mode !== '교류전' || !Object.prototype.hasOwnProperty.call(STAT_DB_COLUMNS, statType)) return false;
+      const matchId = currentMatchId;
+      const q = Number(m.quarter || 1);
       const playerId = 'AWAY_TEAM';
       const qKey = `${playerId}_q${q}`;
-      if (!m.stats[qKey]) m.stats[qKey] = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
-      m.stats[qKey][statType] = (m.stats[qKey][statType] || 0) + 1;
+      const pendingKey = `${matchId}:${qKey}:${statType}`;
+      if (pendingStatWrites.has(pendingKey)) return false;
+      pendingStatWrites.add(pendingKey);
 
-      const st = m.stats[qKey];
-      await supabaseClient.from('player_stats').upsert({
-        match_id: currentMatchId, player_id: playerId, quarter: q,
-        pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
-        pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
-        ft_made: st['FT_MADE'], ft_miss: st['FT_MISS'],
-        def_reb: st['DEF_REB'], off_reb: st['OFF_REB'],
-        ast: st['AST'], stl: st['STL'], blk: st['BLK'], to_count: st['TO'], foul: st['FOUL']
-      }, { onConflict: 'match_id,player_id,quarter' });
-
-      const msg = `${q}Q [AWAY] ${m.awayTeam} - ${statType}`;
-      await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
-      await loadFromSupabase();
+      const previousStats = { ...STAT_DEFAULTS, ...(m.stats[qKey] || {}) };
+      const nextStats = { ...previousStats, [statType]: Number(previousStats[statType] || 0) + 1 };
+      const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const logRow = { id: logId, match_id: matchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: `${q}Q [AWAY] ${m.awayTeam} - ${statType}` };
+      try {
+        const { error: logError } = await supabaseClient.from('logs').insert([logRow]);
+        if (logError) { alert('상대팀 기록 저장 실패: ' + logError.message); return false; }
+        const { error: statsError } = await supabaseClient.from('player_stats').upsert(buildStatsDbRow(matchId, playerId, q, nextStats), { onConflict: 'match_id,player_id,quarter' });
+        if (statsError) {
+          const { error: rollbackError } = await supabaseClient.from('logs').delete().eq('id', logId);
+          alert('상대팀 스탯 저장 실패: ' + statsError.message + (rollbackError ? '\n기록 로그 정리도 실패했습니다. 로그를 확인해주세요.' : ''));
+          await loadFromSupabase();
+          return false;
+        }
+        await loadFromSupabase();
+        return true;
+      } catch (e) {
+        console.error('상대팀 스탯 저장 중 예외:', e);
+        alert('상대팀 기록을 저장하지 못했습니다. 인터넷 연결을 확인한 뒤 기록을 다시 확인해주세요.');
+        await loadFromSupabase();
+        return false;
+      } finally {
+        pendingStatWrites.delete(pendingKey);
+      }
     }
 
     function openStatModal(player, team) {
@@ -1978,9 +2002,11 @@
     }
 
     async function handleStatClick(statType) {
-      closeModal('statModal');
       const p = activePlayer;
-      await applyStatAndSave(p.id, p.team, statType);
+      if (!p) return;
+      closeModal('statModal');
+      const saved = await applyStatAndSave(p.id, p.team, statType);
+      if (!saved) return;
 
       if (['2PT_MADE', '3PT_MADE'].includes(statType)) {
         triggerAssistChain(p);
@@ -2126,29 +2152,48 @@
 
     async function applyStatAndSave(playerId, team, statType, customMsg = null) {
       const m = matches[currentMatchId];
-      const q = m.quarter;
+      if (!m || !Object.prototype.hasOwnProperty.call(STAT_DB_COLUMNS, statType)) return false;
+      const matchId = currentMatchId;
+      const q = Number(m.quarter || 1);
       const qKey = `${playerId}_q${q}`;
-      if (!m.stats[qKey]) m.stats[qKey] = { '2PT_MADE': 0, '2PT_MISS': 0, '3PT_MADE': 0, '3PT_MISS': 0, 'FT_MADE': 0, 'FT_MISS': 0, 'DEF_REB': 0, 'OFF_REB': 0, 'AST': 0, 'STL': 0, 'BLK': 0, 'TO': 0, 'FOUL': 0 };
-      m.stats[qKey][statType] = (m.stats[qKey][statType] || 0) + 1;
+      const pendingKey = `${matchId}:${qKey}:${statType}`;
+      if (pendingStatWrites.has(pendingKey)) return false;
+      pendingStatWrites.add(pendingKey);
 
-      const st = m.stats[qKey];
-      await supabaseClient.from('player_stats').upsert({
-        match_id: currentMatchId, player_id: playerId, quarter: q,
-        pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
-        pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
-        ft_made: st['FT_MADE'], ft_miss: st['FT_MISS'],
-        def_reb: st['DEF_REB'], off_reb: st['OFF_REB'],
-        ast: st['AST'], stl: st['STL'], blk: st['BLK'], to_count: st['TO'], foul: st['FOUL']
-      }, { onConflict: 'match_id,player_id,quarter' });
-
+      const previousStats = { ...STAT_DEFAULTS, ...(m.stats[qKey] || {}) };
+      const nextStats = { ...previousStats, [statType]: Number(previousStats[statType] || 0) + 1 };
       const p = [...m.homePlayers, ...m.awayPlayers].find(x => x.id === playerId);
       const nameStr = p ? `#${p.number} ${p.name}` : '팀';
       const msg = customMsg || `${q}Q [${team}] ${nameStr} - ${statType}`;
-      await supabaseClient.from('logs').insert([{ id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2,4), match_id: currentMatchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg }]);
-      await loadFromSupabase();
+      const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const logRow = { id: logId, match_id: matchId, quarter: q, player_id: playerId, stat_type: statType, log_time: new Date().toTimeString().split(' ')[0], text: msg };
+
+      try {
+        // Log first, then stats. If the stats write fails, remove the log to avoid a false record.
+        const { error: logError } = await supabaseClient.from('logs').insert([logRow]);
+        if (logError) { alert('기록 로그 저장 실패: ' + logError.message); return false; }
+
+        const { error: statsError } = await supabaseClient.from('player_stats').upsert(buildStatsDbRow(matchId, playerId, q, nextStats), { onConflict: 'match_id,player_id,quarter' });
+        if (statsError) {
+          const { error: rollbackError } = await supabaseClient.from('logs').delete().eq('id', logId);
+          alert('스탯 저장 실패: ' + statsError.message + (rollbackError ? '\n로그 정리도 실패했습니다. 타임라인을 확인해주세요.' : ''));
+          await loadFromSupabase();
+          return false;
+        }
+
+        await loadFromSupabase();
+        return true;
+      } catch (e) {
+        console.error('스탯 저장 중 예외:', e);
+        alert('기록을 저장하지 못했습니다. 인터넷 연결을 확인한 뒤 해당 기록이 저장됐는지 확인해주세요.');
+        await loadFromSupabase();
+        return false;
+      } finally {
+        pendingStatWrites.delete(pendingKey);
+      }
     }
 
-    async function deleteLog(logId) {
+    function deleteLog(logId) {
       const m = matches[currentMatchId];
       const tLog = m && m.logs.find(l => l.id === logId);
       if (!tLog) return;
@@ -2435,12 +2480,24 @@
       const m = matches[currentMatchId];
       if (!m) return;
       stopTimer({ persist: false });
-      const nextQuarter = Math.max(1, Math.min(4, Number(m.quarter || 1) + delta));
-      if (nextQuarter === m.quarter) { updateTimerDisplay(); return; }
+      const previousQuarter = Number(m.quarter || 1);
+      const previousTimerSeconds = Number(m.timerSeconds || 0);
+      const nextQuarter = Math.max(1, Math.min(4, previousQuarter + delta));
+      if (nextQuarter === previousQuarter) { updateTimerDisplay(); return; }
+
+      const nextTimerSeconds = Math.max(1, Number(m.quarterDuration) || 10) * 60;
+      const matchId = currentMatchId;
+      const { error } = await supabaseClient.from('matches').update({ quarter: nextQuarter, timer_seconds: nextTimerSeconds }).eq('id', matchId);
+      if (error) {
+        m.quarter = previousQuarter;
+        m.timerSeconds = previousTimerSeconds;
+        updateTimerDisplay();
+        renderCurrentMatch();
+        alert('쿼터 변경 저장 실패: ' + error.message + '\n기존 쿼터를 유지했습니다.');
+        return;
+      }
       m.quarter = nextQuarter;
-      m.timerSeconds = Math.max(1, Number(m.quarterDuration) || 10) * 60;
-      const { error } = await supabaseClient.from('matches').update({ quarter: m.quarter, timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
-      if (error) { alert('쿼터 변경 저장 실패: ' + error.message); return; }
+      m.timerSeconds = nextTimerSeconds;
       updateTimerDisplay();
       await loadFromSupabase();
     }
@@ -2598,6 +2655,7 @@
     async function executeSubstitution() {
       const m = matches[currentMatchId];
       if (!m) return;
+      const matchId = currentMatchId;
       const q = Number(m.quarter);
       const targetTeam = document.getElementById('subTeamSelect').value;
       const isHome = targetTeam === 'HOME';
@@ -2611,11 +2669,11 @@
 
       const duration = Math.max(1, Number(m.quarterDuration) || 10) * 60;
       let timeSec;
-      if (/^\d{1,3}:\d{1,2}$/.test(timeInputStr)) {
+      if (/^\\d{1,3}:\\d{1,2}$/.test(timeInputStr)) {
         const [mins, secs] = timeInputStr.split(':').map(Number);
         if (secs > 59) { alert('초는 0~59 사이로 입력하세요.'); return; }
         timeSec = mins * 60 + secs;
-      } else if (/^\d+$/.test(timeInputStr)) timeSec = Number(timeInputStr);
+      } else if (/^\\d+$/.test(timeInputStr)) timeSec = Number(timeInputStr);
       else { alert('교체 시간 형식이 올바르지 않습니다. 예: 08:32'); return; }
       if (!Number.isInteger(timeSec) || timeSec < 0 || timeSec > duration) { alert(`교체 시간은 00:00~${Math.floor(duration/60)}:${String(duration%60).padStart(2,'0')} 범위여야 합니다.`); return; }
 
@@ -2628,20 +2686,27 @@
       const updatedLineup = lineup.map(id => id === outId ? inId : id);
       const subObj = { outId, inId, timeSec, team: targetTeam };
       const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      // 먼저 로그를 저장한다. 실패하면 현재 라인업은 바꾸지 않는다.
       const { error: logError } = await supabaseClient.from('logs').insert([{
-        id: logId, match_id: currentMatchId, quarter: q, player_id: inId,
+        id: logId, match_id: matchId, quarter: q, player_id: inId,
         stat_type: 'SUB', log_time: new Date().toTimeString().split(' ')[0], text: JSON.stringify(subObj)
       }]);
       if (logError) { alert('교체 로그 저장 실패: ' + logError.message); return; }
 
-      const { error: deleteError } = await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q).eq('team_type', targetTeam);
-      if (deleteError) { await supabaseClient.from('logs').delete().eq('id', logId); alert('기존 라인업 갱신 실패: ' + deleteError.message); return; }
-      const rows = updatedLineup.map(player_id => ({ match_id: currentMatchId, quarter: q, team_type: targetTeam, player_id }));
+      const { error: deleteError } = await supabaseClient.from('lineups').delete().eq('match_id', matchId).eq('quarter', q).eq('team_type', targetTeam);
+      if (deleteError) {
+        await supabaseClient.from('logs').delete().eq('id', logId);
+        alert('기존 라인업 갱신 실패: ' + deleteError.message);
+        return;
+      }
+      const rows = updatedLineup.map(player_id => ({ match_id: matchId, quarter: q, team_type: targetTeam, player_id }));
       const { error: insertError } = await supabaseClient.from('lineups').insert(rows);
       if (insertError) {
-        await supabaseClient.from('logs').delete().eq('id', logId);
-        alert('교체 라인업 저장 실패: ' + insertError.message + '\n출전선수 설정을 다시 확인해주세요.');
+        const restoreRows = lineup.map(player_id => ({ match_id: matchId, quarter: q, team_type: targetTeam, player_id }));
+        const { error: restoreError } = await supabaseClient.from('lineups').insert(restoreRows);
+        const { error: rollbackLogError } = await supabaseClient.from('logs').delete().eq('id', logId);
+        alert('교체 라인업 저장 실패: ' + insertError.message +
+          (restoreError ? '\n기존 라인업 복구도 실패했습니다. 라인업을 바로 확인해주세요.' : '\n기존 라인업은 복구했습니다.') +
+          (rollbackLogError ? '\n교체 로그 정리도 실패했습니다.' : ''));
         await loadFromSupabase();
         return;
       }
@@ -3631,18 +3696,32 @@
       if (homeChecked.length > 5 || awayChecked.length > 5) { alert('팀별 출전 선수는 최대 5명입니다.'); return; }
       const m = matches[currentMatchId];
       if (!m) return;
+      const matchId = currentMatchId;
       const hasSubs = ((m.substitutions && m.substitutions[q]) || []).length > 0;
       if (hasSubs && !confirm('이 쿼터에는 교체 기록이 있습니다. 라인업을 다시 저장하면 교체 기록과 출전시간 계산이 달라질 수 있습니다. 계속할까요?')) return;
 
-      const { error: deleteError } = await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q);
+      const previousHome = [...((m.lineups && m.lineups[q] && m.lineups[q].home) || [])];
+      const previousAway = [...((m.lineups && m.lineups[q] && m.lineups[q].away) || [])];
+      const previousRows = [
+        ...previousHome.map(player_id => ({ match_id: matchId, quarter: q, team_type: 'HOME', player_id })),
+        ...previousAway.map(player_id => ({ match_id: matchId, quarter: q, team_type: 'AWAY', player_id }))
+      ];
+      const { error: deleteError } = await supabaseClient.from('lineups').delete().eq('match_id', matchId).eq('quarter', q);
       if (deleteError) { alert('기존 라인업 삭제 실패: ' + deleteError.message); return; }
       const rows = [
-        ...homeChecked.map(player_id => ({ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id })),
-        ...awayChecked.map(player_id => ({ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id }))
+        ...homeChecked.map(player_id => ({ match_id: matchId, quarter: q, team_type: 'HOME', player_id })),
+        ...awayChecked.map(player_id => ({ match_id: matchId, quarter: q, team_type: 'AWAY', player_id }))
       ];
       if (rows.length) {
         const { error } = await supabaseClient.from('lineups').insert(rows);
-        if (error) { alert('라인업 저장 실패: ' + error.message); return; }
+        if (error) {
+          const { error: restoreError } = previousRows.length
+            ? await supabaseClient.from('lineups').insert(previousRows)
+            : { error: null };
+          alert('라인업 저장 실패: ' + error.message + (restoreError ? '\n기존 라인업 복구도 실패했습니다. 출전 명단을 확인해주세요.' : '\n기존 라인업을 복구했습니다.'));
+          await loadFromSupabase();
+          return;
+        }
       }
       closeModal('lineupModal');
       await loadFromSupabase();
