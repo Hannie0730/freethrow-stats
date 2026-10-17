@@ -690,6 +690,14 @@
       { id: 'h5', number: '99', name: '박종신', birth: '1994-09-28', color: '부상/휴면' }
     ];
 
+    window.addEventListener('beforeunload', () => {
+      const m = matches[currentMatchId];
+      if (isTimerRunning && m) {
+        // best-effort save; browser may terminate the request during unload
+        void persistTimerSeconds(currentMatchId, m.timerSeconds);
+      }
+    });
+
     window.addEventListener('DOMContentLoaded', async () => {
       await loadFromSupabase();
       setupRealtimeSubscription();
@@ -721,7 +729,13 @@
 
     async function loadFromSupabase() {
       const { data: matchData, error } = await supabaseClient.from('matches').select('*').order('date', { ascending: false }).order('created_at', { ascending: false });
-      if (error || !matchData || matchData.length === 0) {
+      if (error) {
+        console.error('경기 목록 조회 실패:', error);
+        const statusEl = document.getElementById('timelineLog');
+        if (statusEl) statusEl.innerHTML = '<div class="text-center text-xs text-rose-300 py-3">Supabase에서 경기 목록을 불러오지 못했습니다. 연결 설정과 권한을 확인하세요.</div>';
+        return;
+      }
+      if (!matchData || matchData.length === 0) {
         await initDefaultMatchInSupabase();
         return;
       }
@@ -742,8 +756,8 @@
           homeTeam: m.home_team, 
           awayTeam: m.away_team, 
           quarter: m.quarter, 
-          timerSeconds: m.timer_seconds, 
-          quarterDuration: m.quarter_duration || Math.round((m.timer_seconds || 600) / 60) || 10,
+          timerSeconds: Math.max(0, Number(m.timer_seconds ?? ((m.quarter_duration || 10) * 60))), 
+          quarterDuration: Math.max(1, Number(m.quarter_duration || Math.round((m.timer_seconds || 600) / 60) || 10)),
           homePlayers, 
           awayPlayers, 
           lineups, 
@@ -806,55 +820,60 @@
     }
 
     function parseSubstitutionsFromLogs(logs) {
-      let subs = { 1: [], 2: [], 3: [], 4: [] };
-      logs.forEach(l => {
-        if (l.statType === 'SUB') {
-          try {
-            const data = JSON.parse(l.text);
-            if (data && data.outId && data.inId && data.timeSec !== undefined) {
-              if (!subs[l.quarter]) subs[l.quarter] = [];
-              subs[l.quarter].push(data);
-            }
-          } catch(e) {}
-        }
+      const subs = {};
+      (logs || []).forEach(l => {
+        if (l.statType !== 'SUB') return;
+        try {
+          const data = JSON.parse(l.text || '{}');
+          const timeSec = Number(data.timeSec);
+          if (data.outId && data.inId && Number.isFinite(timeSec) && timeSec >= 0) {
+            if (!subs[l.quarter]) subs[l.quarter] = [];
+            subs[l.quarter].push({ ...data, timeSec, logId: l.id, quarter: l.quarter });
+          }
+        } catch (_) { /* 기존 비정형 로그는 무시하고 앱을 계속 실행 */ }
       });
+      Object.values(subs).forEach(list => list.sort((a, b) => b.timeSec - a.timeSec));
       return subs;
     }
 
     function calculatePlayerMinutes(matchId, playerId) {
       const m = matches[matchId];
       if (!m) return '0.0';
-      const qDuration = (m.quarterDuration || 10) * 60;
+      const qDuration = Math.max(1, Number(m.quarterDuration) || 10) * 60;
+      const currentQuarter = Math.max(1, Number(m.quarter) || 1);
       let totalPlayedSeconds = 0;
+      const isHomePlayer = (m.homePlayers || []).some(p => p.id === playerId);
+      const side = isHomePlayer ? 'home' : 'away';
+      const team = isHomePlayer ? 'HOME' : 'AWAY';
 
       for (let q = 1; q <= 4; q++) {
-        const isHomePlayer = m.homePlayers.some(p => p.id === playerId);
-        const lineup = m.lineups && m.lineups[q] ? (isHomePlayer ? m.lineups[q].home : m.lineups[q].away) : [];
-        const qSubs = (m.substitutions && m.substitutions[q]) || [];
+        // 미래 쿼터는 출전시간에 포함하지 않고, 현재 쿼터는 실제 경과 시간까지만 계산한다.
+        if (q > currentQuarter) continue;
+        const endT = q < currentQuarter ? 0 : Math.max(0, Math.min(qDuration, Number(m.timerSeconds ?? qDuration)));
+        const storedLineup = (m.lineups && m.lineups[q] && m.lineups[q][side]) || [];
+        const qSubs = ((m.substitutions && m.substitutions[q]) || [])
+          .filter(s => s.team === team)
+          .filter(s => Number.isFinite(Number(s.timeSec)) && s.timeSec >= endT && s.timeSec <= qDuration)
+          .slice().sort((a, b) => a.timeSec - b.timeSec);
 
-        let currentActive = lineup.includes(playerId);
-        let prevT = qDuration;
-
-        const events = qSubs.map(sub => ({
-          t: sub.timeSec,
-          isOut: sub.outId === playerId,
-          isIn: sub.inId === playerId
-        })).sort((a, b) => b.t - a.t);
-
-        events.forEach(ev => {
-          if (ev.t < prevT && currentActive) {
-            totalPlayedSeconds += (prevT - ev.t);
-          }
-          if (ev.isIn) currentActive = true;
-          if (ev.isOut) currentActive = false;
-          prevT = ev.t;
-        });
-
-        if (currentActive && prevT > 0) {
-          totalPlayedSeconds += (prevT - 0);
+        // 저장된 라인업은 교체 후 상태일 수 있으므로 로그를 역순 적용해 쿼터 시작 라인업을 복원한다.
+        const startLineup = new Set(storedLineup);
+        for (const sub of qSubs) {
+          startLineup.delete(sub.inId);
+          startLineup.add(sub.outId);
         }
-      }
 
+        let active = startLineup.has(playerId);
+        let prevT = qDuration;
+        for (const sub of qSubs.slice().sort((a, b) => b.timeSec - a.timeSec)) {
+          const t = Math.max(endT, Math.min(qDuration, Number(sub.timeSec)));
+          if (active && prevT > t) totalPlayedSeconds += prevT - t;
+          if (sub.inId === playerId) active = true;
+          if (sub.outId === playerId) active = false;
+          prevT = t;
+        }
+        if (active && prevT > endT) totalPlayedSeconds += prevT - endT;
+      }
       return (totalPlayedSeconds / 60).toFixed(1);
     }
 
@@ -1729,28 +1748,61 @@
 
     async function deleteLog(logId) {
       const m = matches[currentMatchId];
-      const tLog = m.logs.find(l => l.id === logId);
+      const tLog = m && m.logs.find(l => l.id === logId);
       if (!tLog) return;
-      if (confirm('이 기록을 삭제하시겠습니까?')) {
-        if (tLog.statType !== 'SUB') {
-          const qKey = `${tLog.playerId}_q${tLog.quarter}`;
-          if (m.stats[qKey] && m.stats[qKey][tLog.statType] > 0) {
-            m.stats[qKey][tLog.statType]--;
+      if (!confirm('이 기록을 삭제하시겠습니까?')) return;
 
-            const st = m.stats[qKey];
-            await supabaseClient.from('player_stats').upsert({
-              match_id: currentMatchId, player_id: tLog.playerId, quarter: tLog.quarter,
-              pt2_made: st['2PT_MADE'], pt2_miss: st['2PT_MISS'],
-              pt3_made: st['3PT_MADE'], pt3_miss: st['3PT_MISS'],
-              ft_made: st['FT_MADE'], ft_miss: st['FT_MISS'],
-              def_reb: st['DEF_REB'], off_reb: st['OFF_REB'],
-              ast: st['AST'], stl: st['STL'], blk: st['BLK'], to_count: st['TO'], foul: st['FOUL']
-            }, { onConflict: 'match_id,player_id,quarter' });
+      if (tLog.statType !== 'SUB') {
+        const qKey = `${tLog.playerId}_q${tLog.quarter}`;
+        const current = m.stats[qKey];
+        if (current && Object.prototype.hasOwnProperty.call(current, tLog.statType) && Number(current[tLog.statType]) > 0) {
+          const st = { ...current, [tLog.statType]: Number(current[tLog.statType]) - 1 };
+          const payload = {
+            match_id: currentMatchId, player_id: tLog.playerId, quarter: tLog.quarter,
+            pt2_made: st['2PT_MADE'] || 0, pt2_miss: st['2PT_MISS'] || 0,
+            pt3_made: st['3PT_MADE'] || 0, pt3_miss: st['3PT_MISS'] || 0,
+            ft_made: st['FT_MADE'] || 0, ft_miss: st['FT_MISS'] || 0,
+            def_reb: st.DEF_REB || 0, off_reb: st.OFF_REB || 0,
+            ast: st.AST || 0, stl: st.STL || 0, blk: st.BLK || 0,
+            to_count: st.TO || 0, foul: st.FOUL || 0
+          };
+          const { error } = await supabaseClient.from('player_stats').upsert(payload, { onConflict: 'match_id,player_id,quarter' });
+          if (error) { alert('스탯 취소 저장 실패: ' + error.message); return; }
+        }
+      }
+
+      const { error: logError } = await supabaseClient.from('logs').delete().eq('id', logId);
+      if (logError) { alert('기록 삭제 실패: ' + logError.message); return; }
+
+      // 교체 로그를 지운 경우 남아 있는 교체 로그를 기준으로 현재 라인업을 재구성한다.
+      if (tLog.statType === 'SUB') {
+        const team = (() => { try { return JSON.parse(tLog.text || '{}').team; } catch (_) { return null; } })();
+        if (team === 'HOME' || team === 'AWAY') {
+          const { data: remainingLogs, error: fetchError } = await supabaseClient.from('logs').select('*').eq('match_id', currentMatchId).eq('quarter', tLog.quarter).eq('stat_type', 'SUB');
+          if (fetchError) { alert('교체 기록은 삭제됐지만 라인업을 재구성하지 못했습니다: ' + fetchError.message); await loadFromSupabase(); return; }
+          const parsed = (remainingLogs || []).flatMap(row => {
+            try { const d = JSON.parse(row.text || '{}'); return d.outId && d.inId && d.team === team && Number.isFinite(Number(d.timeSec)) ? [{ ...d, timeSec: Number(d.timeSec) }] : []; }
+            catch (_) { return []; }
+          }).sort((a,b) => a.timeSec - b.timeSec);
+          const side = team === 'HOME' ? 'home' : 'away';
+          const { data: currentRows, error: lineupFetchError } = await supabaseClient.from('lineups').select('player_id').eq('match_id', currentMatchId).eq('quarter', tLog.quarter).eq('team_type', team);
+          if (lineupFetchError) { alert('교체 기록은 삭제됐지만 라인업 조회에 실패했습니다: ' + lineupFetchError.message); await loadFromSupabase(); return; }
+          const start = new Set((currentRows || []).map(r => r.player_id));
+          // 현재(마지막) 라인업에서 교체를 역으로 되돌려 쿼터 시작 라인업을 복원
+          for (const sub of parsed) { start.delete(sub.inId); start.add(sub.outId); }
+          const finalLineup = new Set(start);
+          // 쿼터 시작부터 종료 방향(남은 시간 내림차순)으로 남은 교체를 재적용
+          for (const sub of parsed.slice().sort((a,b) => b.timeSec - a.timeSec)) { finalLineup.delete(sub.outId); finalLineup.add(sub.inId); }
+          const { error: deleteLineupError } = await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', tLog.quarter).eq('team_type', team);
+          if (deleteLineupError) { alert('교체 기록은 삭제됐지만 기존 라인업 삭제에 실패했습니다: ' + deleteLineupError.message); await loadFromSupabase(); return; }
+          const rows = Array.from(finalLineup).map(player_id => ({ match_id: currentMatchId, quarter: tLog.quarter, team_type: team, player_id }));
+          if (rows.length) {
+            const { error: insertError } = await supabaseClient.from('lineups').insert(rows);
+            if (insertError) { alert('교체 기록은 삭제됐지만 라인업 복구에 실패했습니다: ' + insertError.message); await loadFromSupabase(); return; }
           }
         }
-        await supabaseClient.from('logs').delete().eq('id', logId);
-        await loadFromSupabase();
       }
+      await loadFromSupabase();
     }
 
     async function resetMatchStatsAndScores() {
@@ -1979,40 +2031,80 @@
 
     async function changeQuarter(delta) {
       const m = matches[currentMatchId];
-      m.quarter = Math.max(1, Math.min(4, m.quarter + delta));
-      m.timerSeconds = (m.quarterDuration || 10) * 60;
-      if (isTimerRunning) toggleTimer();
-      await supabaseClient.from('matches').update({ quarter: m.quarter, timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
+      if (!m) return;
+      stopTimer({ persist: false });
+      const nextQuarter = Math.max(1, Math.min(4, Number(m.quarter || 1) + delta));
+      if (nextQuarter === m.quarter) { updateTimerDisplay(); return; }
+      m.quarter = nextQuarter;
+      m.timerSeconds = Math.max(1, Number(m.quarterDuration) || 10) * 60;
+      const { error } = await supabaseClient.from('matches').update({ quarter: m.quarter, timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
+      if (error) { alert('쿼터 변경 저장 실패: ' + error.message); return; }
+      updateTimerDisplay();
       await loadFromSupabase();
     }
 
     function toggleTimer() {
+      const m = matches[currentMatchId];
+      if (!m) return;
       if (isTimerRunning) {
-        clearInterval(timerInterval);
-        isTimerRunning = false;
-        const btn = document.getElementById('timerToggleBtn');
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i> 시작';
-      } else {
-        isTimerRunning = true;
-        const btn = document.getElementById('timerToggleBtn');
-        if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> 일시정지';
-        timerInterval = setInterval(() => {
-          const m = matches[currentMatchId];
-          if (m.timerSeconds > 0) { 
-            m.timerSeconds--; 
-            updateTimerDisplay(); 
-          } else { 
-            toggleTimer(); 
-          }
-        }, 1000);
+        stopTimer({ persist: true });
+        return;
       }
+      if (Number(m.timerSeconds) <= 0) { alert('남은 시간이 없습니다. 타이머를 초기화하거나 시간을 수정하세요.'); return; }
+      isTimerRunning = true;
+      timerLastTickAt = Date.now();
+      timerPersistTicks = 0;
+      const btn = document.getElementById('timerToggleBtn');
+      if (btn) btn.innerHTML = '<i class="fa-solid fa-pause mr-1"></i> 일시정지';
+      clearInterval(timerInterval);
+      timerInterval = setInterval(async () => {
+        const activeMatch = matches[currentMatchId];
+        if (!activeMatch || !isTimerRunning) return;
+        const now = Date.now();
+        const elapsed = Math.floor((now - timerLastTickAt) / 1000);
+        if (elapsed < 1) return;
+        timerLastTickAt += elapsed * 1000;
+        activeMatch.timerSeconds = Math.max(0, Number(activeMatch.timerSeconds || 0) - elapsed);
+        updateTimerDisplay();
+        timerPersistTicks += elapsed;
+        if (activeMatch.timerSeconds <= 0) {
+          stopTimer({ persist: true });
+        } else if (timerPersistTicks >= 5) {
+          timerPersistTicks = 0;
+          await persistTimerSeconds(currentMatchId, activeMatch.timerSeconds);
+        }
+      }, 200);
     }
 
-    function resetTimer() {
-      if (isTimerRunning) toggleTimer();
+    let timerLastTickAt = 0;
+    let timerPersistTicks = 0;
+
+    async function persistTimerSeconds(matchId, seconds) {
+      if (!matchId || !Number.isFinite(Number(seconds))) return;
+      const { error } = await supabaseClient.from('matches').update({ timer_seconds: Math.max(0, Math.floor(Number(seconds))) }).eq('id', matchId);
+      if (error) console.error('타이머 저장 실패:', error.message);
+    }
+
+    function stopTimer({ persist = true } = {}) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      const wasRunning = isTimerRunning;
+      isTimerRunning = false;
+      timerLastTickAt = 0;
+      const btn = document.getElementById('timerToggleBtn');
+      if (btn) btn.innerHTML = '<i class="fa-solid fa-play mr-1"></i> 시작';
       const m = matches[currentMatchId];
-      m.timerSeconds = (m.quarterDuration || 10) * 60;
+      if (persist && wasRunning && m) void persistTimerSeconds(currentMatchId, m.timerSeconds);
+    }
+
+    async function resetTimer() {
+      stopTimer({ persist: false });
+      const m = matches[currentMatchId];
+      if (!m) return;
+      m.timerSeconds = Math.max(1, Number(m.quarterDuration) || 10) * 60;
       updateTimerDisplay();
+      const { error } = await supabaseClient.from('matches').update({ timer_seconds: m.timerSeconds }).eq('id', currentMatchId);
+      if (error) alert('타이머 초기화 저장 실패: ' + error.message);
     }
 
     function updateTimerDisplay() {
@@ -2023,22 +2115,27 @@
       if (display) display.textContent = `${mins}:${secs}`;
     }
 
-    function editTimerManual() {
+    async function editTimerManual() {
       const m = matches[currentMatchId];
       if (!m) return;
       const currentMins = Math.floor(m.timerSeconds / 60);
       const currentSecs = m.timerSeconds % 60;
-      const input = prompt("변경할 남은 시간을 입력하세요 (예: 10:00 또는 600):", `${currentMins}:${currentSecs.toString().padStart(2, '0')}`);
+      const input = prompt('변경할 남은 시간을 입력하세요 (예: 10:00 또는 초 단위 600):', `${currentMins}:${String(currentSecs).padStart(2, '0')}`);
       if (input === null) return;
-      
-      if (input.includes(':')) {
-        const [mins, secs] = input.split(':').map(v => parseInt(v) || 0);
-        m.timerSeconds = mins * 60 + secs;
-      } else {
-        const totalSecs = parseInt(input);
-        if (!isNaN(totalSecs)) m.timerSeconds = totalSecs;
-      }
+      const value = input.trim();
+      let seconds;
+      if (/^\d{1,3}:\d{1,2}$/.test(value)) {
+        const [mins, secs] = value.split(':').map(Number);
+        if (secs > 59) { alert('초는 0~59 사이로 입력하세요.'); return; }
+        seconds = mins * 60 + secs;
+      } else if (/^\d+$/.test(value)) seconds = Number(value);
+      else { alert('시간 형식이 올바르지 않습니다. 예: 10:00 또는 600'); return; }
+      if (!Number.isSafeInteger(seconds) || seconds < 0 || seconds > 24 * 60 * 60) { alert('시간은 0초~24시간 범위로 입력하세요.'); return; }
+      stopTimer({ persist: false });
+      m.timerSeconds = seconds;
       updateTimerDisplay();
+      const { error } = await supabaseClient.from('matches').update({ timer_seconds: seconds }).eq('id', currentMatchId);
+      if (error) alert('시간 저장 실패: ' + error.message);
     }
 
     function openSubModal(team = 'HOME') {
@@ -2098,58 +2195,54 @@
 
     async function executeSubstitution() {
       const m = matches[currentMatchId];
-      const q = m.quarter;
+      if (!m) return;
+      const q = Number(m.quarter);
       const targetTeam = document.getElementById('subTeamSelect').value;
       const isHome = targetTeam === 'HOME';
+      const players = isHome ? m.homePlayers : m.awayPlayers;
       const outId = document.getElementById('subOutPlayerSelect').value;
       const inId = document.getElementById('subInPlayerSelect').value;
       const timeInputStr = document.getElementById('subTimeInput').value.trim();
+      if (!outId || !inId) { alert('교체 아웃할 선수와 인할 선수를 모두 선택해주세요.'); return; }
+      if (outId === inId) { alert('동일한 선수로 교체할 수 없습니다.'); return; }
+      if (!players.some(p => p.id === outId) || !players.some(p => p.id === inId)) { alert('선수 선택이 유효하지 않습니다. 팀을 다시 선택해주세요.'); return; }
 
-      if (!outId || !inId) {
-        alert('교체 아웃할 선수와 인할 선수를 모두 선택해주세요.');
-        return;
-      }
-      if (outId === inId) {
-        alert('동일한 선수로 교체할 수 없습니다.');
-        return;
-      }
-
-      let timeSec = m.timerSeconds;
-      if (timeInputStr.includes(':')) {
-        const [mins, secs] = timeInputStr.split(':').map(v => parseInt(v) || 0);
+      const duration = Math.max(1, Number(m.quarterDuration) || 10) * 60;
+      let timeSec;
+      if (/^\d{1,3}:\d{1,2}$/.test(timeInputStr)) {
+        const [mins, secs] = timeInputStr.split(':').map(Number);
+        if (secs > 59) { alert('초는 0~59 사이로 입력하세요.'); return; }
         timeSec = mins * 60 + secs;
-      } else if (!isNaN(parseInt(timeInputStr))) {
-        timeSec = parseInt(timeInputStr);
-      }
+      } else if (/^\d+$/.test(timeInputStr)) timeSec = Number(timeInputStr);
+      else { alert('교체 시간 형식이 올바르지 않습니다. 예: 08:32'); return; }
+      if (!Number.isInteger(timeSec) || timeSec < 0 || timeSec > duration) { alert(`교체 시간은 00:00~${Math.floor(duration/60)}:${String(duration%60).padStart(2,'0')} 범위여야 합니다.`); return; }
 
-      if (!m.lineups) m.lineups = {};
-      if (!m.lineups[q]) m.lineups[q] = { home: [], away: [] };
-      let lineup = isHome ? m.lineups[q].home : m.lineups[q].away;
+      const lineupKey = isHome ? 'home' : 'away';
+      const lineup = [...((m.lineups && m.lineups[q] && m.lineups[q][lineupKey]) || [])];
+      if (!lineup.includes(outId)) { alert('교체 아웃 선수는 현재 출전 라인업에 있어야 합니다. 출전선수 5명을 먼저 확인하세요.'); return; }
+      if (lineup.includes(inId)) { alert('교체 인 선수는 현재 출전 중이 아닌 선수여야 합니다.'); return; }
+      if (lineup.length !== 5) { alert(`현재 라인업이 ${lineup.length}명입니다. 교체 전에 출전선수 5명을 설정하세요.`); return; }
 
-      const idx = lineup.indexOf(outId);
-      if (idx !== -1) {
-        lineup[idx] = inId;
-      } else {
-        lineup.push(inId);
-      }
-
-      await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q).eq('team_type', targetTeam);
-      for (const pid of lineup) {
-        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: targetTeam, player_id: pid }]);
-      }
-
+      const updatedLineup = lineup.map(id => id === outId ? inId : id);
       const subObj = { outId, inId, timeSec, team: targetTeam };
-      const subJsonStr = JSON.stringify(subObj);
-      await supabaseClient.from('logs').insert([{
-        id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        match_id: currentMatchId,
-        quarter: q,
-        player_id: inId,
-        stat_type: 'SUB',
-        log_time: new Date().toTimeString().split(' ')[0],
-        text: subJsonStr
+      const logId = 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      // 먼저 로그를 저장한다. 실패하면 현재 라인업은 바꾸지 않는다.
+      const { error: logError } = await supabaseClient.from('logs').insert([{
+        id: logId, match_id: currentMatchId, quarter: q, player_id: inId,
+        stat_type: 'SUB', log_time: new Date().toTimeString().split(' ')[0], text: JSON.stringify(subObj)
       }]);
+      if (logError) { alert('교체 로그 저장 실패: ' + logError.message); return; }
 
+      const { error: deleteError } = await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q).eq('team_type', targetTeam);
+      if (deleteError) { await supabaseClient.from('logs').delete().eq('id', logId); alert('기존 라인업 갱신 실패: ' + deleteError.message); return; }
+      const rows = updatedLineup.map(player_id => ({ match_id: currentMatchId, quarter: q, team_type: targetTeam, player_id }));
+      const { error: insertError } = await supabaseClient.from('lineups').insert(rows);
+      if (insertError) {
+        await supabaseClient.from('logs').delete().eq('id', logId);
+        alert('교체 라인업 저장 실패: ' + insertError.message + '\n출전선수 설정을 다시 확인해주세요.');
+        await loadFromSupabase();
+        return;
+      }
       closeModal('subModal');
       await loadFromSupabase();
     }
@@ -2541,65 +2634,41 @@
     async function createNewMatch() {
       const matchId = 'match_' + Date.now();
       const matchDate = document.getElementById('inputMatchDate').value || new Date().toISOString().split('T')[0];
-      const quarterDuration = parseInt(document.getElementById('inputQuarterDuration').value) || 10;
+      const quarterDuration = Number.parseInt(document.getElementById('inputQuarterDuration').value, 10) || 10;
+      if (!Number.isInteger(quarterDuration) || quarterDuration < 1 || quarterDuration > 60) { alert('쿼터 시간은 1~60분으로 입력하세요.'); return; }
       const timerSeconds = quarterDuration * 60;
       const mode = document.getElementById('inputMatchType').value;
-      const homeTeam = document.getElementById('inputHomeTeamName').value || 'HOME';
-      const awayTeam = document.getElementById('inputAwayTeamName').value || 'AWAY';
+      const homeTeam = document.getElementById('inputHomeTeamName').value.trim() || 'HOME';
+      const awayTeam = document.getElementById('inputAwayTeamName').value.trim() || 'AWAY';
+      const matchPayload = { id: matchId, date: matchDate, mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: timerSeconds, quarter_duration: quarterDuration };
+      const { error: matchErr } = await supabaseClient.from('matches').insert([matchPayload]);
+      if (matchErr) { console.error('Match insert error:', matchErr); alert('경기 생성에 실패했습니다: ' + matchErr.message); return; }
 
-      const matchPayload = { 
-        id: matchId, 
-        date: matchDate, 
-        mode: mode, 
-        home_team: homeTeam, 
-        away_team: awayTeam, 
-        quarter: 1, 
-        timer_seconds: timerSeconds
+      const homeChecked = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
+      const awayChecked = mode === '자체전' ? Array.from(document.querySelectorAll('input[name="rosterAway"]:checked')).map(cb => cb.value) : [];
+      const playerRows = [];
+      const parsePlayer = (raw, team, i) => {
+        const [num, name, birth, color] = raw.split('|');
+        return { id: `p_${matchId}_${team.toLowerCase()}_${i}_${Math.random().toString(36).slice(2,7)}`, match_id: matchId, team_type: team, number: num, name, birth_date: birth || null, team_color: color || '블랙' };
       };
-
-      const { error: matchErr } = await supabaseClient.matches ? null : await supabaseClient.from('matches').insert([matchPayload]);
-      if (matchErr) {
-        console.error('Match insert error:', matchErr);
-        alert('경기 생성에 실패했습니다: ' + matchErr.message);
-        return;
+      homeChecked.forEach((raw, i) => playerRows.push(parsePlayer(raw, 'HOME', i)));
+      awayChecked.forEach((raw, i) => playerRows.push(parsePlayer(raw, 'AWAY', i)));
+      if (playerRows.length) {
+        const { error } = await supabaseClient.from('players').insert(playerRows);
+        if (error) { await supabaseClient.from('matches').delete().eq('id', matchId); alert('선수 로스터 저장 실패: ' + error.message); return; }
       }
-
-      if (mode === '자체전') {
-        const homeChecked = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
-        const awayChecked = Array.from(document.querySelectorAll('input[name="rosterAway"]:checked')).map(cb => cb.value);
-
-        for (let i = 0; i < homeChecked.length; i++) {
-          const [num, name, birth, color] = homeChecked[i].split('|');
-          const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color };
-          await supabaseClient.from('players').insert([playerPayload]);
-        }
-
-        for (let i = 0; i < awayChecked.length; i++) {
-          const [num, name, birth, color] = awayChecked[i].split('|');
-          const pUniqueId = 'p_' + matchId + '_a_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color };
-          await supabaseClient.from('players').insert([playerPayload]);
-        }
-      } else {
-        const homeChecked = Array.from(document.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value);
-        for (let i = 0; i < homeChecked.length; i++) {
-          const [num, name, birth, color] = homeChecked[i].split('|');
-          const pUniqueId = 'p_' + matchId + '_h_' + i + '_' + Math.random().toString(36).substr(2, 5);
-          
-          const playerPayload = { id: pUniqueId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color };
-          await supabaseClient.from('players').insert([playerPayload]);
-        }
-      }
-
       currentMatchId = matchId;
       closeModal('newMatchModal');
       await loadFromSupabase();
     }
 
-    function switchMatch(id) { currentMatchId = id; renderCurrentMatch(); }
+    async function switchMatch(id) {
+      if (!id || !matches[id]) return;
+      if (id === currentMatchId) return;
+      stopTimer({ persist: true });
+      currentMatchId = id;
+      renderCurrentMatch();
+    }
     async function deleteCurrentMatch() {
       if (Object.keys(matches).length <= 1) { alert('최소 1개의 경기는 유지되어야 합니다.'); return; }
       if (confirm('현재 경기를 삭제하시겠습니까?')) {
@@ -2901,18 +2970,24 @@
 
     async function saveLineupSelection() {
       const q = activeLineupModalQuarter;
-      await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q);
+      const homeChecked = Array.from(document.querySelectorAll('input[name="homeLineup"]:checked')).map(chk => chk.value);
+      const awayChecked = Array.from(document.querySelectorAll('input[name="awayLineup"]:checked')).map(chk => chk.value);
+      if (homeChecked.length > 5 || awayChecked.length > 5) { alert('팀별 출전 선수는 최대 5명입니다.'); return; }
+      const m = matches[currentMatchId];
+      if (!m) return;
+      const hasSubs = ((m.substitutions && m.substitutions[q]) || []).length > 0;
+      if (hasSubs && !confirm('이 쿼터에는 교체 기록이 있습니다. 라인업을 다시 저장하면 교체 기록과 출전시간 계산이 달라질 수 있습니다. 계속할까요?')) return;
 
-      const homeChecked = document.querySelectorAll('input[name="homeLineup"]:checked');
-      for (const chk of homeChecked) {
-        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id: chk.value }]);
+      const { error: deleteError } = await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId).eq('quarter', q);
+      if (deleteError) { alert('기존 라인업 삭제 실패: ' + deleteError.message); return; }
+      const rows = [
+        ...homeChecked.map(player_id => ({ match_id: currentMatchId, quarter: q, team_type: 'HOME', player_id })),
+        ...awayChecked.map(player_id => ({ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id }))
+      ];
+      if (rows.length) {
+        const { error } = await supabaseClient.from('lineups').insert(rows);
+        if (error) { alert('라인업 저장 실패: ' + error.message); return; }
       }
-
-      const awayChecked = document.querySelectorAll('input[name="awayLineup"]:checked');
-      for (const chk of awayChecked) {
-        await supabaseClient.from('lineups').insert([{ match_id: currentMatchId, quarter: q, team_type: 'AWAY', player_id: chk.value }]);
-      }
-
       closeModal('lineupModal');
       await loadFromSupabase();
     }
