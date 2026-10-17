@@ -2619,42 +2619,73 @@
     async function saveCurrentMatchRosterChanges() {
       const matchId = currentMatchId;
       const m = matches[matchId];
-      const existingHomePlayers = m.homePlayers || [];
-      const existingAwayPlayers = m.awayPlayers || [];
-
-      const homeChecked = Array.from(document.querySelectorAll('input[name="curRosterHome"]:checked')).map(cb => cb.value);
-      const awayChecked = Array.from(document.querySelectorAll('input[name="curRosterAway"]:checked')).map(cb => cb.value);
-
-      let keepPlayerIds = new Set();
-      let upsertList = [];
-
-      for (let i = 0; i < homeChecked.length; i++) {
-        const [num, name, birth, color] = homeChecked[i].split('|');
-        const existing = [...existingHomePlayers, ...existingAwayPlayers].find(p => p.number === num && p.name === name);
-        const pId = existing ? existing.id : ('p_' + matchId + '_h_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4));
-        keepPlayerIds.add(pId);
-        upsertList.push({ id: pId, match_id: matchId, team_type: 'HOME', number: num, name: name, birth_date: birth || null, team_color: color });
+      if (!m) {
+        alert('현재 경기를 찾을 수 없어 로스터를 저장하지 못했습니다.');
+        return;
       }
 
-      if (m.mode === '자체전') {
-        for (let i = 0; i < awayChecked.length; i++) {
-          const [num, name, birth, color] = awayChecked[i].split('|');
-          const existing = [...existingHomePlayers, ...existingAwayPlayers].find(p => p.number === num && p.name === name);
-          const pId = existing ? existing.id : ('p_' + matchId + '_a_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 4));
-          keepPlayerIds.add(pId);
-          upsertList.push({ id: pId, match_id: matchId, team_type: 'AWAY', number: num, name: name, birth_date: birth || null, team_color: color });
+      const existingHomePlayers = m.homePlayers || [];
+      const existingAwayPlayers = m.awayPlayers || [];
+      const homeChecked = Array.from(document.querySelectorAll('input[name="curRosterHome"]:checked')).map(cb => cb.value);
+      const awayChecked = m.mode === '자체전'
+        ? Array.from(document.querySelectorAll('input[name="curRosterAway"]:checked')).map(cb => cb.value)
+        : [];
+
+      const upsertList = [];
+      const keepPlayerIds = new Set();
+      const seenRosterEntries = new Set();
+      const seenIds = new Set();
+      const makePlayerRow = (raw, team, index, existingPlayers) => {
+        const [num, name, birth, color] = raw.split('|');
+        const entryKey = team + '|' + num + '|' + name;
+        if (seenRosterEntries.has(entryKey)) return null;
+        seenRosterEntries.add(entryKey);
+
+        // 기존 ID는 같은 팀의 로스터에서만 재사용합니다.
+        const existing = existingPlayers.find(p => String(p.number) === String(num) && p.name === name);
+        const pId = existing ? String(existing.id) : ('p_' + matchId + '_' + team.toLowerCase() + '_' + Date.now() + '_' + index + '_' + Math.random().toString(36).slice(2, 8));
+        if (seenIds.has(pId)) {
+          throw new Error('중복 선수 ID가 감지되었습니다. 로스터를 저장하지 않았습니다: ' + pId);
         }
+        seenIds.add(pId);
+        keepPlayerIds.add(pId);
+        return { id: pId, match_id: matchId, team_type: team, number: num, name, birth_date: birth || null, team_color: color || '블랙' };
+      };
+
+      try {
+        homeChecked.forEach((raw, i) => {
+          const row = makePlayerRow(raw, 'HOME', i, existingHomePlayers);
+          if (row) upsertList.push(row);
+        });
+        awayChecked.forEach((raw, i) => {
+          const row = makePlayerRow(raw, 'AWAY', i, existingAwayPlayers);
+          if (row) upsertList.push(row);
+        });
+      } catch (err) {
+        alert(err.message || '선수 로스터를 확인하지 못했습니다.');
+        return;
       }
 
       const allExisting = [...existingHomePlayers, ...existingAwayPlayers];
-      const removeIds = allExisting.filter(p => !keepPlayerIds.has(p.id)).map(p => p.id);
+      const removeIds = [...new Set(allExisting.map(p => String(p.id)).filter(id => !keepPlayerIds.has(id)))];
 
-      if (removeIds.length > 0) {
-        await supabaseClient.from('players').delete().in('id', removeIds);
+      // 먼저 저장을 완료한 뒤에만 기존 로스터를 정리해 데이터 손실을 방지합니다.
+      if (upsertList.length > 0) {
+        const { error } = await supabaseClient.from('players').upsert(upsertList, { onConflict: 'id' });
+        if (error) {
+          console.error('경기 로스터 저장 실패:', error, upsertList);
+          alert('경기 로스터 저장 실패: ' + error.message + '\n기존 로스터는 삭제하지 않았습니다.');
+          return;
+        }
       }
 
-      if (upsertList.length > 0) {
-        await supabaseClient.from('players').upsert(upsertList, { onConflict: 'id' });
+      if (removeIds.length > 0) {
+        const { error } = await supabaseClient.from('players').delete().in('id', removeIds);
+        if (error) {
+          console.error('기존 로스터 정리 실패:', error);
+          alert('선수 목록은 저장했지만 제외 선수 정리에 실패했습니다: ' + error.message);
+          return;
+        }
       }
 
       closeModal('currentMatchRosterModal');
