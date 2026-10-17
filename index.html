@@ -1741,15 +1741,18 @@
         const eFg = fga > 0 ? (((fgm + 0.5 * p3m_tot) / fga) * 100).toFixed(1) : '0.0';
         const ts = (2 * (fga + 0.44 * fta_tot)) > 0 ? ((pts / (2 * (fga + 0.44 * fta_tot))) * 100).toFixed(1) : '0.0';
         const astTo = tov_tot > 0 ? (ast_tot / tov_tot).toFixed(1) : (ast_tot > 0 ? ast_tot.toFixed(1) : '0.0');
-        const usg = '15.2';
-        const offRtg = '85.4';
-        const defRtg = '76.2';
-        const netRtg = '+9.2';
+        // These advanced metrics need possession/team-level data that this schema does not store.
+        // Show unavailable rather than fabricated constants.
+        const usg = '—';
+        const offRtg = '—';
+        const defRtg = '—';
+        const netRtg = '—';
         const eff = gameCount > 0 ? ((pts + totalReb + ast_tot + stl_tot + blk_tot - (fga - fgm) - (fta_tot - ftm_tot) - tov_tot) / gameCount).toFixed(1) : '0.0';
-        const pie = '10.5';
-        const per = (parseFloat(ppg) * 1.5).toFixed(1);
-        const dd = (pts >= 10 && totalReb >= 10) || (pts >= 10 && ast_tot >= 10) ? 1 : 0;
-        const td = 0;
+        const pie = '—';
+        const per = '—';
+        // Double/triple-doubles are game-level counts; period totals alone cannot determine them.
+        const dd = '—';
+        const td = '—';
 
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-700/40 text-slate-200';
@@ -1956,8 +1959,8 @@
       const q = Number(m.quarter || 1);
       const playerId = 'AWAY_TEAM';
       const qKey = `${playerId}_q${q}`;
-      const pendingKey = `${matchId}:${qKey}:${statType}`;
-      if (pendingStatWrites.has(pendingKey)) return false;
+      const pendingKey = `${matchId}:${qKey}`;
+      if (pendingStatWrites.has(pendingKey)) { alert('해당 선수의 스탯을 저장 중입니다. 잠시 후 다시 눌러주세요.'); return false; }
       pendingStatWrites.add(pendingKey);
 
       const previousStats = { ...STAT_DEFAULTS, ...(m.stats[qKey] || {}) };
@@ -2193,7 +2196,7 @@
       }
     }
 
-    function deleteLog(logId) {
+    async function deleteLog(logId) {
       const m = matches[currentMatchId];
       const tLog = m && m.logs.find(l => l.id === logId);
       if (!tLog) return;
