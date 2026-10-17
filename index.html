@@ -2669,11 +2669,11 @@
 
       const duration = Math.max(1, Number(m.quarterDuration) || 10) * 60;
       let timeSec;
-      if (/^\\d{1,3}:\\d{1,2}$/.test(timeInputStr)) {
+      if (/^\d{1,3}:\d{1,2}$/.test(timeInputStr)) {
         const [mins, secs] = timeInputStr.split(':').map(Number);
         if (secs > 59) { alert('초는 0~59 사이로 입력하세요.'); return; }
         timeSec = mins * 60 + secs;
-      } else if (/^\\d+$/.test(timeInputStr)) timeSec = Number(timeInputStr);
+      } else if (/^\d+$/.test(timeInputStr)) timeSec = Number(timeInputStr);
       else { alert('교체 시간 형식이 올바르지 않습니다. 예: 08:32'); return; }
       if (!Number.isInteger(timeSec) || timeSec < 0 || timeSec > duration) { alert(`교체 시간은 00:00~${Math.floor(duration/60)}:${String(duration%60).padStart(2,'0')} 범위여야 합니다.`); return; }
 
