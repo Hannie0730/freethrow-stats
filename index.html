@@ -872,9 +872,10 @@
       const team = isHomePlayer ? 'HOME' : 'AWAY';
 
       for (let q = 1; q <= 4; q++) {
-        // 미래 쿼터는 출전시간에 포함하지 않고, 현재 쿼터는 실제 경과 시간까지만 계산한다.
+        // 타이머를 사용하지 않는 운영 방식: 선택한 현재 쿼터까지는 전체 쿼터 시간을 계산한다.
+        // 교체는 로그의 남은 시간(timeSec)을 기준으로 각 선수의 출전 구간을 나눈다.
         if (q > currentQuarter) continue;
-        const endT = q < currentQuarter ? 0 : Math.max(0, Math.min(qDuration, Number(m.timerSeconds ?? qDuration)));
+        const endT = 0;
         const storedLineup = (m.lineups && m.lineups[q] && m.lineups[q][side]) || [];
         const qSubs = ((m.substitutions && m.substitutions[q]) || [])
           .filter(s => s.team === team)
