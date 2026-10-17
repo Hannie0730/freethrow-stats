@@ -200,6 +200,101 @@
       }
     }
 
+    /* Larger touch tablets whose browser reports a CSS viewport wider than 1366px.
+       This covers iPad Safari desktop-mode / wide-viewport layouts without affecting
+       ordinary mouse-driven desktop browsers. */
+    @media (min-width: 1367px) and (hover: none) {
+      #pageRecorder > div:first-child {
+        gap: 8px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+      }
+      #pageRecorder > div:first-child button {
+        min-height: 36px;
+        padding: 6px 10px;
+        font-size: 13px !important;
+      }
+      #homePlayerList > div,
+      #awayPlayerList > div {
+        min-height: 64px;
+        padding: 12px !important;
+      }
+      #homePlayerList > div > div:first-child > span:first-child,
+      #awayPlayerList > div > div:first-child > span:first-child {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 16px !important;
+        flex-shrink: 0;
+      }
+      #homePlayerList > div > div:first-child > div > div:first-child,
+      #awayPlayerList > div > div:first-child > div > div:first-child {
+        font-size: 16px !important;
+        line-height: 1.3 !important;
+      }
+      #homePlayerList > div > div:first-child > div > div:last-child,
+      #awayPlayerList > div > div:first-child > div > div:last-child {
+        font-size: 14px !important;
+      }
+      #statModal > div {
+        width: min(600px, 94vw);
+        max-width: 600px;
+        padding: 16px !important;
+      }
+      #statModal .grid button {
+        min-height: 50px;
+        padding: 10px 8px !important;
+        font-size: 16px !important;
+        line-height: 1.25 !important;
+      }
+      #statModal h3 { font-size: 21px !important; }
+      #newMatchModal > div {
+        width: min(760px, 96vw);
+        max-width: 760px;
+        padding: 16px !important;
+        max-height: 92vh;
+      }
+      #newMatchModal h3 {
+        font-size: 19px !important;
+        margin-bottom: 10px !important;
+      }
+      #newMatchModal .space-y-3 { font-size: 14px !important; }
+      #newMatchModal #rosterSelectionContainer {
+        max-height: min(38vh, 340px) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px !important;
+      }
+      #newMatchModal .roster-item {
+        min-height: 42px;
+        padding: 9px !important;
+        font-size: 14px !important;
+        line-height: 1.25 !important;
+      }
+      #newMatchModal .roster-item input {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      #newMatchModal input:not([type="checkbox"]):not([type="radio"]),
+      #newMatchModal select,
+      #newMatchModal textarea,
+      #matchDateFilter,
+      #matchSelect {
+        min-height: 42px;
+        font-size: 16px !important;
+      }
+      #timerToggleBtn,
+      #pageRecorder section button[onclick*="openSubModal"],
+      #pageRecorder section button[onclick*="openCurrentMatchRosterModal"],
+      #pageRecorder section button[onclick*="openLineupModal"] {
+        min-height: 44px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        font-size: 14px !important;
+      }
+      #homePlayerList,
+      #awayPlayerList { max-height: 62vh; }
+    }
+
   </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden">
