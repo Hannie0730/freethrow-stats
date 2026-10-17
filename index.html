@@ -2159,8 +2159,8 @@
       const matchId = currentMatchId;
       const q = Number(m.quarter || 1);
       const qKey = `${playerId}_q${q}`;
-      const pendingKey = `${matchId}:${qKey}:${statType}`;
-      if (pendingStatWrites.has(pendingKey)) return false;
+      const pendingKey = `${matchId}:${qKey}`;
+      if (pendingStatWrites.has(pendingKey)) { alert('해당 선수의 스탯을 저장 중입니다. 잠시 후 다시 눌러주세요.'); return false; }
       pendingStatWrites.add(pendingKey);
 
       const previousStats = { ...STAT_DEFAULTS, ...(m.stats[qKey] || {}) };
@@ -2259,19 +2259,32 @@
       if (!currentMatchId) return;
       const m = matches[currentMatchId];
       if (!m) return;
+      if (!confirm(`현재 경기(${m.homeTeam} vs ${m.awayTeam})의 모든 점수, 기록 스탯, 타임라인 로그를 완전히 초기화하시겠습니까?\\n(선수 명단/로스터는 유지됩니다.)`)) return;
 
-      if (confirm(`현재 경기(${m.homeTeam} vs ${m.awayTeam})의 모든 점수, 기록 스탯, 타임라인 로그를 완전히 초기화하시겠습니까?\n(선수 명단/로스터는 유지됩니다.)`)) {
-        await supabaseClient.from('player_stats').delete().eq('match_id', currentMatchId);
-        await supabaseClient.from('logs').delete().eq('match_id', currentMatchId);
-        await supabaseClient.from('lineups').delete().eq('match_id', currentMatchId);
-
-        const initialSeconds = (m.quarterDuration || 10) * 60;
-        await supabaseClient.from('matches').update({ quarter: 1, timer_seconds: initialSeconds }).eq('id', currentMatchId);
-
-        if (isTimerRunning) toggleTimer();
+      const matchId = currentMatchId;
+      const results = await Promise.all([
+        supabaseClient.from('player_stats').delete().eq('match_id', matchId),
+        supabaseClient.from('logs').delete().eq('match_id', matchId),
+        supabaseClient.from('lineups').delete().eq('match_id', matchId)
+      ]);
+      const failed = results.find(result => result.error);
+      if (failed) {
+        console.error('경기 초기화 일부 실패:', failed.error);
+        alert('경기 초기화 중 일부 작업이 실패했습니다. 데이터가 일부만 초기화됐을 수 있으니 화면을 새로 불러와 확인해주세요.\\n오류: ' + failed.error.message);
         await loadFromSupabase();
-        alert('현재 경기의 점수 및 스탯 기록이 완전히 초기화되었습니다.');
+        return;
       }
+
+      const initialSeconds = (m.quarterDuration || 10) * 60;
+      const { error: matchError } = await supabaseClient.from('matches').update({ quarter: 1, timer_seconds: initialSeconds }).eq('id', matchId);
+      if (matchError) {
+        alert('스탯/로그는 초기화됐지만 쿼터 초기화 저장에 실패했습니다: ' + matchError.message);
+        await loadFromSupabase();
+        return;
+      }
+      if (isTimerRunning) stopTimer({ persist: false });
+      await loadFromSupabase();
+      alert('현재 경기의 점수 및 스탯 기록이 완전히 초기화되었습니다.');
     }
 
     function updateScoresAndBoxScore() {
