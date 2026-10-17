@@ -22,56 +22,130 @@
     .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
     .custom-scroll::-webkit-scrollbar-track { background: #1e293b; }
 
-    /* iPad / touch-tablet usability improvements: keep desktop styling unchanged */
+    /* iPad / touch-tablet usability: enlarge the controls that are actually used,
+       while keeping the match toolbar compact and leaving desktop styles untouched. */
     @media (pointer: coarse) and (min-width: 700px) and (max-width: 1366px) {
-      button {
-        min-height: 44px;
-        padding-top: 8px;
-        padding-bottom: 8px;
-        touch-action: manipulation;
+      /* Keep the match selector / add-match toolbar from becoming too tall */
+      #pageRecorder > div:first-child {
+        gap: 8px;
+        padding-top: 6px;
+        padding-bottom: 6px;
       }
-      button.text-xs,
-      button[class*="text-[10px]"],
-      button[class*="text-[11px]"] {
+      #pageRecorder > div:first-child button {
+        min-height: 36px;
+        padding-top: 6px;
+        padding-bottom: 6px;
+        padding-left: 10px;
+        padding-right: 10px;
+        font-size: 13px !important;
+      }
+
+      /* Make the actual player cards bigger (these are clickable DIVs, not buttons) */
+      #homePlayerList > div,
+      #awayPlayerList > div {
+        min-height: 72px;
+        padding: 14px !important;
+      }
+      #homePlayerList > div > div:first-child,
+      #awayPlayerList > div > div:first-child {
+        gap: 12px;
+      }
+      #homePlayerList > div > div:first-child > span:first-child,
+      #awayPlayerList > div > div:first-child > span:first-child {
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 17px !important;
+        flex-shrink: 0;
+      }
+      #homePlayerList > div > div:first-child > div > div:first-child,
+      #awayPlayerList > div > div:first-child > div > div:first-child {
+        font-size: 17px !important;
+        line-height: 1.3 !important;
+      }
+      #homePlayerList > div > div:first-child > div > div:last-child,
+      #awayPlayerList > div > div:first-child > div > div:last-child {
+        font-size: 14px !important;
+      }
+
+      /* Stat-entry modal: large, easy-to-hit two-column controls */
+      #statModal > div {
+        width: min(620px, 94vw);
+        max-width: 620px;
+        padding: 20px !important;
+      }
+      #statModal .grid button {
+        min-height: 58px;
+        padding: 14px 10px !important;
+        font-size: 17px !important;
+        line-height: 1.25 !important;
+      }
+      #statModal h3 {
+        font-size: 21px !important;
+      }
+
+      /* New-match modal: less bulky frame, more room for the roster list */
+      #newMatchModal > div {
+        width: min(760px, 96vw);
+        max-width: 760px;
+        padding: 16px !important;
+        max-height: 94vh;
+      }
+      #newMatchModal h3 {
+        font-size: 19px !important;
+        margin-bottom: 10px !important;
+      }
+      #newMatchModal .space-y-3 {
+        font-size: 14px !important;
+      }
+      #newMatchModal #rosterSelectionContainer {
+        max-height: min(38vh, 340px) !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px !important;
+      }
+      #newMatchModal .roster-item {
+        min-height: 42px;
+        padding: 9px !important;
         font-size: 14px !important;
         line-height: 1.25 !important;
       }
-      input:not([type="checkbox"]):not([type="radio"]),
-      select,
-      textarea {
-        min-height: 44px;
+      #newMatchModal .roster-item input {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+      #newMatchModal button[onclick*="promptAddGuest"],
+      #newMatchModal button[onclick*="promptAddMercenary"] {
+        min-height: 38px;
+        padding: 7px 10px !important;
+        font-size: 13px !important;
+      }
+      #newMatchModal input:not([type="checkbox"]):not([type="radio"]),
+      #newMatchModal select,
+      #newMatchModal textarea,
+      #matchDateFilter,
+      #matchSelect {
+        min-height: 42px;
         font-size: 16px !important;
       }
-      #pageRecorder > div:first-child {
-        gap: 10px;
-        padding-top: 10px;
-        padding-bottom: 10px;
-      }
-      #pageRecorder > div:first-child button {
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-      #homePlayerList,
-      #awayPlayerList {
-        max-height: 560px;
-      }
-      #pageRecorder section button {
-        font-size: 14px;
-      }
-      #pageRecorder section [class*="text-[10px]"],
-      #pageRecorder section [class*="text-[11px]"] {
-        font-size: 12px !important;
-      }
+
+      /* Other match controls: accessible touch targets without globally enlarging every button */
       #timerToggleBtn,
       #pageRecorder section button[onclick*="openSubModal"],
       #pageRecorder section button[onclick*="openCurrentMatchRosterModal"],
       #pageRecorder section button[onclick*="openLineupModal"] {
-        min-height: 46px;
+        min-height: 44px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        font-size: 14px !important;
+      }
+      #homePlayerList,
+      #awayPlayerList {
+        max-height: 62vh;
       }
     }
 
-    /* iPad portrait: avoid squeezing scoreboard and both teams into three narrow columns */
-    @media (pointer: coarse) and (min-width: 700px) and (max-width: 900px) and (orientation: portrait) {
+    /* iPad portrait: stack the panels and give the player lists full width */
+    @media (pointer: coarse) and (min-width: 700px) and (max-width: 1100px) and (orientation: portrait) {
       #pageRecorder {
         display: grid !important;
         grid-template-columns: minmax(0, 1fr) !important;
@@ -104,9 +178,13 @@
       #timerDisplay {
         font-size: 2.25rem !important;
       }
+      #newMatchModal #rosterSelectionContainer {
+        grid-template-columns: minmax(0, 1fr);
+        max-height: 34vh !important;
+      }
     }
 
-    /* iPad landscape: preserve the three-panel scoreboard layout with more usable controls */
+    /* iPad landscape: keep the three-panel recorder layout */
     @media (pointer: coarse) and (min-width: 901px) and (max-width: 1366px) and (orientation: landscape) {
       #pageRecorder {
         gap: 12px !important;
@@ -115,10 +193,6 @@
       #pageRecorder > section {
         min-width: 0;
         padding: 12px !important;
-      }
-      #homePlayerList,
-      #awayPlayerList {
-        max-height: 62vh;
       }
       #homeScoreDisplay,
       #awayScoreDisplay {
