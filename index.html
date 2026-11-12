@@ -970,9 +970,9 @@
           <div class="ft-kit-select-grid">
             <div class="ft-kit-select-card">
               <label for="selectHomeKit">HOME 유니폼</label>
-              <div class="ft-kit-preview-row"><span id="homeKitSwatch" class="ft-kit-swatch"></span><span id="homeKitLabel">블랙</span></div>
+              <div class="ft-kit-preview-row"><span id="homeKitSwatch" class="ft-kit-swatch"></span><span id="homeKitLabel">민트</span></div>
               <select id="selectHomeKit" onchange="updateNewMatchKitPreview()">
-                <option value="블랙">블랙</option><option value="화이트">화이트</option>
+                <option value="민트" selected>민트</option><option value="블랙">블랙</option><option value="화이트">화이트</option>
                 <option value="블루/화이트">블루/화이트</option><option value="블루">블루</option>
                 <option value="레드">레드</option><option value="그린">그린</option>
                 <option value="옐로우">옐로우</option><option value="퍼플">퍼플</option>
@@ -981,10 +981,10 @@
             </div>
             <div class="ft-kit-select-card">
               <label for="selectAwayKit">AWAY 유니폼</label>
-              <div class="ft-kit-preview-row"><span id="awayKitSwatch" class="ft-kit-swatch"></span><span id="awayKitLabel">블루/화이트</span></div>
+              <div class="ft-kit-preview-row"><span id="awayKitSwatch" class="ft-kit-swatch"></span><span id="awayKitLabel">화이트</span></div>
               <select id="selectAwayKit" onchange="updateNewMatchKitPreview()">
-                <option value="블랙">블랙</option><option value="화이트">화이트</option>
-                <option value="블루/화이트" selected>블루/화이트</option><option value="블루">블루</option>
+                <option value="블랙">블랙</option><option value="화이트" selected>화이트</option>
+                <option value="민트">민트</option><option value="블루/화이트">블루/화이트</option><option value="블루">블루</option>
                 <option value="레드">레드</option><option value="그린">그린</option>
                 <option value="옐로우">옐로우</option><option value="퍼플">퍼플</option>
                 <option value="오렌지">오렌지</option>
@@ -2773,12 +2773,10 @@
       if (durInput) durInput.value = '10';
 
       document.getElementById('inputMatchType').value = '자체전';
-      const rosterHomeColor = document.getElementById('selectHomeColor')?.value || '블랙';
-      const rosterAwayColor = rosterHomeColor === '블랙' ? '블루/화이트' : '블랙';
       const homeKitSelect = document.getElementById('selectHomeKit');
       const awayKitSelect = document.getElementById('selectAwayKit');
-      if (homeKitSelect) homeKitSelect.value = rosterHomeColor;
-      if (awayKitSelect) awayKitSelect.value = rosterAwayColor;
+      if (homeKitSelect) homeKitSelect.value = '민트';
+      if (awayKitSelect) awayKitSelect.value = '화이트';
       onMatchModeChange('자체전');
       updateNewMatchKitPreview();
 
@@ -3191,8 +3189,8 @@
       const mode = document.getElementById('inputMatchType').value;
       const homeTeam = document.getElementById('inputHomeTeamName').value.trim() || 'HOME';
       const awayTeam = document.getElementById('inputAwayTeamName').value.trim() || 'AWAY';
-      const homeKitColor = document.getElementById('selectHomeKit')?.value || '블랙';
-      const awayKitColor = document.getElementById('selectAwayKit')?.value || '블루/화이트';
+      const homeKitColor = document.getElementById('selectHomeKit')?.value || '민트';
+      const awayKitColor = document.getElementById('selectAwayKit')?.value || '화이트';
       const matchPayload = { id: matchId, date: matchDate, mode: lfEncodeMatchMode(mode, homeKitColor, awayKitColor), home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: timerSeconds, quarter_duration: quarterDuration };
       const { error: matchErr } = await supabaseClient.from('matches').insert([matchPayload]);
       if (matchErr) { console.error('Match insert error:', matchErr); alert('경기 생성에 실패했습니다: ' + matchErr.message); return; }
@@ -3432,7 +3430,7 @@
         return;
       }
       const { error } = await supabaseClient.from('matches').update({
-        date, mode: lfEncodeMatchMode(mode, m.homeKitColor || '블랙', m.awayKitColor || '블루/화이트'), home_team: homeTeam, away_team: awayTeam,
+        date, mode: lfEncodeMatchMode(mode, m.homeKitColor || '민트', m.awayKitColor || '화이트'), home_team: homeTeam, away_team: awayTeam,
         quarter_duration: duration,
         timer_seconds: Math.max(0, Number(m.timerSeconds ?? duration * 60))
       }).eq('id', currentMatchId);
@@ -3930,8 +3928,8 @@
           const quarterDuration = Math.max(1, Number(m.quarter_duration || Math.round((m.timer_seconds || 600) / 60) || 10));
           const obj = {
             id: m.id, date: m.date, mode: kitMeta.mode, homeTeam: m.home_team, awayTeam: m.away_team,
-            homeKitColor: kitMeta.homeKitColor || homePlayers[0]?.color || '블랙',
-            awayKitColor: kitMeta.awayKitColor || awayPlayers[0]?.color || '블루/화이트',
+            homeKitColor: kitMeta.homeKitColor || '민트',
+            awayKitColor: kitMeta.awayKitColor || '화이트',
             quarter: m.quarter || 1,
             timerSeconds: Math.max(0, Number(m.timer_seconds ?? (quarterDuration * 60))),
             quarterDuration, homePlayers, awayPlayers,
@@ -4324,21 +4322,22 @@
     // 경기별 유니폼 팔레트와 메타데이터. 기존 matches 테이블을 유지하기 위해 mode에 함께 보관합니다.
     function lfKitPalette(color) {
       const palette = {
-        '블랙': { background: '#232b30', ink: '#ffffff', trim: '#aebbc1', accent: '#36454d' },
-        '화이트': { background: '#f4f7f4', ink: '#244536', trim: '#bfd2c5', accent: '#6c927c' },
-        '블루/화이트': { background: 'linear-gradient(135deg,#3775c9 0%,#3775c9 46%,#f8fbff 47%,#f8fbff 55%,#3775c9 56%,#3775c9 100%)', ink: '#ffffff', trim: '#dceaff', accent: '#477bc4' },
-        '블루': { background: '#3677d2', ink: '#ffffff', trim: '#b7d6ff', accent: '#3677d2' },
-        '레드': { background: '#d94f5c', ink: '#ffffff', trim: '#ffc2c7', accent: '#c95b64' },
-        '그린': { background: '#238b64', ink: '#ffffff', trim: '#b8efd2', accent: '#238b64' },
+        '민트': { background: '#68dfbd', ink: '#111827', trim: '#a7f1dc', accent: '#159a76' },
+        '블랙': { background: '#232b30', ink: '#111827', trim: '#aebbc1', accent: '#36454d' },
+        '화이트': { background: '#edf1f2', ink: '#111827', trim: '#d5dcdf', accent: '#8a999d' },
+        '블루/화이트': { background: 'linear-gradient(135deg,#3775c9 0%,#3775c9 46%,#f8fbff 47%,#f8fbff 55%,#3775c9 56%,#3775c9 100%)', ink: '#111827', trim: '#dceaff', accent: '#477bc4' },
+        '블루': { background: '#3677d2', ink: '#111827', trim: '#b7d6ff', accent: '#3677d2' },
+        '레드': { background: '#d94f5c', ink: '#111827', trim: '#ffc2c7', accent: '#c95b64' },
+        '그린': { background: '#238b64', ink: '#111827', trim: '#b8efd2', accent: '#238b64' },
         '옐로우': { background: '#f1cb51', ink: '#3f3820', trim: '#fff0a9', accent: '#c09c31' },
         '퍼플': { background: '#805bbd', ink: '#ffffff', trim: '#d8c5f6', accent: '#805bbd' },
         '오렌지': { background: '#ec914c', ink: '#4b2c17', trim: '#ffd1a9', accent: '#d47c38' }
       };
-      return palette[color] || palette['화이트'];
+      return palette[color] || palette['민트'];
     }
 
     function lfEncodeMatchMode(mode, homeKitColor, awayKitColor) {
-      const codes = { '블랙':'K', '화이트':'W', '블루/화이트':'BW', '블루':'B', '레드':'R', '그린':'G', '옐로우':'Y', '퍼플':'P', '오렌지':'O' };
+      const codes = { '민트':'M', '블랙':'K', '화이트':'W', '블루/화이트':'BW', '블루':'B', '레드':'R', '그린':'G', '옐로우':'Y', '퍼플':'P', '오렌지':'O' };
       return String(mode || '교류전') + '~' + (codes[homeKitColor] || 'K') + '.' + (codes[awayKitColor] || 'BW');
     }
 
@@ -4346,7 +4345,7 @@
       const raw = String(storedMode || '교류전');
       const markerAt = raw.lastIndexOf('~');
       if (markerAt < 0) return { mode: raw, homeKitColor: null, awayKitColor: null };
-      const codes = { 'K':'블랙', 'W':'화이트', 'BW':'블루/화이트', 'B':'블루', 'R':'레드', 'G':'그린', 'Y':'옐로우', 'P':'퍼플', 'O':'오렌지' };
+      const codes = { 'M':'민트', 'K':'블랙', 'W':'화이트', 'BW':'블루/화이트', 'B':'블루', 'R':'레드', 'G':'그린', 'Y':'옐로우', 'P':'퍼플', 'O':'오렌지' };
       const parts = raw.slice(markerAt + 1).split('.');
       return {
         mode: raw.slice(0, markerAt) || '교류전',
@@ -4411,7 +4410,7 @@
       const onIds = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][isHome ? 'home' : 'away']) || [];
       const onCourt = players.filter(p => onIds.includes(p.id));
       const bench = players.filter(p => !onIds.includes(p.id));
-      const kitColor = isHome ? (m.homeKitColor || '블랙') : (m.awayKitColor || '블루/화이트');
+      const kitColor = isHome ? (m.homeKitColor || '민트') : (m.awayKitColor || '화이트');
       const kit = lfKitPalette(kitColor);
       const html = [];
 
@@ -4926,14 +4925,14 @@
         .ft-player-tile.is-selected { background:#e8f5ed; border:2px solid #25865f; box-shadow:0 5px 15px rgba(37,134,95,.13); }
         .ft-player-tile.is-bench { background:#fbfdfb; border-color:#e6eee8; }
         .ft-jersey {
-          width:83%; height:88%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+          width:82%; height:88%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
           clip-path:polygon(19% 1%,37% 1%,43% 10%,57% 10%,63% 1%,81% 1%,100% 18%,83% 34%,72% 27%,72% 100%,28% 100%,28% 27%,17% 34%,0 18%);
-          background:var(--ft-kit-bg,#e6f0e9); color:var(--ft-kit-ink,#29483b);
-          filter:drop-shadow(0 4px 5px rgba(29,70,47,.16)); padding-top:16%; line-height:1.05; text-align:center;
+          background:var(--ft-kit-bg,#68dfbd); color:#111827;
+          filter:drop-shadow(0 3px 4px rgba(35,65,52,.13)); padding-top:16%; line-height:1.05; text-align:center;
         }
-        .ft-jersey-number { display:block; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:clamp(18px,2.5vw,27px); font-weight:950; letter-spacing:-.05em; }
-        .ft-jersey-name { display:block; max-width:82%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:7px; padding-top:5px; border-top:1px solid var(--ft-kit-trim,rgba(255,255,255,.45)); font-size:clamp(10px,1.35vw,13px); font-weight:900; line-height:1.1; }
-        .ft-player-tile.is-bench .ft-jersey { filter:saturate(.48) opacity(.66) drop-shadow(0 3px 4px rgba(29,70,47,.11)); }
+        .ft-jersey-number { display:block; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#111827; font-size:clamp(18px,2.5vw,27px); font-weight:950; letter-spacing:-.05em; }
+        .ft-jersey-name { display:block; max-width:82%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:7px; padding-top:5px; border-top:1px solid rgba(17,24,39,.18); color:#111827; font-size:clamp(10px,1.35vw,13px); font-weight:900; line-height:1.1; }
+        .ft-player-tile.is-bench .ft-jersey { filter:drop-shadow(0 3px 4px rgba(35,65,52,.10)); }
         .ft-selected-check { position:absolute; right:5px; top:5px; width:23px; height:23px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#187a56; color:#fff; border:2px solid #fff; font-size:10px; box-shadow:0 2px 6px rgba(20,88,60,.2); }
         .ft-roster-empty { grid-column:1/-1; background:#f7faf8; color:#71877d; border:1px dashed #dce8df; border-radius:12px; padding:12px; text-align:center; font-size:11px; font-weight:700; }
         @media (max-width:699px) {
