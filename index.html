@@ -4432,11 +4432,15 @@
           'onclick="openStatModal(lfFind(\'' + esc(p.id) + '\',\'' + team + '\'),\'' + team + '\')" ' +
           'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}" ' +
           'class="ft-player-tile ' + (on ? 'is-selected' : 'is-bench') + '" ' +
-          'style="--ft-kit-bg:' + kit.background + ';--ft-kit-ink:' + kit.ink + ';--ft-kit-trim:' + kit.trim + ';">' +
-            '<div class="ft-jersey" aria-hidden="true">' +
-              '<span class="ft-jersey-number">' + esc(p.number) + '</span>' +
-              '<span class="ft-jersey-name">' + esc(p.name) + '</span>' +
+          'style="--ft-kit-bg:' + kit.background + ';--ft-kit-color:' + kit.accent + ';--ft-kit-ink:#111827;--ft-kit-trim:' + kit.trim + ';">' +
+            '<div class="ft-uniform-icon" aria-hidden="true">' +
+              '<svg class="ft-uniform-svg" viewBox="0 0 72 78" focusable="false">' +
+                '<path class="ft-uniform-body" d="M18 7 H29 C30 14 32 17 36 17 C40 17 42 14 43 7 H54 L68 23 L58 33 L51 28 V68 Q51 74 45 74 H27 Q21 74 21 68 V28 L14 33 L4 23 Z"/>' +
+                '<path class="ft-uniform-neck" d="M29 7 C30 14 42 14 43 7"/>' +
+              '</svg>' +
+              '<span class="ft-uniform-number">' + esc(p.number) + '</span>' +
             '</div>' +
+            '<span class="ft-player-name">' + esc(p.name) + '</span>' +
             (on ? '<span class="ft-selected-check" aria-label="출전 선택"><i class="fa-solid fa-check"></i></span>' : '') +
           '</div>';
       };
@@ -5264,6 +5268,113 @@
         }
       `;
       document.head.appendChild(lfBarLayoutFix);
+
+      // Minimal uniform-card treatment: a compact flat kit icon inside a square player card.
+      const uniformCardStyle = document.createElement('style');
+      uniformCardStyle.id = 'freethrow-uniform-card-style';
+      uniformCardStyle.textContent = `
+        #homePlayerList .ft-player-tile,
+        #awayPlayerList .ft-player-tile {
+          aspect-ratio:1 / 1 !important;
+          min-height:104px !important;
+          height:auto !important;
+          padding:7px 5px 6px !important;
+          display:flex !important;
+          flex-direction:column !important;
+          align-items:center !important;
+          justify-content:center !important;
+          gap:2px !important;
+          background:#fff !important;
+          border:1px solid #e4ece6 !important;
+          border-radius:15px !important;
+          box-shadow:0 3px 10px rgba(30,73,49,.045) !important;
+        }
+        #homePlayerList .ft-player-tile.is-selected,
+        #awayPlayerList .ft-player-tile.is-selected {
+          background:#f0faf4 !important;
+          border:2px solid #27966a !important;
+          box-shadow:0 4px 12px rgba(39,150,106,.12) !important;
+        }
+        #homePlayerList .ft-player-tile.is-bench,
+        #awayPlayerList .ft-player-tile.is-bench {
+          background:#fff !important;
+          border:1px solid #e4ece6 !important;
+          opacity:1 !important;
+        }
+        .ft-uniform-icon {
+          width:58px !important;
+          height:62px !important;
+          position:relative !important;
+          display:flex !important;
+          align-items:center !important;
+          justify-content:center !important;
+          flex:0 0 62px !important;
+          filter:drop-shadow(0 2px 2px rgba(23,65,44,.10));
+        }
+        .ft-uniform-svg { width:100% !important; height:100% !important; display:block !important; overflow:visible; }
+        .ft-uniform-body {
+          fill:var(--ft-kit-color,#68dfbd);
+          stroke:var(--ft-kit-trim,#a7f1dc);
+          stroke-width:1.5;
+          stroke-linejoin:round;
+        }
+        .ft-uniform-neck {
+          fill:none;
+          stroke:rgba(17,24,39,.28);
+          stroke-width:1.6;
+          stroke-linecap:round;
+        }
+        .ft-uniform-number {
+          position:absolute;
+          left:50%; top:58%;
+          transform:translate(-50%,-50%);
+          color:#111827 !important;
+          font-size:15px !important;
+          line-height:1 !important;
+          font-weight:950 !important;
+          letter-spacing:-.04em;
+          text-shadow:0 1px 0 rgba(255,255,255,.18);
+          pointer-events:none;
+        }
+        .ft-player-name {
+          display:block !important;
+          width:100% !important;
+          max-width:100% !important;
+          color:#111827 !important;
+          font-size:12px !important;
+          line-height:1.2 !important;
+          font-weight:850 !important;
+          text-align:center !important;
+          overflow:hidden !important;
+          text-overflow:ellipsis !important;
+          white-space:nowrap !important;
+          padding:0 2px !important;
+          margin:0 !important;
+          border:0 !important;
+        }
+        .ft-player-tile.is-bench .ft-uniform-icon { opacity:.94; }
+        .ft-selected-check {
+          width:20px !important; height:20px !important;
+          right:4px !important; top:4px !important;
+          background:#18845d !important;
+          box-shadow:0 2px 5px rgba(20,88,60,.18) !important;
+        }
+        @media (max-width:699px) {
+          #homePlayerList .ft-player-tile, #awayPlayerList .ft-player-tile {
+            min-height:100px !important;
+            border-radius:13px !important;
+          }
+          .ft-uniform-icon { width:54px !important; height:58px !important; flex-basis:58px !important; }
+          .ft-uniform-number { font-size:14px !important; }
+          .ft-player-name { font-size:11px !important; }
+        }
+        @media (min-width:700px) and (max-width:1100px) and (orientation:portrait) {
+          #homePlayerList .ft-player-tile, #awayPlayerList .ft-player-tile { min-height:112px !important; }
+          .ft-uniform-icon { width:60px !important; height:64px !important; flex-basis:64px !important; }
+          .ft-player-name { font-size:12px !important; }
+        }
+      `;
+      document.head.appendChild(uniformCardStyle);
       updateNewMatchKitPreview();
       lfInitBar();
       setTimeout(() => { const n = lfTotalDirty(); if (n) lfToast(`이전에 저장하지 못한 기록 ${n}건을 복원했습니다. [저장]을 눌러주세요.`, true); }, 1500);
