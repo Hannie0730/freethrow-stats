@@ -618,7 +618,14 @@
       <div id="awayPlayerList" class="flex-1 space-y-2 overflow-y-auto custom-scroll max-h-[480px]"></div>
     </section>
 
-    <!-- BOTTOM: Box Score -->
+    <div class="ft-reference-actionbar">
+      <button onclick="openSubModal('HOME')"><i class="fa-solid fa-right-left"></i><span>선수 교체</span></button>
+      <button onclick="openLineupModal()"><i class="fa-solid fa-clipboard-list"></i><span>전술 설정</span></button>
+      <button onclick="document.getElementById('timelineLog')?.scrollIntoView({behavior:'smooth',block:'center'})"><i class="fa-solid fa-chart-simple"></i><span>기록 입력</span></button>
+      <button class="ft-reference-save" onclick="lfSave()"><i class="fa-solid fa-floppy-disk"></i><span>저장하기</span></button>
+    </div>
+
+        <!-- BOTTOM: Box Score -->
     <section class="md:col-span-12 md:order-4 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg overflow-hidden mt-1">
       <div class="flex justify-between items-center mb-2">
         <h3 class="font-extrabold text-slate-200 text-xs md:text-sm flex items-center gap-1.5"><i class="fa-solid fa-chart-simple text-orange-500"></i> 경기별 실시간 박스스코어</h3>
@@ -5110,6 +5117,19 @@
         }
         .ft-selected-check { right:4px !important; top:4px !important; width:25px !important; height:25px !important; }
 
+        .ft-reference-actionbar {
+          grid-column:1/-1 !important; order:6 !important; display:grid;
+          grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding:2px 4px;
+        }
+        .ft-reference-actionbar button {
+          min-height:62px; display:flex; align-items:center; justify-content:center; gap:9px;
+          border:1px solid #e1ebe4; border-radius:17px; background:#fff; color:#176b50;
+          font-size:14px; font-weight:850; box-shadow:0 4px 13px rgba(25,77,53,.055);
+        }
+        .ft-reference-actionbar button i { font-size:20px; }
+        .ft-reference-actionbar .ft-reference-save {
+          background:linear-gradient(110deg,#18845f,#08734f); color:#fff; border-color:transparent;
+        }
         #pageRecorder > section:nth-of-type(4) {
           grid-column:1/-1 !important; order:8 !important; margin-top:0 !important;
           padding:16px !important; border:1px solid #e1ebe4 !important; border-radius:20px !important;
@@ -5161,6 +5181,9 @@
           .ft-jersey-number { font-size:clamp(15px,5vw,22px) !important; }
           .ft-jersey-name { font-size:clamp(8px,2.5vw,10px) !important; max-width:90% !important; }
           .ft-selected-check { width:19px !important; height:19px !important; font-size:8px !important; }
+          .ft-reference-actionbar { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+          .ft-reference-actionbar button { min-height:48px; font-size:11px; border-radius:13px; }
+          .ft-reference-actionbar button i { font-size:16px; }
           #lfBar { grid-template-columns:minmax(0,1fr) auto auto !important; padding:6px 8px !important; }
           #lfBar .lf-score { font-size:10px !important; }
           #lfBar .lf-score b { font-size:17px !important; }
