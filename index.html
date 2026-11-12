@@ -4533,7 +4533,6 @@
     }
     function lfInitBar() {
       if (document.getElementById('lfBar')) return;
-      document.body.style.paddingBottom = '84px';
       const bar = document.createElement('div');
       bar.id = 'lfBar';
       bar.innerHTML = `
@@ -4543,7 +4542,10 @@
         <label class="lf-auto"><input type="checkbox" id="lfAuto" onchange="lfToggleAuto(this.checked)"> 자동저장 60초</label>
         <div id="lfStatus" class="lf-status"></div>
         <button id="lfSaveBtn" onclick="lfSave()" class="lf-btn lf-save"><i class="fa-solid fa-cloud-arrow-up"></i> 저장</button>`;
-      document.body.appendChild(bar);
+      // Keep the save controls in the recorder's normal document flow.
+      // This prevents the bar from covering lineup/stat controls or other actions.
+      const recorder = document.getElementById('pageRecorder');
+      (recorder || document.body).appendChild(bar);
       const auto = localStorage.getItem(LF.AUTO_KEY) === '1';
       document.getElementById('lfAuto').checked = auto; lfToggleAuto(auto);
     }
@@ -5210,6 +5212,58 @@
         }
       `;
       document.head.appendChild(uniformSkin);
+
+      // Save bar layout fix: keep controls in normal page flow instead of overlaying content.
+      const lfBarLayoutFix = document.createElement('style');
+      lfBarLayoutFix.id = 'freethrow-lfbar-layout-fix';
+      lfBarLayoutFix.textContent = `
+        #lfBar {
+          position:relative !important;
+          top:auto !important; right:auto !important; bottom:auto !important; left:auto !important;
+          z-index:1 !important;
+          grid-column:1 / -1 !important;
+          width:100% !important; box-sizing:border-box !important;
+          margin:12px 0 0 !important;
+          display:grid !important;
+          grid-template-columns:minmax(0,1.2fr) auto auto auto minmax(120px,1fr) auto !important;
+          align-items:center !important;
+          gap:8px !important;
+          padding:12px !important;
+          border:1px solid #e1ebe4 !important;
+          border-radius:16px !important;
+          background:#fff !important;
+          box-shadow:0 4px 14px rgba(30,73,49,.06) !important;
+          backdrop-filter:none !important;
+        }
+        #lfBar .lf-score { min-width:0 !important; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        #lfBar .lf-clock { white-space:nowrap; }
+        #lfBar .lf-auto { margin:0 !important; min-width:0; }
+        #lfBar .lf-status { min-width:0; overflow-wrap:anywhere; }
+        #lfBar .lf-btn { min-width:0; white-space:nowrap; }
+        #lfBar .lf-save { grid-column:auto !important; grid-row:auto !important; }
+        .lf-toast { bottom:calc(76px + env(safe-area-inset-bottom)) !important; }
+
+        @media (max-width:900px) {
+          #lfBar {
+            grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+            gap:8px 10px !important;
+            padding:11px !important;
+          }
+          #lfBar .lf-score { grid-column:1; grid-row:1; font-size:12px !important; }
+          #lfBar .lf-clock { grid-column:2; grid-row:1; justify-self:end; font-size:13px !important; }
+          #lfBar .lf-btn:not(.lf-save) { grid-column:1; grid-row:2; width:100%; }
+          #lfBar .lf-save { grid-column:2 !important; grid-row:2 !important; width:100%; }
+          #lfBar .lf-auto { grid-column:1; grid-row:3; font-size:10px !important; }
+          #lfBar .lf-status { grid-column:2; grid-row:3; justify-self:end; text-align:right; font-size:10px !important; }
+        }
+        @media (max-width:380px) {
+          #lfBar { gap:7px !important; padding:9px !important; }
+          #lfBar .lf-score { font-size:11px !important; }
+          #lfBar .lf-score b { font-size:18px !important; }
+          #lfBar .lf-btn { padding:0 8px !important; font-size:11px !important; }
+        }
+      `;
+      document.head.appendChild(lfBarLayoutFix);
       updateNewMatchKitPreview();
       lfInitBar();
       setTimeout(() => { const n = lfTotalDirty(); if (n) lfToast(`이전에 저장하지 못한 기록 ${n}건을 복원했습니다. [저장]을 눌러주세요.`, true); }, 1500);
