@@ -943,22 +943,53 @@
         </div>
 
         <div id="teamColorSelectSection" class="bg-slate-900 p-3 rounded-xl border border-indigo-500/30 space-y-2">
+          <div class="text-[11px] font-extrabold text-slate-400">자체전 선수단 구분 기준</div>
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="block font-bold text-blue-400 mb-1">HOME 팀 컬러</label>
+              <label class="block font-bold text-blue-400 mb-1">HOME 선수 구분 색상</label>
               <select id="selectHomeColor" onchange="onHomeColorChange(this.value)" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white font-bold">
                 <option value="블랙">블랙</option>
                 <option value="블루/화이트">블루/화이트</option>
               </select>
             </div>
             <div>
-              <label class="block font-bold text-red-400 mb-1">AWAY 팀 컬러</label>
+              <label class="block font-bold text-red-400 mb-1">AWAY 선수 구분 색상</label>
               <input type="text" id="inputAwayColorText" value="블루/화이트" readonly class="w-full bg-slate-800/60 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-300 font-bold">
             </div>
           </div>
           <div class="grid grid-cols-2 gap-2 pt-1">
             <input type="text" id="inputHomeTeamName" value="Black 팀" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-bold" placeholder="HOME 팀명">
             <input type="text" id="inputAwayTeamName" value="White 팀" class="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-bold" placeholder="AWAY 팀명">
+          </div>
+        </div>
+
+        
+        <div id="uniformColorSelectSection" class="ft-kit-settings">
+          <div class="ft-kit-settings-title"><i class="fa-solid fa-shirt"></i><span>오늘 경기 유니폼 색상</span></div>
+          <p class="ft-kit-settings-help">HOME과 AWAY 유니폼을 각각 선택하세요. 선택한 색은 경기 화면의 선수 타일에도 적용됩니다.</p>
+          <div class="ft-kit-select-grid">
+            <div class="ft-kit-select-card">
+              <label for="selectHomeKit">HOME 유니폼</label>
+              <div class="ft-kit-preview-row"><span id="homeKitSwatch" class="ft-kit-swatch"></span><span id="homeKitLabel">블랙</span></div>
+              <select id="selectHomeKit" onchange="updateNewMatchKitPreview()">
+                <option value="블랙">블랙</option><option value="화이트">화이트</option>
+                <option value="블루/화이트">블루/화이트</option><option value="블루">블루</option>
+                <option value="레드">레드</option><option value="그린">그린</option>
+                <option value="옐로우">옐로우</option><option value="퍼플">퍼플</option>
+                <option value="오렌지">오렌지</option>
+              </select>
+            </div>
+            <div class="ft-kit-select-card">
+              <label for="selectAwayKit">AWAY 유니폼</label>
+              <div class="ft-kit-preview-row"><span id="awayKitSwatch" class="ft-kit-swatch"></span><span id="awayKitLabel">블루/화이트</span></div>
+              <select id="selectAwayKit" onchange="updateNewMatchKitPreview()">
+                <option value="블랙">블랙</option><option value="화이트">화이트</option>
+                <option value="블루/화이트" selected>블루/화이트</option><option value="블루">블루</option>
+                <option value="레드">레드</option><option value="그린">그린</option>
+                <option value="옐로우">옐로우</option><option value="퍼플">퍼플</option>
+                <option value="오렌지">오렌지</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -1851,6 +1882,8 @@
 
       document.getElementById('homeTeamTitle').textContent = m.homeTeam;
       document.getElementById('awayTeamTitle').textContent = m.awayTeam;
+      lfApplyTeamKitHeader('HOME', m.homeKitColor || '블랙');
+      lfApplyTeamKitHeader('AWAY', m.awayKitColor || '블루/화이트');
       document.getElementById('homeScoreLabel').textContent = m.homeTeam;
       document.getElementById('awayScoreLabel').textContent = m.awayTeam;
       document.getElementById('matchDateText').textContent = m.date;
@@ -2740,7 +2773,14 @@
       if (durInput) durInput.value = '10';
 
       document.getElementById('inputMatchType').value = '자체전';
+      const rosterHomeColor = document.getElementById('selectHomeColor')?.value || '블랙';
+      const rosterAwayColor = rosterHomeColor === '블랙' ? '블루/화이트' : '블랙';
+      const homeKitSelect = document.getElementById('selectHomeKit');
+      const awayKitSelect = document.getElementById('selectAwayKit');
+      if (homeKitSelect) homeKitSelect.value = rosterHomeColor;
+      if (awayKitSelect) awayKitSelect.value = rosterAwayColor;
       onMatchModeChange('자체전');
+      updateNewMatchKitPreview();
 
       const modal = document.getElementById('newMatchModal');
       if (modal) modal.classList.remove('hidden'); 
@@ -3151,7 +3191,9 @@
       const mode = document.getElementById('inputMatchType').value;
       const homeTeam = document.getElementById('inputHomeTeamName').value.trim() || 'HOME';
       const awayTeam = document.getElementById('inputAwayTeamName').value.trim() || 'AWAY';
-      const matchPayload = { id: matchId, date: matchDate, mode, home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: timerSeconds, quarter_duration: quarterDuration };
+      const homeKitColor = document.getElementById('selectHomeKit')?.value || '블랙';
+      const awayKitColor = document.getElementById('selectAwayKit')?.value || '블루/화이트';
+      const matchPayload = { id: matchId, date: matchDate, mode: lfEncodeMatchMode(mode, homeKitColor, awayKitColor), home_team: homeTeam, away_team: awayTeam, quarter: 1, timer_seconds: timerSeconds, quarter_duration: quarterDuration };
       const { error: matchErr } = await supabaseClient.from('matches').insert([matchPayload]);
       if (matchErr) { console.error('Match insert error:', matchErr); alert('경기 생성에 실패했습니다: ' + matchErr.message); return; }
 
@@ -3390,7 +3432,7 @@
         return;
       }
       const { error } = await supabaseClient.from('matches').update({
-        date, mode, home_team: homeTeam, away_team: awayTeam,
+        date, mode: lfEncodeMatchMode(mode, m.homeKitColor || '블랙', m.awayKitColor || '블루/화이트'), home_team: homeTeam, away_team: awayTeam,
         quarter_duration: duration,
         timer_seconds: Math.max(0, Number(m.timerSeconds ?? duration * 60))
       }).eq('id', currentMatchId);
@@ -3868,6 +3910,9 @@
         for (const m of matchData) {
           const mapP = (type) => (P[m.id] || []).filter(p => p.team_type === type)
             .map(p => ({ id: p.id, number: String(p.number), name: p.name, birth: p.birth_date || '', color: p.team_color || '블랙' }));
+          const homePlayers = mapP('HOME');
+          const awayPlayers = mapP('AWAY');
+          const kitMeta = lfDecodeMatchMode(m.mode);
           const st = {};
           (S[m.id] || []).forEach(r => {
             st[`${r.player_id}_q${r.quarter}`] = {
@@ -3884,10 +3929,12 @@
           });
           const quarterDuration = Math.max(1, Number(m.quarter_duration || Math.round((m.timer_seconds || 600) / 60) || 10));
           const obj = {
-            id: m.id, date: m.date, mode: m.mode || '교류전', homeTeam: m.home_team, awayTeam: m.away_team,
+            id: m.id, date: m.date, mode: kitMeta.mode, homeTeam: m.home_team, awayTeam: m.away_team,
+            homeKitColor: kitMeta.homeKitColor || homePlayers[0]?.color || '블랙',
+            awayKitColor: kitMeta.awayKitColor || awayPlayers[0]?.color || '블루/화이트',
             quarter: m.quarter || 1,
             timerSeconds: Math.max(0, Number(m.timer_seconds ?? (quarterDuration * 60))),
-            quarterDuration, homePlayers: mapP('HOME'), awayPlayers: mapP('AWAY'),
+            quarterDuration, homePlayers, awayPlayers,
             lineups: lu, stats: st, logs: lg, substitutions: parseSubstitutionsFromLogs(lg)
           };
           lfApplyOverlay(obj);
@@ -4273,6 +4320,66 @@
       }
     }
 
+
+    // 경기별 유니폼 팔레트와 메타데이터. 기존 matches 테이블을 유지하기 위해 mode에 함께 보관합니다.
+    function lfKitPalette(color) {
+      const palette = {
+        '블랙': { background: '#232b30', ink: '#ffffff', trim: '#aebbc1', accent: '#36454d' },
+        '화이트': { background: '#f4f7f4', ink: '#244536', trim: '#bfd2c5', accent: '#6c927c' },
+        '블루/화이트': { background: 'linear-gradient(135deg,#3775c9 0%,#3775c9 46%,#f8fbff 47%,#f8fbff 55%,#3775c9 56%,#3775c9 100%)', ink: '#ffffff', trim: '#dceaff', accent: '#477bc4' },
+        '블루': { background: '#3677d2', ink: '#ffffff', trim: '#b7d6ff', accent: '#3677d2' },
+        '레드': { background: '#d94f5c', ink: '#ffffff', trim: '#ffc2c7', accent: '#c95b64' },
+        '그린': { background: '#238b64', ink: '#ffffff', trim: '#b8efd2', accent: '#238b64' },
+        '옐로우': { background: '#f1cb51', ink: '#3f3820', trim: '#fff0a9', accent: '#c09c31' },
+        '퍼플': { background: '#805bbd', ink: '#ffffff', trim: '#d8c5f6', accent: '#805bbd' },
+        '오렌지': { background: '#ec914c', ink: '#4b2c17', trim: '#ffd1a9', accent: '#d47c38' }
+      };
+      return palette[color] || palette['화이트'];
+    }
+
+    function lfEncodeMatchMode(mode, homeKitColor, awayKitColor) {
+      return String(mode || '교류전') + '::FTKIT::' +
+        encodeURIComponent(homeKitColor || '블랙') + '|' +
+        encodeURIComponent(awayKitColor || '블루/화이트');
+    }
+
+    function lfDecodeMatchMode(storedMode) {
+      const raw = String(storedMode || '교류전');
+      const marker = '::FTKIT::';
+      const markerAt = raw.indexOf(marker);
+      if (markerAt < 0) return { mode: raw, homeKitColor: null, awayKitColor: null };
+      const parts = raw.slice(markerAt + marker.length).split('|');
+      const safeDecode = (value) => { try { return decodeURIComponent(value || ''); } catch (_) { return ''; } };
+      return {
+        mode: raw.slice(0, markerAt) || '교류전',
+        homeKitColor: safeDecode(parts[0]) || null,
+        awayKitColor: safeDecode(parts[1]) || null
+      };
+    }
+
+    function updateNewMatchKitPreview() {
+      const home = document.getElementById('selectHomeKit')?.value || '블랙';
+      const away = document.getElementById('selectAwayKit')?.value || '블루/화이트';
+      const apply = (swatchId, labelId, color) => {
+        const palette = lfKitPalette(color);
+        const swatch = document.getElementById(swatchId);
+        const label = document.getElementById(labelId);
+        if (swatch) swatch.style.background = palette.background;
+        if (label) label.textContent = color;
+      };
+      apply('homeKitSwatch', 'homeKitLabel', home);
+      apply('awayKitSwatch', 'awayKitLabel', away);
+    }
+
+    function lfApplyTeamKitHeader(team, color) {
+      const title = document.getElementById(team === 'HOME' ? 'homeTeamTitle' : 'awayTeamTitle');
+      if (!title) return;
+      const palette = lfKitPalette(color);
+      title.style.color = palette.accent;
+      const dot = title.previousElementSibling;
+      if (dot) dot.style.background = palette.background;
+    }
+
     /* ---------- 렌더링 (한 프레임에 한 번만) ---------- */
     function lfAfterChange() {
       lfPersist();
@@ -4301,34 +4408,33 @@
       const isHome = team === 'HOME';
       const container = document.getElementById(isHome ? 'homePlayerList' : 'awayPlayerList');
       if (!container || !m) return;
-      const players = isHome ? m.homePlayers : m.awayPlayers;
+
+      const players = isHome ? (m.homePlayers || []) : (m.awayPlayers || []);
       const onIds = (m.lineups && m.lineups[m.quarter] && m.lineups[m.quarter][isHome ? 'home' : 'away']) || [];
       const onCourt = players.filter(p => onIds.includes(p.id));
       const bench = players.filter(p => !onIds.includes(p.id));
+      const kitColor = isHome ? (m.homeKitColor || '블랙') : (m.awayKitColor || '블루/화이트');
+      const kit = lfKitPalette(kitColor);
       const html = [];
+
       const card = (p, on) => {
-        const t = lfPlayerTotals(m, p.id);
-        const foulCls = t.FOUL >= LF.FOUL_LIMIT ? 'bg-red-600 text-white' : t.FOUL === LF.FOUL_LIMIT - 1 ? 'bg-amber-400 text-slate-950' : 'bg-slate-700 text-slate-200';
-        const quick = on ? `
-          <div class="grid grid-cols-4 gap-1.5 mt-2">
-            <button onclick="event.stopPropagation();lfQuick('${esc(p.id)}','${team}','2PT_MADE')" class="lf-q bg-emerald-600 text-white">2P ✓</button>
-            <button onclick="event.stopPropagation();lfQuick('${esc(p.id)}','${team}','2PT_MISS')" class="lf-q bg-rose-900/70 text-rose-200">2P ✕</button>
-            <button onclick="event.stopPropagation();lfQuick('${esc(p.id)}','${team}','3PT_MADE')" class="lf-q bg-emerald-700 text-white">3P ✓</button>
-            <button onclick="event.stopPropagation();lfQuick('${esc(p.id)}','${team}','3PT_MISS')" class="lf-q bg-rose-900/70 text-rose-200">3P ✕</button>
-          </div>` : '';
-        return `<div onclick="openStatModal(lfFind('${esc(p.id)}','${team}'),'${team}')" class="lf-card ${on ? 'lf-on' : 'lf-bench'}">
-          <div class="flex items-center gap-3">
-            <span class="lf-num">${esc(p.number)}</span>
-            <div class="min-w-0 flex-1">
-              <div class="font-extrabold text-slate-100 truncate text-base">${esc(p.name)}</div>
-              <div class="text-xs text-slate-400 mt-0.5"><b class="text-orange-400 text-sm">${t.PTS}</b>점 · REB ${t.REB} · AST ${t.AST}</div>
-            </div>
-            <span class="px-2 py-1 rounded-md text-xs font-black ${foulCls}">PF ${t.FOUL}</span>
-          </div>${quick}</div>`;
+        const aria = '#' + String(p.number) + ' ' + String(p.name) + (on ? ' 출전 중' : ' 벤치');
+        return '<div role="button" tabindex="0" aria-label="' + esc(aria) + '" ' +
+          'onclick="openStatModal(lfFind(\'' + esc(p.id) + '\',\'' + team + '\'),\'' + team + '\')" ' +
+          'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();this.click();}" ' +
+          'class="ft-player-tile ' + (on ? 'is-selected' : 'is-bench') + '" ' +
+          'style="--ft-kit-bg:' + kit.background + ';--ft-kit-ink:' + kit.ink + ';--ft-kit-trim:' + kit.trim + ';">' +
+            '<div class="ft-jersey" aria-hidden="true">' +
+              '<span class="ft-jersey-number">' + esc(p.number) + '</span>' +
+              '<span class="ft-jersey-name">' + esc(p.name) + '</span>' +
+            '</div>' +
+            (on ? '<span class="ft-selected-check" aria-label="출전 선택"><i class="fa-solid fa-check"></i></span>' : '') +
+          '</div>';
       };
-      if (onCourt.length) html.push(`<p class="lf-sec">🟡 코트 (${onCourt.length})</p>`, ...onCourt.map(p => card(p, true)));
-      if (!onCourt.length) html.push(`<div class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-center">출전선수 5명을 먼저 선택하세요 (가운데 '출전선수' 버튼)</div>`);
-      if (bench.length) html.push(`<p class="lf-sec">벤치 (${bench.length})</p>`, ...bench.map(p => card(p, false)));
+
+      if (onCourt.length) html.push('<div class="lf-sec">코트 · ' + onCourt.length + '명</div>', ...onCourt.map(p => card(p, true)));
+      if (!onCourt.length) html.push('<div class="ft-roster-empty">출전선수 5명을 먼저 선택하세요</div>');
+      if (bench.length) html.push('<div class="lf-sec">벤치 · ' + bench.length + '명</div>', ...bench.map(p => card(p, false)));
       container.innerHTML = html.join('');
     }
     function lfFind(id, team) {
@@ -4790,6 +4896,68 @@
         }
       `;
       document.head.appendChild(uiSkin);
+
+      const uniformSkin = document.createElement('style');
+      uniformSkin.id = 'freethrow-uniform-skin';
+      uniformSkin.textContent = `
+        .ft-kit-settings { background:#fff; border:1px solid #e1ebe4; border-radius:16px; padding:13px; box-shadow:0 5px 18px rgba(30,73,49,.045); }
+        .ft-kit-settings-title { display:flex; align-items:center; gap:8px; color:#176b50; font-size:13px; font-weight:900; }
+        .ft-kit-settings-help { color:#758a7e; font-size:11px; line-height:1.45; margin:5px 0 10px; }
+        .ft-kit-select-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+        .ft-kit-select-card { min-width:0; background:#f8fbf9; border:1px solid #e6eee8; border-radius:13px; padding:10px; }
+        .ft-kit-select-card label { display:block; color:#315a45; font-size:11px; font-weight:900; margin-bottom:7px; }
+        .ft-kit-preview-row { display:flex; align-items:center; gap:7px; color:#29483b; font-size:12px; font-weight:800; margin-bottom:8px; }
+        .ft-kit-swatch { width:24px; height:24px; flex:0 0 24px; display:inline-block; border:1px solid rgba(38,76,54,.16); border-radius:8px; box-shadow:0 2px 5px rgba(30,73,49,.10); }
+        .ft-kit-select-card select { width:100%; min-height:38px; padding:7px 9px; font-size:12px; font-weight:800; }
+        #homePlayerList, #awayPlayerList { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:8px !important; align-content:start; align-items:start; max-height:none !important; }
+        #homePlayerList .lf-sec, #awayPlayerList .lf-sec { grid-column:1/-1; margin:7px 2px 0; padding:2px 1px; color:#71877d !important; font-size:11px; font-weight:900; letter-spacing:.02em; }
+        .ft-player-tile {
+          min-width:0; width:100%; aspect-ratio:1/1; min-height:104px; position:relative; display:flex; align-items:center;
+          justify-content:center; overflow:hidden; cursor:pointer; user-select:none; -webkit-user-select:none; background:#fff;
+          border:1px solid #e2ece5; border-radius:15px; padding:5px !important; box-shadow:0 3px 10px rgba(30,73,49,.045);
+          transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease;
+        }
+        .ft-player-tile:active { transform:scale(.965); }
+        .ft-player-tile.is-selected { background:#e8f5ed; border:2px solid #25865f; box-shadow:0 5px 15px rgba(37,134,95,.13); }
+        .ft-player-tile.is-bench { background:#fbfdfb; border-color:#e6eee8; }
+        .ft-jersey {
+          width:83%; height:88%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+          clip-path:polygon(19% 1%,37% 1%,43% 10%,57% 10%,63% 1%,81% 1%,100% 18%,83% 34%,72% 27%,72% 100%,28% 100%,28% 27%,17% 34%,0 18%);
+          background:var(--ft-kit-bg,#e6f0e9); color:var(--ft-kit-ink,#29483b);
+          filter:drop-shadow(0 4px 5px rgba(29,70,47,.16)); padding-top:16%; line-height:1.05; text-align:center;
+        }
+        .ft-jersey-number { display:block; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:clamp(18px,2.5vw,27px); font-weight:950; letter-spacing:-.05em; }
+        .ft-jersey-name { display:block; max-width:82%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:7px; padding-top:5px; border-top:1px solid var(--ft-kit-trim,rgba(255,255,255,.45)); font-size:clamp(10px,1.35vw,13px); font-weight:900; line-height:1.1; }
+        .ft-player-tile.is-bench .ft-jersey { filter:saturate(.48) opacity(.66) drop-shadow(0 3px 4px rgba(29,70,47,.11)); }
+        .ft-selected-check { position:absolute; right:5px; top:5px; width:23px; height:23px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#187a56; color:#fff; border:2px solid #fff; font-size:10px; box-shadow:0 2px 6px rgba(20,88,60,.2); }
+        .ft-roster-empty { grid-column:1/-1; background:#f7faf8; color:#71877d; border:1px dashed #dce8df; border-radius:12px; padding:12px; text-align:center; font-size:11px; font-weight:700; }
+        @media (max-width:699px) {
+          #homePlayerList, #awayPlayerList { gap:7px !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
+          .ft-player-tile { min-height:96px; border-radius:13px; }
+          .ft-jersey { width:88%; height:88%; padding-top:17%; }
+          .ft-jersey-number { font-size:clamp(17px,6vw,23px); }
+          .ft-jersey-name { margin-top:6px; font-size:clamp(9px,2.8vw,11px); }
+          .ft-selected-check { width:21px; height:21px; right:3px; top:3px; }
+          .ft-kit-settings { padding:11px; } .ft-kit-select-card { padding:8px; }
+        }
+        @media (min-width:700px) and (max-width:1100px) and (orientation:portrait) {
+          #homePlayerList, #awayPlayerList { grid-template-columns:repeat(5,minmax(0,1fr)) !important; gap:11px !important; }
+          .ft-player-tile { min-height:116px; }
+        }
+        @media (min-width:901px) and (max-width:1366px) and (orientation:landscape) {
+          #pageRecorder { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:12px !important; }
+          #pageRecorder > div:first-child { grid-column:1/-1; }
+          #pageRecorder > section:nth-of-type(1) { grid-column:1/-1; order:1 !important; }
+          #pageRecorder > section:nth-of-type(2) { grid-column:1; order:2 !important; }
+          #pageRecorder > section:nth-of-type(3) { grid-column:2; order:3 !important; }
+          #pageRecorder > section:nth-of-type(4) { grid-column:1/-1; order:4 !important; }
+          #homePlayerList, #awayPlayerList { grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:10px !important; }
+          .ft-player-tile { min-height:112px; }
+        }
+        @media (min-width:1367px) and (hover:none) { #homePlayerList, #awayPlayerList { grid-template-columns:repeat(3,minmax(0,1fr)) !important; } }
+      `;
+      document.head.appendChild(uniformSkin);
+      updateNewMatchKitPreview();
       lfInitBar();
       setTimeout(() => { const n = lfTotalDirty(); if (n) lfToast(`이전에 저장하지 못한 기록 ${n}건을 복원했습니다. [저장]을 눌러주세요.`, true); }, 1500);
     });
