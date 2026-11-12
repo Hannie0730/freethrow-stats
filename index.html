@@ -4435,7 +4435,7 @@
           'style="--ft-kit-bg:' + kit.background + ';--ft-kit-color:' + kit.accent + ';--ft-kit-ink:#111827;--ft-kit-trim:' + kit.trim + ';">' +
             '<div class="ft-uniform-icon" aria-hidden="true">' +
               '<svg class="ft-uniform-svg" viewBox="0 0 72 78" focusable="false">' +
-                '<path class="ft-uniform-body" d="M18 7 H29 C30 14 32 17 36 17 C40 17 42 14 43 7 H54 L68 23 L58 33 L51 28 V68 Q51 74 45 74 H27 Q21 74 21 68 V28 L14 33 L4 23 Z"/>' +
+                '<path class="ft-uniform-body" d="M20 7 H29 L32 18 Q36 23 40 18 L43 7 H52 L61 21 L53 30 L48 26 V70 Q48 74 44 74 H28 Q24 74 24 70 V26 L19 30 L11 21 Z"/>' +
                 '<path class="ft-uniform-neck" d="M29 7 C30 14 42 14 43 7"/>' +
               '</svg>' +
               '<span class="ft-uniform-number">' + esc(p.number) + '</span>' +
@@ -5369,7 +5369,13 @@
           .ft-player-name { font-size:11px !important; }
         }
         @media (min-width:700px) and (max-width:1100px) and (orientation:portrait) {
-          #homePlayerList .ft-player-tile, #awayPlayerList .ft-player-tile { min-height:112px !important; }
+          #homePlayerList, #awayPlayerList {
+            grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+            gap:9px !important;
+          }
+          #homePlayerList .ft-player-tile, #awayPlayerList .ft-player-tile {
+            min-width:0 !important; min-height:112px !important;
+          }
           .ft-uniform-icon { width:60px !important; height:64px !important; flex-basis:64px !important; }
           .ft-player-name { font-size:12px !important; }
         }
