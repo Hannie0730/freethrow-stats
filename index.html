@@ -4937,10 +4937,17 @@
         .ft-player-tile.is-selected { background:#e8f5ed; border:2px solid #25865f; box-shadow:0 5px 15px rgba(37,134,95,.13); }
         .ft-player-tile.is-bench { background:#fbfdfb; border-color:#e6eee8; }
         .ft-jersey {
-          width:82%; height:88%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-          clip-path:polygon(19% 1%,37% 1%,43% 10%,57% 10%,63% 1%,81% 1%,100% 18%,83% 34%,72% 27%,72% 100%,28% 100%,28% 27%,17% 34%,0 18%);
+          position:relative; isolation:isolate;
+          width:76%; height:88%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+          /* Sleeveless basketball tank: narrow shoulder straps, scooped neck, deep armholes, straight torso */
+          clip-path:polygon(
+            24% 0, 41% 0, 46% 11%, 54% 11%, 59% 0, 76% 0,
+            89% 18%, 76% 34%, 68% 27%, 68% 100%, 32% 100%,
+            32% 27%, 24% 34%, 11% 18%
+          );
           background:var(--ft-kit-bg,#68dfbd); color:#111827;
-          filter:drop-shadow(0 3px 4px rgba(35,65,52,.13)); padding-top:16%; line-height:1.05; text-align:center;
+          filter:drop-shadow(0 3px 4px rgba(35,65,52,.13));
+          padding-top:18%; line-height:1.05; text-align:center;
         }
         .ft-jersey-number { display:block; max-width:90%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#111827; font-size:clamp(18px,2.5vw,27px); font-weight:950; letter-spacing:-.05em; }
         .ft-jersey-name { display:block; max-width:82%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:7px; padding-top:5px; border-top:1px solid rgba(17,24,39,.18); color:#111827; font-size:clamp(10px,1.35vw,13px); font-weight:900; line-height:1.1; }
@@ -5177,7 +5184,7 @@
           #pageRecorder > section:nth-of-type(2) button, #pageRecorder > section:nth-of-type(3) button { font-size:9px !important; padding:5px 6px !important; }
           #homePlayerList, #awayPlayerList { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:6px !important; }
           .ft-player-tile { border-radius:13px !important; padding:3px !important; }
-          .ft-jersey { width:72% !important; height:80% !important; padding-top:19% !important; }
+          .ft-jersey { width:76% !important; height:82% !important; padding-top:19% !important; }
           .ft-jersey-number { font-size:clamp(15px,5vw,22px) !important; }
           .ft-jersey-name { font-size:clamp(8px,2.5vw,10px) !important; max-width:90% !important; }
           .ft-selected-check { width:19px !important; height:19px !important; font-size:8px !important; }
