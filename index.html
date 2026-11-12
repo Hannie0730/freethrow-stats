@@ -4338,22 +4338,20 @@
     }
 
     function lfEncodeMatchMode(mode, homeKitColor, awayKitColor) {
-      return String(mode || '교류전') + '::FTKIT::' +
-        encodeURIComponent(homeKitColor || '블랙') + '|' +
-        encodeURIComponent(awayKitColor || '블루/화이트');
+      const codes = { '블랙':'K', '화이트':'W', '블루/화이트':'BW', '블루':'B', '레드':'R', '그린':'G', '옐로우':'Y', '퍼플':'P', '오렌지':'O' };
+      return String(mode || '교류전') + '~' + (codes[homeKitColor] || 'K') + '.' + (codes[awayKitColor] || 'BW');
     }
 
     function lfDecodeMatchMode(storedMode) {
       const raw = String(storedMode || '교류전');
-      const marker = '::FTKIT::';
-      const markerAt = raw.indexOf(marker);
+      const markerAt = raw.lastIndexOf('~');
       if (markerAt < 0) return { mode: raw, homeKitColor: null, awayKitColor: null };
-      const parts = raw.slice(markerAt + marker.length).split('|');
-      const safeDecode = (value) => { try { return decodeURIComponent(value || ''); } catch (_) { return ''; } };
+      const codes = { 'K':'블랙', 'W':'화이트', 'BW':'블루/화이트', 'B':'블루', 'R':'레드', 'G':'그린', 'Y':'옐로우', 'P':'퍼플', 'O':'오렌지' };
+      const parts = raw.slice(markerAt + 1).split('.');
       return {
         mode: raw.slice(0, markerAt) || '교류전',
-        homeKitColor: safeDecode(parts[0]) || null,
-        awayKitColor: safeDecode(parts[1]) || null
+        homeKitColor: codes[parts[0]] || null,
+        awayKitColor: codes[parts[1]] || null
       };
     }
 
