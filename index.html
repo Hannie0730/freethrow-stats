@@ -315,7 +315,123 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
 #reboundChainModal button[onclick*="DEF_REB"]{background:#e8f3f7 !important;border-color:#cfe3ec !important}
 #assistModal button span:last-child,#reboundChainModal button span:last-child{background:rgba(18,128,94,.12) !important;color:#14805e !important}
 
-  </style>
+  
+
+/* ===================================================================
+ * RESPONSIVE WORKSPACE + CHAIN BUTTONS
+ * Mobile stays compact; tablet/desktop use the available canvas.
+ * =================================================================== */
+@media (min-width:521px){
+  :root{--rf-tab-h:76px}
+  .rf-head{width:100%;max-width:1800px;padding-left:clamp(18px,1.8vw,32px);padding-right:clamp(18px,1.8vw,32px)}
+  .rf-wrap{width:100%;max-width:1800px;margin-inline:auto;padding:clamp(14px,1.7vw,30px);gap:clamp(14px,1.25vw,22px)}
+  #pageRecorder{width:100%}
+  #pageMembers{max-width:1800px!important}
+  .rf-team{padding:clamp(14px,1.35vw,24px)}
+  .rf-teams{gap:clamp(12px,1.35vw,22px)}
+  .rf-card{padding:clamp(16px,1.35vw,24px)}
+  .rf-score{padding:clamp(18px,1.9vw,34px)}
+  .rf-score-grid{gap:clamp(12px,1.5vw,24px)}
+  .rf-side-name{font-size:clamp(18px,1.5vw,30px)}
+  .rf-score-num{font-size:clamp(56px,6vw,112px)}
+  .rf-clock{padding:clamp(14px,1.5vw,24px)}
+  .rf-time{font-size:clamp(38px,3.3vw,64px)}
+  .rf-q button{width:34px;height:34px;font-size:14px}
+  .rf-lineup{font-size:14px;padding:10px 20px}
+  #homePlayerList,#awayPlayerList{gap:clamp(8px,1vw,16px)}
+  .rf-tile{min-height:clamp(112px,10vw,168px);padding:clamp(8px,1vw,16px) 5px;border-radius:20px}
+  .rf-jersey{width:76%;max-width:124px}
+  .rf-no{font-size:clamp(20px,2.2vw,34px)}
+  .rf-nm{font-size:clamp(12px,1.05vw,17px);margin-top:6px}
+  .rf-actions{gap:clamp(8px,1vw,16px);padding:clamp(8px,1vw,16px)}
+  .rf-actions button{min-height:clamp(62px,5.4vw,78px);font-size:clamp(14px,1.05vw,17px)}
+  .rf-actions button i{font-size:clamp(19px,1.4vw,24px)}
+  #timelineLog{max-height:min(28vh,300px)}
+  .rf-tab{font-size:14px}
+  .rf-tab i{font-size:24px}
+  .rf-tabbar{padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+}
+@media (min-width:1280px){
+  #homePlayerList,#awayPlayerList{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .rf-wrap{gap:20px}
+  .rf-score-meta{font-size:14px}
+  .rf-card-head{font-size:16px}
+}
+@media (min-width:1600px){
+  #homePlayerList,#awayPlayerList{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .rf-wrap{max-width:1900px}
+  .rf-head{max-width:1900px}
+  .rf-score{border-radius:32px}
+}
+
+/* Wider, easier-to-tap follow-up choices in assist / rebound / turnover flows */
+#assistModal > div,#reboundChainModal > div,#stealTurnoverModal > div{
+  width:min(960px,calc(100vw - 28px))!important;
+  max-width:960px!important;
+  max-height:calc(100dvh - 28px);
+  padding:clamp(16px,2vw,28px)!important;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#assistModal h3,#reboundChainModal h3,#stealTurnoverModal h3{font-size:clamp(17px,1.35vw,22px)!important}
+#assistModal p,#reboundChainModal p,#stealTurnoverModal p{font-size:clamp(13px,1vw,16px)!important}
+#assistPlayerOptions,#reboundPlayerOptions,#stealTurnoverOptions{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:clamp(8px,1vw,14px)!important;
+  max-height:min(62dvh,700px)!important;
+  overflow-y:auto!important;
+  align-content:start;
+  padding:4px!important;
+}
+#assistPlayerOptions > *,#reboundPlayerOptions > *,#stealTurnoverOptions > *{margin:0!important;min-width:0}
+#reboundPlayerOptions > div{grid-column:1/-1}
+#reboundPlayerOptions > button:not(.rf-chain-player){grid-column:1/-1}
+.rf-chain-player{
+  width:100%;
+  min-width:0;
+  min-height:clamp(72px,7.5vw,104px)!important;
+  padding:clamp(13px,1.35vw,22px)!important;
+  border-radius:18px!important;
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  text-align:left!important;
+  line-height:1.25;
+  font-size:clamp(14px,1vw,18px)!important;
+  font-weight:850!important;
+  border-width:1.5px!important;
+  box-shadow:0 5px 14px rgba(18,94,70,.08);
+  white-space:normal;
+}
+.rf-chain-player > span:first-child{min-width:0;overflow-wrap:anywhere}
+.rf-chain-player > span:last-child{
+  flex:0 0 auto;
+  white-space:nowrap;
+  padding:6px 9px!important;
+  border-radius:999px!important;
+  background:rgba(18,128,94,.12)!important;
+  color:#176b50!important;
+  font-size:clamp(10px,.8vw,13px)!important;
+}
+#assistModal .rf-chain-player{background:#edf0ff!important;color:#394b89!important;border-color:#d9def9!important}
+#reboundChainModal .rf-chain-player[onclick*="OFF_REB"]{background:#e8f6ef!important;color:#17664c!important;border-color:#cce8d8!important}
+#reboundChainModal .rf-chain-player[onclick*="DEF_REB"]{background:#eaf4f8!important;color:#245c75!important;border-color:#d1e6ee!important}
+#reboundChainModal .rf-chain-player-wide{background:#eaf4f8!important;color:#245c75!important;border-color:#d1e6ee!important}
+#stealTurnoverModal .rf-chain-player{background:#fff3df!important;color:#85540c!important;border-color:#f2d9aa!important}
+@media (min-width:800px){
+  #assistPlayerOptions,#reboundPlayerOptions,#stealTurnoverOptions{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (min-width:1280px){
+  #assistPlayerOptions,#reboundPlayerOptions,#stealTurnoverOptions{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (max-width:380px){
+  #assistPlayerOptions,#reboundPlayerOptions,#stealTurnoverOptions{grid-template-columns:minmax(0,1fr)}
+  .rf-chain-player{min-height:64px!important}
+}
+</style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans select-none overflow-x-hidden">
 
@@ -1811,7 +1927,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
       if (m.mode === '교류전') {
         if (isStealerHome) {
           const btn = document.createElement('button');
-          btn.className = 'w-full bg-amber-900/60 hover:bg-amber-600 text-amber-100 p-2.5 rounded-xl font-bold text-xs text-left border border-amber-500/30 flex items-center justify-between';
+          btn.className = 'rf-chain-player w-full bg-amber-900/60 hover:bg-amber-600 text-amber-100 p-2.5 rounded-xl font-bold text-xs text-left border border-amber-500/30 flex items-center justify-between';
           btn.innerHTML = `<span>[상대팀] ${m.awayTeam} 전체</span> <span class="text-[10px] bg-amber-500/40 px-2 py-0.5 rounded text-amber-200">턴오버 기록</span>`;
           btn.onclick = async () => {
             closeModal('stealTurnoverModal');
@@ -1825,7 +1941,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
 
         opponents.forEach(p => {
           const btn = document.createElement('button');
-          btn.className = 'w-full bg-amber-900/60 hover:bg-amber-600 text-amber-100 p-2.5 rounded-xl font-bold text-xs text-left border border-amber-500/30 flex items-center justify-between';
+          btn.className = 'rf-chain-player w-full bg-amber-900/60 hover:bg-amber-600 text-amber-100 p-2.5 rounded-xl font-bold text-xs text-left border border-amber-500/30 flex items-center justify-between';
           btn.innerHTML = `<span>#${p.number} ${p.name}</span> <span class="text-[10px] bg-amber-500/40 px-2 py-0.5 rounded text-amber-200">턴오버 유발</span>`;
           btn.onclick = async () => {
             closeModal('stealTurnoverModal');
@@ -3765,7 +3881,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
       return list.slice().sort((a, b) => (ids.includes(b.id) ? 1 : 0) - (ids.includes(a.id) ? 1 : 0));
     }
     function lfChainBtn(p, cls, tag, onclick, on) {
-      return `<button onclick="${onclick}" class="w-full ${cls} p-3 rounded-xl font-bold text-sm text-left border flex items-center justify-between">
+      return `<button onclick="${onclick}" class="rf-chain-player w-full ${cls} p-3 rounded-xl font-bold text-sm text-left border flex items-center justify-between">
         <span>${on ? '🟡 ' : ''}#${esc(p.number)} ${esc(p.name)}</span><span class="text-[10px] px-2 py-0.5 rounded bg-white/10">${tag}</span></button>`;
     }
     function triggerAssistChain(scorer) {
@@ -3797,7 +3913,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
       h += own.map(p => lfChainBtn(p, 'bg-teal-950/60 text-teal-100 border-teal-500/30', '공격 REB', `closeModal('reboundChainModal');lfRecord('${esc(p.id)}','${shooter.team}','OFF_REB',${msg(p, '공격 리바운드', shooter.team)})`, ownIds.includes(p.id))).join('');
       h += `<div class="text-[11px] font-bold text-cyan-400 mt-3">🛡️ 수비 리바운드 (${esc(oppName)})</div>`;
       if (m.mode === '교류전' && oppType === 'AWAY') {
-        h += `<button onclick="closeModal('reboundChainModal');applyAwayStat('DEF_REB')" class="w-full bg-cyan-950/60 text-cyan-100 p-3 rounded-xl font-bold text-sm text-left border border-cyan-500/30">[상대팀] ${esc(oppName)} 전체</button>`;
+        h += `<button onclick="closeModal('reboundChainModal');applyAwayStat('DEF_REB')" class="rf-chain-player rf-chain-player-wide w-full bg-cyan-950/60 text-cyan-100 p-3 rounded-xl font-bold text-sm text-left border border-cyan-500/30">[상대팀] ${esc(oppName)} 전체</button>`;
       } else {
         const opp = lfOnCourtFirst(m, oppType, shooterHome ? m.awayPlayers : m.homePlayers);
         const oppIds = (m.lineups[q] && m.lineups[q][oppType === 'HOME' ? 'home' : 'away']) || [];
