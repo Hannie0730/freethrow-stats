@@ -3716,6 +3716,27 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
 
     async function lfSave({ silent = false } = {}) {
       if (LF.saving) return false;
+
+      // Server writes are admin-only. Keep the local-first draft untouched until
+      // a valid Supabase admin session is present.
+      if (!adminAuthenticated && !silent) {
+        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+        if (sessionError || !session?.user) {
+          lfToast('서버 저장은 운영진 로그인이 필요합니다. 기록은 이 기기에 보관되어 있습니다.', true);
+          openAdminLogin();
+          return false;
+        }
+        const { data: adminRow, error: adminCheckError } = await supabaseClient
+          .from('admin_users').select('user_id').eq('user_id', session.user.id).maybeSingle();
+        if (adminCheckError || !adminRow) {
+          lfToast('운영진 권한을 확인하지 못했습니다. Supabase admin_users 등록을 확인하세요.', true);
+          openAdminLogin();
+          return false;
+        }
+        adminAuthenticated = true;
+      }
+      if (!adminAuthenticated) return false;
+
       const matchId = currentMatchId;
       const m = matches[matchId];
       const d = LF.draft[matchId];
@@ -3769,7 +3790,11 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
       } catch (e) {
         console.error('저장 실패:', e);
         LF.error = e.message || String(e);
-        lfToast('저장 실패 — 기록은 이 기기에 보관 중입니다. 다시 [저장]을 눌러주세요.', true);
+        if (e && (e.code === '42501' || /row-level security policy/i.test(e.message || ''))) {
+          lfToast('저장 권한 오류: 운영진 로그인과 Supabase admin_write_policies.sql 적용을 확인하세요. 기록은 이 기기에 보관 중입니다.', true);
+        } else {
+          lfToast('저장 실패 — 기록은 이 기기에 보관 중입니다. 다시 [저장]을 눌러주세요.', true);
+        }
         return false;
       } finally {
         LF.saving = false; lfRenderBar();
