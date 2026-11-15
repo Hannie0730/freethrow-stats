@@ -101,6 +101,34 @@
     #newMatchModal #newRosterAwayTab:disabled{opacity:.38;cursor:not-allowed}
     @media(max-width:520px){#newMatchModal .new-roster-list{grid-template-columns:1fr;max-height:190px}#newMatchModal .new-roster-player{min-height:50px;font-size:14px}}
     @media(min-width:700px){#newMatchModal .new-roster-list{max-height:210px}}
+
+    /* 새 경기 로스터: 선수 카드 전체를 흰색 칸으로, 모바일도 2열 */
+    #newMatchModal .new-roster-list{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+    #newMatchModal .new-roster-player,
+    #newMatchModal .new-roster-mercenary{
+      min-width:0;background:#ffffff !important;color:#111111 !important;
+      border:1px solid #d1d5db !important;border-radius:10px;padding:10px 8px;
+      gap:7px;box-shadow:0 1px 2px rgba(0,0,0,.08)
+    }
+    #newMatchModal .new-roster-player:has(input:checked),
+    #newMatchModal .new-roster-mercenary:has(input:checked){
+      background:#f0fdf4 !important;color:#111111 !important;border:2px solid #16a34a !important
+    }
+    #newMatchModal .new-roster-player strong{
+      display:block;background:transparent !important;color:#111111 !important;
+      padding:0 !important;border-radius:0;font-size:13px;font-weight:900;
+      line-height:1.25;overflow-wrap:anywhere;text-shadow:none !important
+    }
+    #newMatchModal .new-roster-player small{color:#475569 !important;font-weight:700}
+    #newMatchModal .new-roster-player input{width:17px;height:17px;flex:0 0 17px;accent-color:#16a34a}
+    #newMatchModal .new-roster-check{color:#15803d !important;opacity:.45}
+    #newMatchModal .new-roster-player:has(input:checked) .new-roster-check{opacity:1}
+    #newMatchModal .new-roster-group-label{color:#c4b5fd}
+    @media(max-width:520px){
+      #newMatchModal .new-roster-list{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:7px}
+      #newMatchModal .new-roster-player{min-height:54px;padding:9px 7px;font-size:12px}
+      #newMatchModal .new-roster-player strong{font-size:12px}
+    }
   </style>
   <style id="rf-design">
 /* ===================================================================
@@ -2424,7 +2452,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
           <label class="roster-item ${itemClass}" data-search="#${p.number} ${p.name}">
             <input type="checkbox" name="roster${team}" value="${value}" ${checked ? 'checked' : ''} onchange="updateRosterSelectionCount()">
             <span class="min-w-0 flex-1">
-              <strong style="display:inline-block !important;background:#ffffff !important;color:#111111 !important;padding:5px 10px !important;border-radius:7px !important;font-weight:900 !important;text-shadow:none !important;opacity:1 !important;line-height:1.25 !important;">#${p.number} ${p.name}</strong>
+              <strong>#${p.number} ${p.name}</strong>
               ${isMercenary ? `<small>(${p.color || '상대팀'}) · 용병</small>` : (p.isGuest ? (String(p.name).includes('(용병)') ? '<small class="text-purple-300">용병</small>' : '<small class="text-amber-300">게스트</small>') : '')}
             </span>
             <i class="fa-solid fa-check new-roster-check"></i>
