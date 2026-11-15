@@ -2423,7 +2423,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
             <input type="checkbox" name="roster${team}" value="${value}" ${checked ? 'checked' : ''} onchange="updateRosterSelectionCount()">
             <span class="min-w-0 flex-1">
               <strong>#${p.number} ${p.name}</strong>
-              ${isMercenary ? `<small>(${p.color || '상대팀'}) · 용병</small>` : (p.isGuest ? '<small class="text-amber-300">게스트</small>' : '')}
+              ${isMercenary ? `<small>(${p.color || '상대팀'}) · 용병</small>` : (p.isGuest ? (String(p.name).includes('(용병)') ? '<small class="text-purple-300">용병</small>' : '<small class="text-amber-300">게스트</small>') : '')}
             </span>
             <i class="fa-solid fa-check new-roster-check"></i>
           </label>`;
