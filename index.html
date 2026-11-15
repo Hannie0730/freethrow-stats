@@ -2424,7 +2424,7 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
           <label class="roster-item ${itemClass}" data-search="#${p.number} ${p.name}">
             <input type="checkbox" name="roster${team}" value="${value}" ${checked ? 'checked' : ''} onchange="updateRosterSelectionCount()">
             <span class="min-w-0 flex-1">
-              <strong>#${p.number} ${p.name}</strong>
+              <strong style="display:inline-block !important;background:#ffffff !important;color:#111111 !important;padding:5px 10px !important;border-radius:7px !important;font-weight:900 !important;text-shadow:none !important;opacity:1 !important;line-height:1.25 !important;">#${p.number} ${p.name}</strong>
               ${isMercenary ? `<small>(${p.color || '상대팀'}) · 용병</small>` : (p.isGuest ? (String(p.name).includes('(용병)') ? '<small class="text-purple-300">용병</small>' : '<small class="text-amber-300">게스트</small>') : '')}
             </span>
             <i class="fa-solid fa-check new-roster-check"></i>
