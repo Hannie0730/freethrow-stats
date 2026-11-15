@@ -81,6 +81,24 @@
         flex-shrink: 0;}
 #newMatchModal input:not([type="checkbox"]):not([type="radio"]),#newMatchModal select,#newMatchModal textarea{min-height: 42px;
         font-size: 16px !important;}}
+    /* 새 경기 로스터: 짧고 두꺼운 스크롤바 + 큼직한 선수 선택 항목 */
+    #newMatchModal .new-roster-list{max-height:180px;overflow-y:auto;overscroll-behavior:contain;padding:2px 5px 2px 1px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+    #newMatchModal .new-roster-list::-webkit-scrollbar{width:8px;height:8px}
+    #newMatchModal .new-roster-list::-webkit-scrollbar-thumb{background:#64748b;border-radius:999px;border:1px solid #1e293b}
+    #newMatchModal .new-roster-list::-webkit-scrollbar-track{background:#1e293b;border-radius:999px}
+    #newMatchModal .new-roster-player{min-height:48px;display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid #334155;border-radius:11px;background:#1e293b;color:#f8fafc;font-size:13px;line-height:1.25;cursor:pointer;transition:background .15s,border-color .15s}
+    #newMatchModal .new-roster-player:has(input:checked){background:#173b35;border-color:#2d9b79;color:#ecfdf5}
+    #newMatchModal .new-roster-player input{width:20px;height:20px;flex:0 0 20px;accent-color:#10b981}
+    #newMatchModal .new-roster-player small{display:block;color:#a5b4c5;font-size:10px;margin-top:3px}
+    #newMatchModal .new-roster-check{color:#64748b;font-size:14px;margin-left:auto;opacity:.25}
+    #newMatchModal .new-roster-player:has(input:checked) .new-roster-check{color:#6ee7b7;opacity:1}
+    #newMatchModal .new-roster-mercenary{background:#302447;border-color:#6d4a9a;color:#e9d5ff}
+    #newMatchModal .new-roster-mercenary:has(input:checked){background:#45305f;border-color:#a78bfa}
+    #newMatchModal .new-roster-group-label{grid-column:1/-1;color:#c4b5fd;font-size:11px;font-weight:800;padding:9px 2px 2px;border-top:1px solid #475569;margin-top:3px}
+    #newMatchModal .new-roster-empty{grid-column:1/-1;text-align:center;padding:22px 8px;color:#94a3b8;font-size:12px;border:1px dashed #475569;border-radius:12px}
+    #newMatchModal #newRosterAwayTab:disabled{opacity:.38;cursor:not-allowed}
+    @media(max-width:520px){#newMatchModal .new-roster-list{grid-template-columns:1fr;max-height:190px}#newMatchModal .new-roster-player{min-height:50px;font-size:14px}}
+    @media(min-width:700px){#newMatchModal .new-roster-list{max-height:210px}}
   </style>
   <style id="rf-design">
 /* ===================================================================
@@ -1099,21 +1117,36 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
         </div>
 
         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700">
-          <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
-            <span class="font-bold text-amber-400 text-xs"><i class="fa-solid fa-user-check mr-1"></i>오늘 경기 참가 로스터 선택</span>
-            <div class="flex gap-1.5 items-center">
-              <button onclick="promptAddGuest('HOME')" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 게스트</button>
-              <button onclick="promptAddMercenary()" class="text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 py-0.5 rounded font-bold shadow">+ 용병</button>
-              <span id="rosterSelectionCount" class="text-[11px] text-slate-400 ml-1">0명 선택됨</span>
+          <div class="flex justify-between items-center mb-3 gap-2">
+            <div>
+              <span class="font-bold text-amber-400 text-sm"><i class="fa-solid fa-user-check mr-1"></i>경기 참가 로스터</span>
+              <p class="text-[10px] text-slate-400 mt-0.5">홈과 어웨이를 각각 눌러 선수를 선택하세요</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="promptAddMercenary()" class="text-[11px] bg-purple-600/80 hover:bg-purple-500 text-white px-2.5 py-1.5 rounded-lg font-bold shadow">+ 용병</button>
+              <span id="rosterSelectionCount" class="text-[11px] text-slate-300 font-bold">0명 선택</span>
             </div>
           </div>
 
+          <div class="grid grid-cols-2 gap-2 mb-3">
+            <button type="button" id="newRosterHomeTab" onclick="setNewMatchRosterTab('HOME')" aria-pressed="true" class="rounded-xl border border-blue-400 bg-blue-500/20 text-blue-200 px-3 py-3 text-left transition">
+              <span class="block text-xs font-black tracking-wide">HOME</span>
+              <span class="block text-sm font-bold mt-0.5">홈 로스터</span>
+              <span id="newRosterHomeCount" class="block text-[11px] text-blue-200/80 mt-1">0명 선택</span>
+            </button>
+            <button type="button" id="newRosterAwayTab" onclick="setNewMatchRosterTab('AWAY')" aria-pressed="false" class="rounded-xl border border-slate-700 bg-slate-800 text-slate-300 px-3 py-3 text-left transition">
+              <span class="block text-xs font-black tracking-wide">AWAY</span>
+              <span class="block text-sm font-bold mt-0.5">어웨이 로스터</span>
+              <span id="newRosterAwayCount" class="block text-[11px] text-slate-400 mt-1">0명 선택</span>
+            </button>
+          </div>
+
           <div class="relative mb-2.5">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
-            <input type="text" id="rosterSearchInput" onkeyup="filterRosterByName('rosterSearchInput', '.roster-item')" placeholder="선수 이름 또는 등번호 검색..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-xs"></i>
+            <input type="text" id="rosterSearchInput" onkeyup="filterRosterByName('rosterSearchInput', '.roster-item')" placeholder="선수 이름 또는 등번호 검색..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
           </div>
           
-          <div id="rosterSelectionContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto custom-scroll pr-1"></div>
+          <div id="rosterSelectionContainer" class="space-y-2"></div>
         </div>
       </div>
 
@@ -2269,6 +2302,8 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
 
       const searchInput = document.getElementById('rosterSearchInput');
       if (searchInput) searchInput.value = '';
+      const rosterContainer = document.getElementById('rosterSelectionContainer');
+      if (rosterContainer) rosterContainer.innerHTML = '';
 
       const durInput = document.getElementById('inputQuarterDuration');
       if (durInput) durInput.value = '10';
@@ -2368,94 +2403,107 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
     function renderNewMatchRosterSelection(mode) {
       const container = document.getElementById('rosterSelectionContainer');
       if (!container) return;
-      container.innerHTML = '';
+
+      // 게스트 추가나 팀 컬러 변경으로 다시 그릴 때 기존 체크 상태를 보존합니다.
+      const selectedHome = new Set(Array.from(container.querySelectorAll('input[name="rosterHome"]:checked')).map(cb => cb.value));
+      const selectedAway = new Set(Array.from(container.querySelectorAll('input[name="rosterAway"]:checked')).map(cb => cb.value));
 
       const allPlayers = getAllUniquePlayers();
       const homeColor = document.getElementById('selectHomeColor').value;
       const awayColor = homeColor === '블랙' ? '블루/화이트' : '블랙';
 
-      if (mode === '자체전') {
-        let homeList = allPlayers.filter(p => p.color === homeColor);
-        let awayList = allPlayers.filter(p => p.color === awayColor);
+      const playerRows = (players, team, isMercenary = false, fallbackColor = '') => players.map(p => {
+        const name = isMercenary ? `${p.name} (용병)` : p.name;
+        const color = isMercenary ? fallbackColor : (p.color || fallbackColor);
+        const value = `${p.number}|${name}|${p.birth || ''}|${color}`;
+        const checked = (team === 'HOME' ? selectedHome : selectedAway).has(value) || !!p.isGuest;
+        const itemClass = isMercenary ? 'new-roster-player new-roster-mercenary' : 'new-roster-player';
+        return `
+          <label class="roster-item ${itemClass}" data-search="#${p.number} ${p.name}">
+            <input type="checkbox" name="roster${team}" value="${value}" ${checked ? 'checked' : ''} onchange="updateRosterSelectionCount()">
+            <span class="min-w-0 flex-1">
+              <strong>#${p.number} ${p.name}</strong>
+              ${isMercenary ? `<small>(${p.color || '상대팀'}) · 용병</small>` : (p.isGuest ? '<small class="text-amber-300">게스트</small>' : '')}
+            </span>
+            <i class="fa-solid fa-check new-roster-check"></i>
+          </label>`;
+      }).join('');
 
+      const panel = (team, teamColor, players, mercenaries = [], isExchange = false) => {
+        const isHome = team === 'HOME';
+        const title = isHome ? 'HOME' : 'AWAY';
+        return `
+          <section id="newRosterPanel${team}" class="new-roster-panel ${isHome ? '' : 'hidden'}">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <div>
+                <div class="text-sm font-black ${isHome ? 'text-blue-300' : 'text-rose-300'}">${title} 로스터</div>
+                <div class="text-[11px] text-slate-400">${isExchange ? '우리팀 참가 선수' : `팀 컬러 · ${teamColor}`}</div>
+              </div>
+              <button type="button" onclick="promptAddGuest('${team}')" class="text-[11px] bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg font-bold">+ 게스트</button>
+            </div>
+            <div class="new-roster-list custom-scroll">
+              ${playerRows(players, team)}
+              ${mercenaries.length ? `
+                <div class="new-roster-group-label"><i class="fa-solid fa-bolt mr-1"></i>용병 선택 · 다른 팀 선수</div>
+                ${playerRows(mercenaries, team, true, teamColor)}
+              ` : ''}
+              ${players.length === 0 && mercenaries.length === 0 ? '<div class="new-roster-empty">등록된 선수가 없습니다.</div>' : ''}
+            </div>
+          </section>`;
+      };
+
+      if (mode === '자체전') {
+        const homeList = allPlayers.filter(p => p.color === homeColor);
+        const awayList = allPlayers.filter(p => p.color === awayColor);
         tempGuests.forEach(g => {
           if (g.targetTeam === 'HOME') homeList.push(g);
           else awayList.push(g);
         });
-
         const otherHomeOptions = allPlayers.filter(p => p.color !== homeColor);
         const otherAwayOptions = allPlayers.filter(p => p.color !== awayColor);
-
-        container.innerHTML = `
-          <div class="bg-slate-800 p-2.5 rounded-xl border border-blue-500/30">
-            <div class="font-bold text-blue-400 text-xs mb-1.5 flex justify-between items-center">
-              <span>HOME (${homeColor}) 로스터</span>
-              <button onclick="promptAddGuest('HOME')" class="text-[9px] bg-blue-600/40 text-blue-200 border border-blue-400/40 px-1.5 py-0.5 rounded">+ 게스트</button>
-            </div>
-            <div class="space-y-1">
-              ${homeList.map(p => `
-                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
-                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" ${p.isGuest ? 'checked' : ''} onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name} ${p.isGuest ? '<span class="text-[9px] text-amber-400">(게스트)</span>' : ''}</span>
-                </label>
-              `).join('')}
-              
-              <div class="pt-2 border-t border-slate-700/50 mt-1">
-                <span class="text-[10px] text-purple-400 font-bold block mb-1">⚡ 용병 선택 (${awayColor} 팀원 지원)</span>
-                ${otherHomeOptions.map(p => `
-                  <label class="roster-item flex items-center gap-2 bg-purple-950/40 p-1.5 rounded cursor-pointer hover:bg-purple-900/50 text-xs text-purple-200 mb-1 border border-purple-500/30" data-search="#${p.number} ${p.name}">
-                    <input type="checkbox" name="rosterHome" value="${p.number}|${p.name} (용병)|${p.birth}|${homeColor}" onchange="updateRosterSelectionCount()" class="rounded border-purple-600">
-                    <span>#${p.number} ${p.name} <span class="text-[9px] text-purple-300">(${p.color})</span></span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-slate-800 p-2.5 rounded-xl border border-red-500/30">
-            <div class="font-bold text-red-400 text-xs mb-1.5 flex justify-between items-center">
-              <span>AWAY (${awayColor}) 로스터</span>
-              <button onclick="promptAddGuest('AWAY')" class="text-[9px] bg-red-600/40 text-red-200 border border-red-400/40 px-1.5 py-0.5 rounded">+ 게스트</button>
-            </div>
-            <div class="space-y-1">
-              ${awayList.map(p => `
-                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
-                  <input type="checkbox" name="rosterAway" value="${p.number}|${p.name}|${p.birth}|${p.color}" ${p.isGuest ? 'checked' : ''} onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name} ${p.isGuest ? '<span class="text-[9px] text-amber-400">(게스트)</span>' : ''}</span>
-                </label>
-              `).join('')}
-
-              <div class="pt-2 border-t border-slate-700/50 mt-1">
-                <span class="text-[10px] text-purple-400 font-bold block mb-1">⚡ 용병 선택 (${homeColor} 팀원 지원)</span>
-                ${otherAwayOptions.map(p => `
-                  <label class="roster-item flex items-center gap-2 bg-purple-950/40 p-1.5 rounded cursor-pointer hover:bg-purple-900/50 text-xs text-purple-200 mb-1 border border-purple-500/30" data-search="#${p.number} ${p.name}">
-                    <input type="checkbox" name="rosterAway" value="${p.number}|${p.name} (용병)|${p.birth}|${awayColor}" onchange="updateRosterSelectionCount()" class="rounded border-purple-600">
-                    <span>#${p.number} ${p.name} <span class="text-[9px] text-purple-300">(${p.color})</span></span>
-                  </label>
-                `).join('')}
-              </div>
-            </div>
-          </div>
-        `;
+        container.innerHTML = panel('HOME', homeColor, homeList, otherHomeOptions) + panel('AWAY', awayColor, awayList, otherAwayOptions);
+        const awayTab = document.getElementById('newRosterAwayTab');
+        if (awayTab) {
+          awayTab.disabled = false;
+          awayTab.title = '';
+        }
       } else {
-        container.innerHTML = `
-          <div class="col-span-2 bg-slate-800 p-2.5 rounded-xl border border-indigo-500/30">
-            <div class="font-bold text-indigo-300 text-xs mb-1.5 flex justify-between">
-              <span>우리팀 참가 로스터 (팀컬러 구분없이 전체선수)</span>
-              <span class="text-[10px] text-slate-400">${allPlayers.length}명 가능</span>
-            </div>
-            <div class="grid grid-cols-2 gap-1 max-h-[160px] overflow-y-auto custom-scroll pr-1">
-              ${allPlayers.map(p => `
-                <label class="roster-item flex items-center gap-2 bg-slate-900 p-1.5 rounded cursor-pointer hover:bg-slate-700/50 text-xs text-white" data-search="#${p.number} ${p.name}">
-                  <input type="checkbox" name="rosterHome" value="${p.number}|${p.name}|${p.birth}|${p.color}" onchange="updateRosterSelectionCount()" class="rounded border-slate-600">
-                  <span>#${p.number} ${p.name} <span class="text-[9px] text-slate-400">(${p.color})</span></span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        `;
+        container.innerHTML = panel('HOME', '전체', allPlayers, [], true);
+        const awayTab = document.getElementById('newRosterAwayTab');
+        if (awayTab) {
+          awayTab.disabled = true;
+          awayTab.title = '교류전은 우리팀 로스터만 선택합니다.';
+        }
       }
+
+      setNewMatchRosterTab('HOME');
       updateRosterSelectionCount();
+    }
+
+    function setNewMatchRosterTab(team) {
+      const homePanel = document.getElementById('newRosterPanelHOME');
+      const awayPanel = document.getElementById('newRosterPanelAWAY');
+      const homeTab = document.getElementById('newRosterHomeTab');
+      const awayTab = document.getElementById('newRosterAwayTab');
+      if (team === 'AWAY' && (!awayPanel || !awayTab || awayTab.disabled)) return;
+
+      if (homePanel) homePanel.classList.toggle('hidden', team !== 'HOME');
+      if (awayPanel) awayPanel.classList.toggle('hidden', team !== 'AWAY');
+
+      if (homeTab) {
+        const active = team === 'HOME';
+        homeTab.className = active
+          ? 'rounded-xl border border-blue-400 bg-blue-500/20 text-blue-200 px-3 py-3 text-left transition'
+          : 'rounded-xl border border-slate-700 bg-slate-800 text-slate-300 px-3 py-3 text-left transition';
+        homeTab.setAttribute('aria-pressed', String(active));
+      }
+      if (awayTab) {
+        const active = team === 'AWAY';
+        awayTab.className = active
+          ? 'rounded-xl border border-rose-400 bg-rose-500/20 text-rose-200 px-3 py-3 text-left transition'
+          : 'rounded-xl border border-slate-700 bg-slate-800 text-slate-300 px-3 py-3 text-left transition';
+        awayTab.setAttribute('aria-pressed', String(active));
+      }
     }
 
     function filterRosterByName(inputId, itemSelector) {
@@ -2477,7 +2525,11 @@ th.bg-blue-950,td.bg-blue-950{background-color:#e6f3ec !important}
       const awayChecked = document.querySelectorAll('input[name="rosterAway"]:checked').length;
       const total = homeChecked + awayChecked;
       const el = document.getElementById('rosterSelectionCount');
-      if (el) el.textContent = `총 ${total}명 선택됨`;
+      const homeEl = document.getElementById('newRosterHomeCount');
+      const awayEl = document.getElementById('newRosterAwayCount');
+      if (el) el.textContent = `${total}명 선택`;
+      if (homeEl) homeEl.textContent = `${homeChecked}명 선택`;
+      if (awayEl) awayEl.textContent = `${awayChecked}명 선택`;
     }
 
     function openCurrentMatchRosterModal() {
